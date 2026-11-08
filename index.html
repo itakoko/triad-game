@@ -67,7 +67,7 @@ canvas#mapCanvas{aspect-ratio:16/10;background:#0b1522}
 #mapModal .modalbox{width:min(900px,100%)}#overviewCanvas,#meetingOverviewCanvas{width:100%;height:auto;aspect-ratio:3/2;background:#0b1522;border:1px solid #536a82;border-radius:10px}.meetingMapPanel,.meetingAlivePanel{margin:10px 0;padding:10px;border:1px solid #40566d;border-radius:10px;background:#101e2c}.meetingMapPanel strong,.meetingAlivePanel strong{display:block;margin-bottom:7px}.meetingAliveList{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:5px;max-height:150px;overflow:auto}.meetingAliveItem{display:flex;align-items:center;gap:6px;min-width:0;font-size:12px;padding:4px;background:#1a2a3b;border-radius:6px}.meetingAliveItem span:nth-child(2){overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.meetingAliveItem small{white-space:nowrap}
 .mapLegend{display:flex;gap:12px;flex-wrap:wrap;font-size:12px;color:var(--muted);margin:8px 0}
 @media(max-width:760px){#gameLayout{grid-template-columns:1fr}.side{display:grid;grid-template-columns:1fr 1fr}.side .wide{grid-column:1/-1}.actionPanel{grid-template-columns:1fr 1fr}.gamebox{width:100%}}
-\n.meetingMapToggle{width:100%;margin:8px 0;background:#294b70;border:2px solid #82b9e8;font-weight:800}.meetingMapPanel[hidden]{display:none!important}\n@media (orientation:landscape) and (min-width:600px){main{max-width:1500px;padding:10px 16px}#gameLayout{grid-template-columns:minmax(0,1fr) 250px;gap:14px}.gamebox{max-width:none;width:100%}.side{display:flex;flex-direction:column}.side .wide{grid-column:auto}.actionPanel{grid-template-columns:1fr 1fr}#meetingModal .modalbox{width:min(1120px,96vw);max-height:94vh}.meetingChat{max-height:28vh}.meetingAliveList{grid-template-columns:repeat(3,minmax(0,1fr));max-height:110px}}\n.taskGameBox{width:min(680px,100%)}#taskMiniGame{margin:14px 0}.miniChoiceGrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin:12px 0}.miniChoice{min-height:62px;font-size:17px;font-weight:850;background:#14263b;border:2px solid #607d9a;border-radius:12px}.miniChoice:disabled{opacity:.5;border-color:#63d6bd;background:#1c514b}.taskPattern{font-size:28px;font-weight:900;letter-spacing:.16em;text-align:center;padding:18px;background:#101a2a;border:1px solid #526a84;border-radius:12px;margin:10px 0}@media (orientation:landscape) and (min-width:600px){.taskGameBox{width:min(760px,94vw)}.miniChoiceGrid{grid-template-columns:repeat(4,minmax(0,1fr))}}</style>
+\n.meetingMapToggle{width:100%;margin:8px 0;background:#294b70;border:2px solid #82b9e8;font-weight:800}.meetingMapPanel[hidden]{display:none!important}\n@media (orientation:landscape) and (min-width:600px){main{max-width:1500px;padding:10px 16px}#gameLayout{grid-template-columns:minmax(0,1fr) 250px;gap:14px}.gamebox{max-width:none;width:100%}.side{display:flex;flex-direction:column}.side .wide{grid-column:auto}.actionPanel{grid-template-columns:1fr 1fr}#meetingModal .modalbox{width:min(1120px,96vw);max-height:94vh}.meetingChat{max-height:28vh}.meetingAliveList{grid-template-columns:repeat(3,minmax(0,1fr));max-height:110px}}\n</style>
 </head>
 <body>
 <header><div class="logo">TRI<span>AD</span></div><div class="tag">オフライン試作 · v0.23</div></header>
@@ -136,14 +136,14 @@ canvas#mapCanvas{aspect-ratio:16/10;background:#0b1522}
 
   <div class="modal" id="mapModal"><div class="modalbox"><h2>研究施設マップ</h2><canvas id="overviewCanvas" width="900" height="600"></canvas><div class="mapLegend"><span>● あなた</span><span>♥ 恋人（恋人のみ）</span><span>● タスク端末</span><span>■ 緊急会議ボタン</span><span>！ 手配書端末</span><span>■ 遮蔽物・チェイスカバー</span><span>× 死体</span></div><button class="primary" style="width:100%" onclick="closeMap()">閉じる</button></div></div>
  <div class="modal" id="targetModal"><div class="modalbox"><h2 id="targetTitle">対象を選択</h2><p id="targetInfo" class="muted"></p><div id="targetList" class="targetList"></div><button style="width:100%" onclick="closeTargetModal()">キャンセル</button></div></div>
- <div class="modal" id="taskPuzzleModal"><div class="modalbox taskGameBox"><h2 id="taskGameTitle">🔧 タスク</h2><p id="taskPuzzleLabel" class="muted"></p><div id="taskMiniGame"></div><p id="taskPuzzleFeedback" class="taskPuzzleFeedback"></p><div class="actions"><button onclick="closeTaskPuzzle()">中断</button></div></div></div>
+ <div class="modal" id="taskPuzzleModal"><div class="modalbox"><h2>🔐 暗号解読</h2><p id="taskPuzzleLabel" class="muted">端末の暗号を解読してください。</p><div id="taskCipherMap" class="taskCipher"></div><div id="taskCipherCode" class="taskPuzzleCode"></div><p class="muted">対応表を見て、暗号を4桁の数字に変換してください。</p><input id="taskPuzzleInput" class="taskPuzzleInput" type="text" inputmode="numeric" maxlength="4" placeholder="4桁の数字" onkeydown="if(event.key==='Enter'){event.preventDefault();submitTaskPuzzle()}"><p id="taskPuzzleFeedback" class="taskPuzzleFeedback"></p><div class="actions"><button onclick="closeTaskPuzzle()">中断</button><button class="primary" onclick="submitTaskPuzzle()">解読する</button></div></div></div>
  <div class="modal" id="seerResultModal"><div class="modalbox"><h2>占い結果</h2><p id="seerTargetName" class="muted"></p><div id="seerFactionValue" class="seerFaction"></div><p class="muted">占いで分かるのは役職名ではなく、陣営（白・黒・第三）です。</p><button class="primary" style="width:100%" onclick="closeSeerResult()">閉じる</button></div></div>
  <div class="modal" id="aliveModal"><div class="modalbox"><h2>生存者一覧</h2><p id="aliveSummary" class="muted"></p><div id="aliveList" class="targetList"></div><button class="primary" style="width:100%" onclick="closeAliveList()">閉じる</button></div></div>
  <div class="modal" id="bountyModal"><div class="modalbox"><h2>暗殺者の手配書</h2><p class="muted">手配対象は暗殺者本人だけに表示されています。対象以外を殺すと暗殺者も死亡します。</p><p id="bountyText"></p><button class="primary" style="width:100%" onclick="closeBounty()">手配書を閉じる</button></div></div>
  <div class="modal" id="meetingModal"><div class="modalbox">
   <h2 id="meetingTitle">会議</h2><p id="meetingInfo" class="muted">話し合いを行い、投票先を選んでください。</p>
   <div class="pill" id="meetingPhaseLabel">議論フェーズ</div>
-  <button id="meetingMapToggle" class="meetingMapToggle" type="button" onclick="toggleMeetingMap()">🗺 マップを表示</button><div class="meetingMapPanel" id="meetingMapPanel" hidden><strong>研究施設マップ</strong><canvas id="meetingOverviewCanvas" width="900" height="600"></canvas><div class="mapLegend">● あなたの会議開始時の位置　× 死亡した場所（位置は本人以外表示されません）</div><button type="button" onclick="toggleMeetingMap(false)">マップを閉じる</button></div>
+  <button id="meetingMapToggle" class="meetingMapToggle" type="button" onclick="toggleMeetingMap()">🗺 マップを表示</button><div class="meetingMapPanel" id="meetingMapPanel" hidden><strong>研究施設マップ</strong><canvas id="meetingOverviewCanvas" width="900" height="600"></canvas><div class="mapLegend">● 生存者の現在位置（各自の色）</div><button type="button" onclick="toggleMeetingMap(false)">マップを閉じる</button></div>
   <div class="meetingAlivePanel"><strong id="meetingAliveSummary">生存者</strong><div id="meetingAliveList" class="meetingAliveList"></div></div>
   <div id="meetingChat" class="meetingChat" aria-live="polite"></div>
   <div id="meetingComposer" class="meetingComposer"><input id="meetingChatInput" maxlength="180" placeholder="手掛かりや見た情報を共有" onkeydown="if(event.key==='Enter'){event.preventDefault();sendMeetingMessage()}"><button onclick="sendMeetingMessage()">発言</button></div>
@@ -174,18 +174,14 @@ const SUPABASE_PUBLISHABLE_KEY="sb_publishable_79x6YIEy9SYlaoiiDFoDQA_eP37cFfQ";
 let supabaseClient=null,aiProfilePool=[],aiProfilesLoaded=false;
 async function loadAIProfiles(){
  if(aiProfilesLoaded)return;
- let timeoutId=null;
  try{
   if(!window.supabase?.createClient)throw new Error("Supabase SDK unavailable");
   supabaseClient=supabaseClient||window.supabase.createClient(SUPABASE_URL,SUPABASE_PUBLISHABLE_KEY);
-  const request=supabaseClient.from("ai_profiles").select("id,display_name,personality,skill_level,task_skill,deduction_skill,caution,sociability,aggression,task_priority,memory").order("id");
-  const timeout=new Promise((_,reject)=>{timeoutId=setTimeout(()=>reject(new Error("AI profile request timed out")),4500)});
-  const {data,error}=await Promise.race([request,timeout]);
+  const {data,error}=await supabaseClient.from("ai_profiles").select("id,display_name,personality,skill_level,task_skill,deduction_skill,caution,sociability,aggression,task_priority,memory").order("id");
   if(error)throw error;
   aiProfilePool=Array.isArray(data)?data:[];
   aiProfilesLoaded=true;
  }catch(error){console.warn("AI profile load failed; using local fallback.",error);aiProfilePool=[];aiProfilesLoaded=true;}
- finally{if(timeoutId)clearTimeout(timeoutId)}
 }
 
 const $=id=>document.getElementById(id);
@@ -219,7 +215,7 @@ let state={players:[],me:null,map:null,tasks:[],done:0,total:0,seconds:0,move:{x
 let loop=null,clock=null;
 const colorNames=["赤","青","黄色","紫","緑","オレンジ","ピンク","水色","黄緑","茶色","紺","マゼンタ","青緑","金","サーモン","ライム","群青","ラベンダー","朱色","ターコイズ","黄土","ローズ","エメラルド","コバルト","レモン","ワイン","ミント","藤色","銅色","白"];
 const colors=["#e53935","#1e88e5","#fdd835","#8e24aa","#43a047","#fb8c00","#ec407a","#00acc1","#7cb342","#8d6e63","#3949ab","#d81b60","#00897b","#c0a000","#ff7043","#c0ca33","#283593","#9575cd","#f4511e","#26a69a","#b08d00","#ad1457","#00a152","#1565c0","#f9a825","#6d1b3b","#66bb6a","#7e57c2","#a65e2e","#eeeeee"];
-const naturalAINames=["月影","黒猫","霧雨","Nocturne","迷子の案内人","白夜","深海魚","宵闇","零時の鐘","幻影","硝子の心","名無しの探偵","灰色うさぎ","夜ふかし","影縫い","追憶","星屑","迷宮入り","もちもち","ぷりん","からあげ","きなこ","しらす","ぽてと","ねこもち","雨宿り","終幕","紅茶党","無音","ラストピース"];let gameNameDeck=[];function fallbackAIName(index){return gameNameDeck[index-1]||naturalAINames[(index-1)%naturalAINames.length]}function playerTag(p){return `#${String(p.number||p.id+1).padStart(2,"0")} ${p.name}`}
+const naturalAINames=["ねこもち","もちもち","しろくま","くろまめ","ぽてと","ぷりん","たこやき","しらす","ぺんぎん","からあげ","こむぎ","みたらし","ねむねむ","うさぎもち","わたあめ","めんだこ","ましゅまろ","こんぺいとう","ほっとけーき","おにぎり","きなこもち","すいか","りんごあめ","ぽんず","ふわり","もちぱん","しおこんぶ","だいふく","ちくわ","くりーむ"];let gameNameDeck=[];function fallbackAIName(index){return gameNameDeck[index-1]||naturalAINames[(index-1)%naturalAINames.length]}function playerTag(p){return `#${String(p.number||p.id+1).padStart(2,"0")} ${p.name}`}
 function show(id){document.querySelectorAll(".screen").forEach(s=>s.classList.remove("active"));$(id).classList.add("active")}
 function log(t){}
 function rand(a,b){return Math.random()*(b-a)+a}
@@ -264,7 +260,7 @@ async function startGame(){
   if(lovers.length===2){lovers[0].partnerId=lovers[1].id;lovers[1].partnerId=lovers[0].id}
   if(state.players.some(p=>p.role==="暗殺者"))state.bountyIds=shuffle(state.players.filter(p=>p.team==="white").map(p=>p.id)).slice(0,3);
   state.players.filter(p=>p.role==="放浪者").forEach(p=>state.scentedIds.add(p.id));
-  const taskDefs=[["サンプル仕分け","sort","生体研究室"],["配線接続","wires","受付"],["周波数調整","frequency","観測室"],["データ照合","memory","制御室"],["電力供給","wires","動力炉"],["医療スキャン","frequency","医療室"],["冷却バルブ","sequence","動力炉"],["観測データ復元","memory","観測室"],["端末再起動","cipher","入口"],["回路修復","sequence","保管庫"]];state.tasks=state.map.tasks.map((p,i)=>{const quota=Math.floor(state.total/state.map.tasks.length)+(i<state.total%state.map.tasks.length?1:0),def=taskDefs[i%taskDefs.length];return {id:i,x:p[0],y:p[1],done:false,quota,remaining:quota,completedBy:[],label:def[0],type:def[1],location:def[2]}});
+  state.tasks=state.map.tasks.map((p,i)=>{const quota=Math.floor(state.total/state.map.tasks.length)+(i<state.total%state.map.tasks.length?1:0);return {id:i,x:p[0],y:p[1],done:false,quota,remaining:quota,completedBy:[],label:["サンプル確認","端末同期","データ解析","電力調整"][i%4]}});
   $("mapLabel").textContent="マップ：研究施設";$("roleLabel").textContent="役職："+state.me.role;$("myRoleText").textContent="陣営："+teamName(state.me.team)+" ／ 役職："+state.me.role+"。"+roleDescription(state.me);
   $("myStatus").textContent="生存";$("ghostBanner").hidden=true;$("taskCount").textContent="0 / "+state.total;$("taskProgress").style.width="0%";log("研究施設に到着。");
   show("game");state.running=true;updateNearbyActions();draw();clearInterval(loop);clearInterval(clock);loop=setInterval(tick,70);clock=setInterval(()=>{if(!state.running)return;state.seconds++;$("timer").textContent=String(Math.floor(state.seconds/60)).padStart(2,"0")+":"+String(state.seconds%60).padStart(2,"0");aiAction();checkWin()},1000);
@@ -471,7 +467,7 @@ function draw(){
   state.tasks.forEach(t=>{if(t.done)return;ctx.fillStyle="#ffd36b";ctx.beginPath();ctx.arc(t.x,t.y,10,0,Math.PI*2);ctx.fill();ctx.strokeStyle="#fff3c6";ctx.lineWidth=3;ctx.stroke();ctx.fillStyle="#fff0b5";ctx.font="12px system-ui";ctx.fillText(t.label,t.x-30,t.y-17);ctx.fillStyle="#13243a";ctx.font="bold 10px system-ui";ctx.fillText(String(t.remaining),t.x-3,t.y+4)});
  // emergency meeting console: fixed location in central junction
  ctx.fillStyle="#7d292e";ctx.fillRect(860,480,80,80);ctx.strokeStyle="#ffaaa0";ctx.lineWidth=5;ctx.strokeRect(860,480,80,80);ctx.fillStyle="#fff0e8";ctx.font="bold 15px system-ui";ctx.fillText("会議ボタン",852,475);ctx.fillStyle="#ff5b55";ctx.beginPath();ctx.arc(900,520,13,0,Math.PI*2);ctx.fill();
-  if(!meetingMode&&state.bountyIds.length){ctx.fillStyle="#5d426d";ctx.fillRect(1320,470,48,48);ctx.strokeStyle="#d2a8ed";ctx.lineWidth=4;ctx.strokeRect(1320,470,48,48);ctx.fillStyle="#f3d8ff";ctx.font="bold 12px system-ui";ctx.fillText("手配書端末",1305,465)}
+  if(state.bountyIds.length){ctx.fillStyle="#5d426d";ctx.fillRect(1320,470,48,48);ctx.strokeStyle="#d2a8ed";ctx.lineWidth=4;ctx.strokeRect(1320,470,48,48);ctx.fillStyle="#f3d8ff";ctx.font="bold 12px system-ui";ctx.fillText("手配書端末",1305,465)}
  // visible corpses at their last positions
   state.dead.forEach(d=>{if(!hasLineOfSight(state.me,d))return;ctx.save();ctx.translate(d.x,d.y);ctx.rotate(-.35);ctx.fillStyle="#b9c5d0";ctx.fillRect(-18,-9,36,18);ctx.fillStyle="#7d3037";ctx.fillRect(-4,-9,8,18);ctx.restore()});
      state.players.forEach(p=>{if((!p.alive&&p.id!==state.me.id)||(p.id!==state.me.id&&!hasLineOfSight(state.me,p)))return;let look=p;if(p.disguiseId!==null&&p.disguiseUntil>Date.now()){look=state.players.find(x=>x.id===p.disguiseId)||p}ctx.save();ctx.globalAlpha=p.alive?1:.38;ctx.translate(p.x,p.y);ctx.fillStyle=p.alive?look.color:"#d9c7ff";ctx.strokeStyle=p.id===0?"#ffffff":"#0c1726";ctx.lineWidth=p.id===0?4:2;ctx.beginPath();if(look.shape===0)ctx.ellipse(0,0,9,11,0,0,Math.PI*2);else if(look.shape===1)ctx.ellipse(0,0,11,8,0,0,Math.PI*2);else if(look.shape===2){ctx.moveTo(0,-11);ctx.quadraticCurveTo(12,-8,9,5);ctx.quadraticCurveTo(0,14,-9,5);ctx.quadraticCurveTo(-12,-8,0,-11)}else ctx.roundRect(-9,-10,18,20,5);ctx.fill();ctx.stroke();ctx.fillStyle="#13243a";ctx.beginPath();ctx.arc(-3,-2,1.5,0,7);ctx.arc(3,-2,1.5,0,7);ctx.fill();if(!p.alive){ctx.fillStyle="#f2e5ff";ctx.font="bold 11px system-ui";ctx.fillText("幽霊", -13, -16)}ctx.restore();
@@ -553,43 +549,31 @@ function updateNearbyActions(){
  if(state.sabotageUntil>now)hints.push(`停電中 ${remainingText(state.sabotageUntil)}秒`);
  $("nearHint").textContent=hints.join(" ／ ")||"黄色い端末・赤い会議ボタン・死体に近づくと操作できます。";
 }
-let activeTaskPuzzle=null,activeTaskAnswer="",taskMiniState=null;
+let activeTaskPuzzle=null,activeTaskAnswer="";
 function openTaskPuzzle(task){
  if(!state.running||!task||task.done||task.remaining<=0||!state.me||task.completedBy?.includes(state.me.id))return;
- activeTaskPuzzle=task;taskMiniState={};$("taskGameTitle").textContent="🔧 "+task.label;$("taskPuzzleLabel").textContent=task.location+"の端末を操作してください。";$("taskPuzzleFeedback").textContent="";renderTaskMiniGame();$("taskPuzzleModal").classList.add("show");
+ activeTaskPuzzle=task;
+ const symbols=["◆","●","▲","■","★","☾"],digits=shuffle(["1","2","3","4","5","6"]),map={};
+ symbols.forEach((symbol,i)=>map[symbol]=digits[i]);
+ const cipher=Array.from({length:4},()=>symbols[Math.floor(Math.random()*symbols.length)]);
+ activeTaskAnswer=cipher.map(symbol=>map[symbol]).join("");
+ $("taskPuzzleLabel").textContent=task.label+"：記号を数字に変換してください。";
+ $("taskCipherMap").innerHTML=symbols.map(symbol=>"<span>"+symbol+" ＝ "+map[symbol]+"</span>").join("");
+ $("taskCipherCode").textContent=cipher.join("　");
+ $("taskPuzzleInput").value="";$("taskPuzzleFeedback").textContent="";
+ $("taskPuzzleModal").classList.add("show");
 }
-function closeTaskPuzzle(){$("taskPuzzleModal").classList.remove("show");activeTaskPuzzle=null;activeTaskAnswer="";taskMiniState=null}
-function renderTaskMiniGame(){
- const root=$("taskMiniGame"),type=activeTaskPuzzle?.type;if(!activeTaskPuzzle)return;
- if(type==="wires"){
-  if(!taskMiniState.done){taskMiniState.done=[];taskMiniState.right=shuffle([0,1,2,3]);taskMiniState.pick=null}
-  const names=["赤","青","黄","緑"],hex=["#e53935","#1e88e5","#fdd835","#43a047"];
-  root.innerHTML='<p class="muted">左側の端子を選び、右側の同じ色の端子を選んで配線してください。</p><div class="miniChoiceGrid"><div>'+names.map((v,i)=>'<button class="miniChoice" style="width:100%;border-color:'+hex[i]+'" '+(taskMiniState.done.includes(i)?'disabled':'')+' onclick="pickWireSide('+i+')">'+v+'側</button>').join("")+'</div><div>'+taskMiniState.right.map(i=>'<button class="miniChoice" style="width:100%;border-color:'+hex[i]+'" '+(taskMiniState.done.includes(i)?'disabled':'')+' onclick="connectWireSide('+i+')">'+names[i]+'側</button>').join("")+'</div></div><p class="muted">接続 '+taskMiniState.done.length+'/4</p>';
- }else if(type==="sort"){
-  if(!taskMiniState.order){taskMiniState.order=shuffle([1,2,3,4]);taskMiniState.selected=[]}
-  root.innerHTML='<p class="muted">サンプルを番号の小さい順に選んで仕分けてください。</p><div class="miniChoiceGrid">'+taskMiniState.order.map(v=>'<button class="miniChoice" '+(taskMiniState.selected.includes(v)?'disabled':'')+' onclick="chooseSample('+v+')">🧪 試料 '+v+'</button>').join("")+'</div><p class="muted">選択：'+taskMiniState.selected.join(" → ")+'</p>';
- }else if(type==="memory"){
-  if(!taskMiniState.pattern){taskMiniState.pattern=Array.from({length:4},()=>Math.floor(Math.random()*4));taskMiniState.selected=[]}
-  const symbols=["▲","●","■","◆"];
-  root.innerHTML='<p class="muted">記号の順番を覚えて、同じ順番で押してください。</p><div class="taskPattern">'+taskMiniState.pattern.map(v=>symbols[v]).join("　")+'</div><div class="miniChoiceGrid">'+symbols.map((v,i)=>'<button class="miniChoice" onclick="choosePattern('+i+')">'+v+'</button>').join("")+'</div><p class="muted">入力 '+taskMiniState.selected.length+'/4</p>';
- }else if(type==="frequency"){
-  if(!taskMiniState.target){taskMiniState.target=180+Math.floor(Math.random()*7)*20;taskMiniState.options=shuffle([taskMiniState.target,taskMiniState.target-40,taskMiniState.target+40,taskMiniState.target+80])}
-  root.innerHTML='<p class="muted">目標周波数と同じ数値を選択してください。</p><div class="taskPattern">📡 '+taskMiniState.target+' Hz</div><div class="miniChoiceGrid">'+taskMiniState.options.map(v=>'<button class="miniChoice" onclick="chooseFrequency('+v+')">'+v+' Hz</button>').join("")+'</div>';
- }else if(type==="sequence"){
-  if(!taskMiniState.selected)taskMiniState.selected=[];
-  root.innerHTML='<p class="muted">端子を1から4まで順番に押して回路を復旧してください。</p><div class="miniChoiceGrid">'+[1,2,3,4].map(v=>'<button class="miniChoice" '+(taskMiniState.selected.includes(v)?'disabled':'')+' onclick="chooseSequence('+v+')">端子 '+v+'</button>').join("")+'</div><p class="muted">復旧 '+taskMiniState.selected.length+'/4</p>';
- }else{
-  if(!taskMiniState.map){const symbols=["◆","●","▲","■","★","☾"],digits=shuffle(["1","2","3","4","5","6"]),map={};symbols.forEach((v,i)=>map[v]=digits[i]);const code=Array.from({length:4},()=>symbols[Math.floor(Math.random()*symbols.length)]);taskMiniState.map=map;taskMiniState.code=code;taskMiniState.answer=code.map(v=>map[v]).join("")}
-  root.innerHTML='<p class="muted">対応表を使い、記号を4桁の数字に変換してください。</p><div class="taskCipher">'+Object.entries(taskMiniState.map).map(([k,v])=>'<span>'+k+' = '+v+'</span>').join("")+'</div><div class="taskPattern">'+taskMiniState.code.join("　")+'</div><input id="taskPuzzleInput" class="taskPuzzleInput" type="text" inputmode="numeric" maxlength="4" placeholder="4桁の数字"><button class="primary" style="width:100%;margin-top:8px" onclick="submitTaskPuzzle()">送信</button>';
- }
+function closeTaskPuzzle(){
+ $("taskPuzzleModal").classList.remove("show");activeTaskPuzzle=null;activeTaskAnswer="";
 }
-function finishMiniTask(){const task=activeTaskPuzzle;if(!task||!state.running)return;closeTaskPuzzle();if(completeSharedTask(task,state.me)){updateNearbyActions();draw()}}
-function pickWireSide(v){if(!taskMiniState||taskMiniState.done.includes(v))return;taskMiniState.pick=v;$("taskPuzzleFeedback").textContent="右側の同じ色を選んでください。"}function connectWireSide(v){if(!taskMiniState||taskMiniState.pick===null)return;if(taskMiniState.pick!==v){taskMiniState.pick=null;$("taskPuzzleFeedback").textContent="色が違います。もう一度選んでください。";return}taskMiniState.done.push(v);taskMiniState.pick=null;$("taskPuzzleFeedback").textContent="接続成功！";if(taskMiniState.done.length===4){finishMiniTask();return}renderTaskMiniGame()}
-function chooseSample(v){const a=taskMiniState.selected;if(v!==a.length+1){taskMiniState.selected=[];$("taskPuzzleFeedback").textContent="順番が違います。最初からやり直してください。";renderTaskMiniGame();return}a.push(v);if(a.length===4){finishMiniTask();return}renderTaskMiniGame()}
-function choosePattern(v){const i=taskMiniState.selected.length;if(taskMiniState.pattern[i]!==v){taskMiniState.selected=[];taskMiniState.pattern=Array.from({length:4},()=>Math.floor(Math.random()*4));$("taskPuzzleFeedback").textContent="順番が違います。もう一度挑戦してください。";renderTaskMiniGame();return}taskMiniState.selected.push(v);if(taskMiniState.selected.length===4){finishMiniTask();return}renderTaskMiniGame()}
-function chooseFrequency(v){if(v===taskMiniState.target)finishMiniTask();else $("taskPuzzleFeedback").textContent="周波数が一致しません。"}
-function chooseSequence(v){if(v!==taskMiniState.selected.length+1){taskMiniState.selected=[];$("taskPuzzleFeedback").textContent="順番が違います。最初からやり直してください。";renderTaskMiniGame();return}taskMiniState.selected.push(v);if(taskMiniState.selected.length===4){finishMiniTask();return}renderTaskMiniGame()}
-function submitTaskPuzzle(){if(!activeTaskPuzzle||!state.running||activeTaskPuzzle.type!=="cipher")return;const answer=$("taskPuzzleInput")?.value.trim()||"";if(!/^\d{4}$/.test(answer)){$("taskPuzzleFeedback").textContent="4桁の数字を入力してください。";return}if(answer!==taskMiniState.answer){$("taskPuzzleFeedback").textContent="不正解です。対応表を確認してください。";$("taskPuzzleInput").value="";return}finishMiniTask()}
+function submitTaskPuzzle(){
+ if(!activeTaskPuzzle||!state.running)return;
+ const answer=$("taskPuzzleInput").value.trim();
+ if(!/^\d{4}$/.test(answer)){$("taskPuzzleFeedback").textContent="4桁の数字を入力してください。";return}
+ if(answer!==activeTaskAnswer){$("taskPuzzleFeedback").textContent="不正解です。対応表を確認してもう一度！";$("taskPuzzleInput").value="";return}
+ const task=activeTaskPuzzle;closeTaskPuzzle();
+ if(completeSharedTask(task,state.me)){updateNearbyActions();draw()}
+}
 function completeSharedTask(task,actor){
  if(!state.running||!task||task.done||task.remaining<=0||actor?.team!=="white")return false;
  task.completedBy=task.completedBy||[];
@@ -857,28 +841,6 @@ function buildAIStatement(ai){
   const sight=recent[Math.floor(Math.random()*recent.length)];
   return {text:pickDialogue([`さっき${sight.room}で${sight.target.name}を見かけました。その後どこへ行ったかは分かりません。`,`少し前に${sight.room}で${sight.target.name}とすれ違いました。見たのはそこまでです。`,`私が直接見たのは${sight.target.name}が${sight.room}にいたことだけです。決めつけは避けたいです。`,`さっき${sight.room}にいたのは${sight.target.name}です。時間が合う人はいますか？`]),kind:"witness",truth:true,subjectIds:[sight.target.id]};
  }
- const roleTalk={
-  "クルー":["私はクルーです。特殊能力はありませんが、タスクと目撃情報を頼りに考えます。","役職はクルーです。能力で調べられないので、証言の矛盾を見ています。","クルーなので派手な情報はありません。移動経路を照らし合わせましょう。","私に特別な調査能力はありません。だからこそ、誰が何を見たか確認したいです。"],
-  "サイエンティスト":["サイエンティストです。生存状況を確認できる役職です。","私はサイエンティスト。生存者の数に関する情報なら出せます。","役職はサイエンティストです。人数の変化も推理材料にしてください。"],
-  "恋人":["恋人の片割れです。相手の位置を把握できるので、必要なら情報を出します。","私は恋人です。相方のこともあるので、慎重に投票したいです。","恋人陣営ではありません、ではなく恋人です。位置情報を手掛かりにしています。"],
-  "占い師":["占い師です。近くの人を一度だけ調べられます。","私は占い師。まだ能力を使う相手を見極めています。","役職は占い師です。結果が出たら陣営情報を共有します。"],
-  "狩人":["狩人です。近距離で一度だけ行動できる能力があります。","私は狩人。能力を使うタイミングを慎重に選んでいます。","役職は狩人です。むやみに動かず、怪しい相手を見ています。"],
-  "保安官":["保安官です。対象を間違えると危険なので、証拠を重視します。","私は保安官。確信がない相手には能力を使いません。","役職は保安官です。発言だけでなく行動も確認しています。"],
-  "僧侶":["僧侶です。誰かを一度だけ守れる能力があります。","私は僧侶。守る相手を選ぶ必要があるので情報を集めています。","役職は僧侶です。危険な状況があれば教えてください。"],
-  "ライトキーパー":["ライトキーパーです。暗闇の影響を受けにくい役職です。","私はライトキーパー。停電中の動きも見ていました。","役職はライトキーパーです。視界を頼りに証言できます。"],
-  "インポスター":["インポスターです……と言うと思いましたか？ まずは証言を聞きましょう。","私はタスクを進めていました。誰か一緒だった人はいますか？","能力の話より、現場と時間を整理するのが先だと思います。"],
-  "イノシシ":["イノシシです。突進能力があるので、移動経路を見てください。","私はイノシシ。能力を使った場所と時間なら説明できます。","役職はイノシシです。直線的な移動を見た人はいますか？"],
-  "百面相":["百面相です。変身能力があるので、見た目だけで判断しないでください。","私は百面相。誰かの姿を見ても本人とは限りません。","役職は百面相です。目撃証言は色や姿だけで決めない方がいいです。"],
-  "放浪者":["放浪者です。独自の勝利条件があるので、皆さんとは目的が違います。","私は放浪者。誰がどこにいたかを観察しています。","役職は放浪者です。白黒どちらかに協力するとは限りません。"],
-  "暗殺者":["暗殺者です。手配対象を追う役職ですが、今は情報を集めています。","私は暗殺者。自分の目的があるので、全員の動きを見ています。","役職は暗殺者です。誰が手配対象かは言えません。"],
-  "てるてる":["てるてるです。追放されることが勝利条件です。……今のは冗談です。","私は普通に議論したいだけです。投票先は慎重に決めましょう。","役職のことは秘密です。まず怪しい人の話を聞きたいです。"],
-  "狂人":["狂人です。黒陣営とは違う勝利条件を持っています。","私は狂人。場をかき回すより、状況を見て動きます。","役職は秘密ですが、皆さんの推理を聞かせてください。"]
- };
- if(Math.random()<.34){
-  const truthful=ai.team==="white"&&Math.random()<.78;
-  const lines=truthful?(roleTalk[ai.role]||[]):Object.entries(roleTalk).filter(([r])=>r!==ai.role).flatMap(([r,lines])=>lines.map(line=>line.replaceAll(r,"クルー")));
-  if(lines.length)return {text:pickDialogue(lines),kind:"roleclaim",truth:truthful,subjectIds:[ai.id]};
- }
  const suspect=chooseAISuspect(ai);
  if(suspect&&Math.random()<lieChance){
   const room=state.meetingEvents[0]?.room||roomNameAt(ai.x,ai.y);
@@ -887,12 +849,10 @@ function buildAIStatement(ai){
  const top=chooseAISuspect(ai);
  if(top&&(ai.aiMemory.suspicion[top.id]||0)>1)
   return {text:pickDialogue([`${top.name}への疑いはありますが、まだ決め手が足りません。ほかの人の情報も聞きたいです。`,`今のところ${top.name}の行動が気になります。直接見た人はいますか？`,`${top.name}に票を集める前に、もう一度アリバイを確認したいです。`,`私は${top.name}を少し疑っています。ただ、証言が増えるまでは保留でもいいと思います。`]),kind:"accusation",truth:null,subjectIds:[top.id]};
- const room=roomNameAt(ai.x,ai.y),generalLines=[`私は${room}側にいました。見た情報をもう少し整理してから投票したいです。`,`今は決め手がありません。誰か、直前に一緒にいた人を覚えていますか？`,`証言が少ないうちに票を割るのは危険です。まず場所と順番を整理しましょう。`,`まだ迷っています。最後に見かけた相手と場所を一人ずつ出してもらえますか？`,`情報が足りません。確実に見たことと、推測を分けて話しませんか？`,`投票を急がず、今出た話に食い違いがないか確認したいです。`,`一度、全員の行動を時系列で並べませんか？`,`その発言には根拠がありますか？ 直接見たのか、誰かから聞いたのか知りたいです。`,`私はまだ投票先を決めていません。あと一人、証言を聞いてから判断します。`,`今のところ、発言の多さより内容の一貫性を重視しています。`,`タスクをしていた人は、どの端末で何をしていたか説明できますか？`,`同じ部屋にいた人同士で、互いの行動を確認してほしいです。`,`誰か一人に疑いを集める前に、別の可能性も考えたいです。`,`その時間にそこへ行けたのか、移動距離も考えてみましょう。`,`私は${room}で行動していました。見かけた人がいれば補足してください。`,`証言が食い違っていますね。どちらかが勘違いしている可能性もあります。`,`今の話を聞いて少し考えが変わりました。追加情報があればお願いします。`,`早い段階で断定するのは避けたいです。`,`誰が最初に死体を見つけたのかも重要だと思います。`,`会議直前に一緒にいた相手を教えてください。`];
- return {text:pickDialogue(generalLines),kind:"general",truth:true,subjectIds:[]};
+ const room=roomNameAt(ai.x,ai.y);
+ return {text:pickDialogue([`私は${room}側にいました。見た情報をもう少し整理してから投票したいです。`,`今は決め手がありません。誰か、直前に一緒にいた人を覚えていますか？`,`証言が少ないうちに票を割るのは危険です。まず場所と順番を整理しましょう。`,`まだ迷っています。最後に見かけた相手と場所を一人ずつ出してもらえますか？`,`情報が足りません。確実に見たことと、推測を分けて話しませんか？`,`投票を急がず、今出た話に食い違いがないか確認したいです。`]),kind:"general",truth:true,subjectIds:[]};
 }
 function makeAITakeTurn(ai){
- if(!ai||state.aiSpokenIds?.includes(ai.id))return;
- (state.aiSpokenIds||(state.aiSpokenIds=[])).push(ai.id);
  const statement=buildAIStatement(ai);
  appendMeetingMessage(playerTag(ai),statement.text,"ai");
  recordMeetingClaim(ai.id,statement.text,statement.kind,statement.truth,statement.subjectIds);
@@ -900,11 +860,11 @@ function makeAITakeTurn(ai){
 }
 function scheduleAITurn(delay=2400){
  if(state.aiTurnTimer)clearTimeout(state.aiTurnTimer);
- if(!state.meeting||state.meetingPhase!=="discussion"||state.aiTurnCount>=16)return;
+ if(!state.meeting||state.meetingPhase!=="discussion"||state.aiTurnCount>=8)return;
  state.aiTurnTimer=setTimeout(()=>{
   state.aiTurnTimer=null;
   if(!state.meeting||state.meetingPhase!=="discussion")return;
-  const speakers=shuffle(state.players.filter(p=>p.alive&&p.id!==state.me.id&&!state.aiSpokenIds?.includes(p.id)));
+  const speakers=shuffle(state.players.filter(p=>p.alive&&p.id!==state.me.id));
   if(speakers.length)makeAITakeTurn(speakers[0]);
   scheduleAITurn(2600+Math.floor(Math.random()*2400));
  },delay);
@@ -919,7 +879,7 @@ function callMeeting(message="会議が招集されました。",caller=state.me
  if(!state.running||state.meeting||!caller?.alive)return;
  playSfx("meeting");
  if(state.aiTurnTimer)clearTimeout(state.aiTurnTimer);
- state.meeting=true;state.meetingPhase="discussion";state.selectedVote=null;state.lastBallots=[];state.meetingClaims=[];state.aiTurnCount=0;state.aiSpokenIds=[];
+ state.meeting=true;state.meetingPhase="discussion";state.selectedVote=null;state.lastBallots=[];state.meetingClaims=[];state.aiTurnCount=0;
  state.meetingEvents=state.killEvents.filter(e=>state.dead.some(d=>d.id===e.victimId));
  const emergencyHold=Date.now()+45000;state.players.filter(p=>p.id!==0&&p.alive).forEach(p=>p.emergencyReadyAt=Math.max(p.emergencyReadyAt||0,emergencyHold));
  state.players.forEach(p=>p.charging=false);stopMove();
@@ -947,17 +907,17 @@ function beginVoting(){
 }
 function openMap(){if(!state.running||!state.me.alive)return;drawOverview();$("mapModal").classList.add("show")}
 function closeMap(){$("mapModal").classList.remove("show")}
-function drawOverview(canvasId="overviewCanvas",meetingMode=false){
+function drawOverview(canvasId="overviewCanvas"){
  const c=$(canvasId),ctx=c.getContext("2d"),sx=c.width/state.worldWidth,sy=c.height/state.worldHeight;ctx.clearRect(0,0,c.width,c.height);ctx.fillStyle="#0a1420";ctx.fillRect(0,0,c.width,c.height);ctx.save();ctx.scale(sx,sy);
   state.map.corridors.forEach(a=>{ctx.fillStyle="#526579";ctx.fillRect(a[0],a[1],a[2],a[3])});state.map.rooms.forEach((r,i)=>{ctx.fillStyle=["#526b7c","#5c7183","#456d7e","#56677d"][i%4];ctx.fillRect(r[1],r[2],r[3],r[4]);ctx.strokeStyle="#d4e2ee";ctx.lineWidth=8;ctx.strokeRect(r[1],r[2],r[3],r[4]);ctx.fillStyle="#fff";ctx.font="bold 28px system-ui";ctx.fillText(r[0],r[1]+18,r[2]+34)});state.map.corridors.forEach(a=>{ctx.fillStyle="#526579";ctx.fillRect(a[0],a[1],a[2],a[3])});
   state.map.props.forEach(p=>{ctx.fillStyle=p.type==="crate"?"#a8895b":p.type==="module"?"#68d9dc":"#8ab5c4";ctx.fillRect(p.x,p.y,p.w,p.h);ctx.strokeStyle="#192d3c";ctx.lineWidth=4;ctx.strokeRect(p.x,p.y,p.w,p.h)});
   state.tasks.forEach(t=>{if(!t.done){ctx.fillStyle="#ffd34f";ctx.beginPath();ctx.arc(t.x,t.y,17,0,Math.PI*2);ctx.fill();ctx.fillStyle="#173047";ctx.font="bold 15px system-ui";ctx.fillText(String(t.remaining),t.x-5,t.y+5)}});ctx.fillStyle="#ff514b";ctx.fillRect(860,480,80,80);state.dead.forEach(d=>{ctx.fillStyle="#fff";ctx.fillText("×",d.x-12,d.y+12)});ctx.fillStyle="#62f1df";ctx.beginPath();ctx.arc(state.me.x,state.me.y,24,0,Math.PI*2);ctx.fill();ctx.strokeStyle="#fff";ctx.lineWidth=7;ctx.stroke();
-  if(!meetingMode&&state.me.role==="恋人"&&state.me.partnerId!==null){const partner=state.players.find(p=>p.id===state.me.partnerId);if(partner){ctx.fillStyle="#ff8ad4";ctx.beginPath();ctx.arc(partner.x,partner.y,24,0,Math.PI*2);ctx.fill();ctx.strokeStyle="#fff";ctx.lineWidth=5;ctx.stroke();ctx.fillStyle="#fff";ctx.font="bold 24px system-ui";ctx.fillText("♥",partner.x-10,partner.y+8)}}
-  if(!meetingMode&&state.bountyIds.length){ctx.fillStyle="#d8a7f4";ctx.beginPath();ctx.arc(1344,494,22,0,Math.PI*2);ctx.fill();ctx.fillStyle="#21142b";ctx.font="bold 23px system-ui";ctx.fillText("!",1337,503)}
-  (meetingMode?[state.me]:state.players.filter(p=>p.alive)).filter(Boolean).forEach(p=>{ctx.fillStyle=p.color;ctx.beginPath();ctx.arc(p.x,p.y,18,0,Math.PI*2);ctx.fill();ctx.strokeStyle="#101820";ctx.lineWidth=6;ctx.stroke();ctx.strokeStyle="#fff";ctx.lineWidth=2;ctx.stroke()});ctx.restore();
+  if(state.me.role==="恋人"&&state.me.partnerId!==null){const partner=state.players.find(p=>p.id===state.me.partnerId);if(partner){ctx.fillStyle="#ff8ad4";ctx.beginPath();ctx.arc(partner.x,partner.y,24,0,Math.PI*2);ctx.fill();ctx.strokeStyle="#fff";ctx.lineWidth=5;ctx.stroke();ctx.fillStyle="#fff";ctx.font="bold 24px system-ui";ctx.fillText("♥",partner.x-10,partner.y+8)}}
+  if(state.bountyIds.length){ctx.fillStyle="#d8a7f4";ctx.beginPath();ctx.arc(1344,494,22,0,Math.PI*2);ctx.fill();ctx.fillStyle="#21142b";ctx.font="bold 23px system-ui";ctx.fillText("!",1337,503)}
+  state.players.filter(p=>p.alive).forEach(p=>{ctx.fillStyle=p.color;ctx.beginPath();ctx.arc(p.x,p.y,18,0,Math.PI*2);ctx.fill();ctx.strokeStyle="#101820";ctx.lineWidth=6;ctx.stroke();ctx.strokeStyle="#fff";ctx.lineWidth=2;ctx.stroke()});ctx.restore();
 }
-function toggleMeetingMap(force){const panel=$("meetingMapPanel"),button=$("meetingMapToggle");const open=typeof force==="boolean"?force:panel.hidden;panel.hidden=!open;if(open){drawOverview("meetingOverviewCanvas",true);button.textContent="🗺 マップを閉じる"}else button.textContent="🗺 マップを表示"}
-function renderMeetingAliveList(){const alive=state.players.filter(p=>p.alive),dead=state.players.filter(p=>!p.alive);$("meetingAliveSummary").textContent=`生存：${alive.length}人　／　死亡：${dead.length}人　／　合計：${state.players.length}人`;$("meetingAliveList").innerHTML=[...alive.map(p=>`<div class="meetingAliveItem"><span class="dot" style="background:${p.color}"></span><span>${playerTag(p)}</span><small style="color:#8de2c5">生存</small></div>`),...dead.map(p=>`<div class="meetingAliveItem" style="opacity:.78"><span class="dot" style="background:${p.color}"></span><span style="text-decoration:line-through">${playerTag(p)}</span><small style="color:#ff9299">死亡</small></div>`)].join("")}
+function toggleMeetingMap(force){const panel=$("meetingMapPanel"),button=$("meetingMapToggle");const open=typeof force==="boolean"?force:panel.hidden;panel.hidden=!open;if(open){drawOverview("meetingOverviewCanvas");button.textContent="🗺 マップを閉じる"}else button.textContent="🗺 マップを表示"}
+function renderMeetingAliveList(){const alive=state.players.filter(p=>p.alive);$("meetingAliveSummary").textContent=`生存者：${alive.length}人 / ${state.players.length}人`;$("meetingAliveList").innerHTML=alive.map(p=>`<div class="meetingAliveItem"><span class="dot" style="background:${p.color}"></span><span>${playerTag(p)}</span><small style="color:${p.color}">(${p.colorName||"色"})</small></div>`).join("")}
 function castVote(id){
  if(!state.meeting||state.meetingPhase!=="voting"||!state.me.alive)return;
  const target=state.players.find(p=>p.id===Number(id)&&p.alive);if(!target)return;
