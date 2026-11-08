@@ -186,7 +186,7 @@ canvas#mapCanvas{aspect-ratio:16/10;background:#0b1522}
 
 <section id="accounts" class="screen">
  <div class="hero"><h1>アカウント図鑑</h1><p>オンラインプレイヤーとAIアカウントのプロフィール、能力、戦績、得意・苦手を確認できます。</p></div>
- <div class="card accountAuthCard"><div class="row" style="justify-content:space-between"><div><h3 style="margin:0">オンラインプレイヤーアカウント</h3><p class="muted">別の端末からも同じアカウントで利用できます。</p></div><span class="pill" id="accountAuthStatus">未ログイン</span></div><div id="accountSignedOut"><div class="field"><label>公開ニックネーム（20文字以内）</label><input id="accountDisplayName" maxlength="20" autocomplete="nickname" placeholder="ゲーム内で表示する名前"></div><div class="field"><label>メールアドレス</label><input id="accountEmail" type="email" autocomplete="email" placeholder="登録用メールアドレス"></div><div class="field"><label>パスワード（8文字以上）</label><input id="accountPassword" type="password" minlength="8" autocomplete="new-password" placeholder="パスワード"></div><div class="row"><button class="primary" onclick="registerOnlineAccount()">新規登録</button><button onclick="loginOnlineAccount()">ログイン</button></div></div><div id="accountSignedIn" hidden><div class="muted" id="accountSignedInText">ログイン中</div><div class="accountTrait" id="emailLinkRewardStatus" style="margin:10px 0">メール確認状態を確認中…</div><div class="field"><label>公開ニックネームの変更</label><input id="accountNewDisplayName" maxlength="20" placeholder="新しいニックネーム"></div><div class="row"><button onclick="updateOnlineDisplayName()">名前を保存</button><button onclick="logoutOnlineAccount()">ログアウト</button></div></div><p class="muted" id="accountAuthMessage" aria-live="polite">メールアドレスはログイン認証に使われ、他のプレイヤーには公開されません。メール確認済みアカウントには限定称号と限定バッジを付与します。公開されるのはニックネームと戦績です。</p></div>
+ <div class="card accountAuthCard"><div class="row" style="justify-content:space-between"><div><h3 style="margin:0">プレイヤーアカウント（任意）</h3><p class="muted">オンライン対戦はゲストで参加できます。登録は戦績やプロフィールを別端末へ引き継ぐ場合のみ必要です。</p></div><span class="pill" id="accountAuthStatus">未ログイン</span></div><div id="accountSignedOut"><div class="field"><label>公開ニックネーム（20文字以内）</label><input id="accountDisplayName" maxlength="20" autocomplete="nickname" placeholder="ゲーム内で表示する名前"></div><div class="field"><label>メールアドレス</label><input id="accountEmail" type="email" autocomplete="email" placeholder="登録用メールアドレス"></div><div class="field"><label>パスワード（8文字以上）</label><input id="accountPassword" type="password" minlength="8" autocomplete="new-password" placeholder="パスワード"></div><div class="row"><button class="primary" onclick="registerOnlineAccount()">新規登録</button><button onclick="loginOnlineAccount()">ログイン</button></div></div><div id="accountSignedIn" hidden><div class="muted" id="accountSignedInText">ログイン中</div><div class="accountTrait" id="emailLinkRewardStatus" style="margin:10px 0">メール確認状態を確認中…</div><div class="field"><label>公開ニックネームの変更</label><input id="accountNewDisplayName" maxlength="20" placeholder="新しいニックネーム"></div><div class="row"><button onclick="updateOnlineDisplayName()">名前を保存</button><button onclick="logoutOnlineAccount()">ログアウト</button></div></div><p class="muted" id="accountAuthMessage" aria-live="polite">アカウント登録は任意です。ゲスト参加中はこの端末用のゲストIDでオンライン対戦できます。メール確認済みアカウントには限定称号と限定バッジを付与します。公開されるのはニックネームと戦績です。</p></div>
  <div class="row accountToolbar">
   <div class="field"><label for="accountSearch">名前・IDで検索</label><input id="accountSearch" placeholder="例：ai_001 / ねこもち" oninput="renderAccountList()"></div>
   <div class="field"><label for="accountFilter">表示対象</label><select id="accountFilter" onchange="renderAccountList()"><option value="all">全アカウント</option><option value="ai">AIアカウント</option><option value="player">プレイヤー</option></select></div>
@@ -201,7 +201,7 @@ canvas#mapCanvas{aspect-ratio:16/10;background:#0b1522}
 </section>
 
 <section id="socialHub" class="screen">
- <div class="hero"><h1>オンラインロビー</h1><p>フレンドと遊ぶか、公開ルームに参加できます。オンラインアカウントでログインしてください。</p></div>
+ <div class="hero"><h1>オンラインロビー</h1><p>ログイン・アカウント登録は不要です。ゲストとして自動接続し、部屋コードや公開ルームから参加できます。</p></div>
  <div class="grid">
   <div class="card">
    <h3>フレンドを探す</h3>
@@ -356,14 +356,14 @@ function setAccountAuthMessage(message,isError=false){
  const el=$("accountAuthMessage");if(el){el.textContent=message;el.style.color=isError?"#ff9aa2":"var(--muted)"}
 }
 function updateAccountAuthUI(){
- const signedIn=!!authUser;
- if($("accountAuthStatus"))$("accountAuthStatus").textContent=signedIn?"ログイン中":"未ログイン";
+ const signedIn=!!authUser,guestMode=!!authUser?.is_anonymous;
+ if($("accountAuthStatus"))$("accountAuthStatus").textContent=guestMode?"ゲスト接続中":signedIn?"ログイン中":"未接続";
  if($("accountSignedOut"))$("accountSignedOut").hidden=signedIn;
  if($("accountSignedIn"))$("accountSignedIn").hidden=!signedIn;
  if(!signedIn)emailLinkReward=null;
  if(signedIn){
   const profile=onlinePlayerProfiles.find(p=>p.user_id===authUser.id);
-  if($("accountSignedInText"))$("accountSignedInText").textContent="ログイン中："+(profile?.display_name||authUser.user_metadata?.display_name||"プレイヤー");
+  if($("accountSignedInText"))$("accountSignedInText").textContent=guestMode?"ゲストとして自動接続中："+(profile?.display_name||"ゲスト"):"ログイン中："+(profile?.display_name||authUser.user_metadata?.display_name||"プレイヤー");
   if($("emailLinkRewardStatus"))$("emailLinkRewardStatus").textContent=emailLinkReward?.claimed?"🏅 限定称号「リンクパイオニア」・限定バッジを獲得済み":emailLinkReward?.verified===false?"メール確認後に限定報酬を受け取れます。":"メール確認状態を確認中…";
   if($("accountNewDisplayName"))$("accountNewDisplayName").value=profile?.display_name||authUser.user_metadata?.display_name||"";
  }
@@ -387,6 +387,12 @@ async function initializeOnlineAccounts(){
   supabaseClient=supabaseClient||window.supabase.createClient(SUPABASE_URL,SUPABASE_PUBLISHABLE_KEY);
   const {data,error}=await supabaseClient.auth.getSession();if(error)throw error;
   authUser=data.session?.user||null;
+  // ログイン操作なしでオンライン対戦できるよう、ゲストセッションを自動発行する。
+  if(!authUser){
+   const guest=await supabaseClient.auth.signInAnonymously({options:{data:{display_name:"ゲスト"}}});
+   if(guest.error)throw new Error("ゲスト接続を開始できません。Supabaseの匿名ログイン設定を確認してください："+guest.error.message);
+   authUser=guest.data.user||guest.data.session?.user||null;
+  }
   if(!authSubscription){
    const result=supabaseClient.auth.onAuthStateChange((_event,session)=>{
     authUser=session?.user||null;updateAccountAuthUI();if(authUser&&$("socialHub")?.classList.contains("active"))loadSocialHub();
@@ -2022,7 +2028,8 @@ function configuredRoleQueues(counts,teamCounts,special,options={}){
 
 function socialMessage(message,isError=false){const el=$("roomLobbyStatus");if(el){el.textContent=message;el.style.color=isError?"#ff9aa2":"var(--muted)"}}
 async function openSocialHub(){
- if(!authUser){alert("オンライン対戦にはアカウントへのログインが必要です。先にアカウント画面でログインしてください。");openAccountsScreen();return}
+ try{if(!authUser)await initializeOnlineAccounts();if(!authUser)throw new Error("ゲスト接続ができませんでした。")}
+ catch(e){alert("オンライン接続に失敗しました："+(e.message||e));return}
  show("socialHub");await loadSocialHub();
 }
 async function loadSocialHub(){
@@ -2067,7 +2074,8 @@ function roomSettingsFromForm(prefix="room"){
  return {meeting_duration:Number($(prefix+"MeetingTime")?.value||90),black_count:Number($(prefix+"BlackCount")?.value||2),third_count:Number($(prefix+"ThirdCount")?.value||0),role_duplicates:!!$(prefix+"SpecialMode")?.checked,discussion_enabled:true,task_mode:"standard"};
 }
 async function createOnlineRoom(){
- if(!authUser){alert("ログインしてください。");return}
+ if(!authUser){try{await initializeOnlineAccounts()}catch(e){}}
+ if(!authUser){alert("ゲスト接続に失敗しました。通信状態を確認してください。");return}
  try{
   const visibility=$("roomVisibility").value,password=$("roomPassword").value;
   const settings=roomSettingsFromForm("room");
@@ -2077,7 +2085,8 @@ async function createOnlineRoom(){
  }catch(e){alert("部屋を作成できませんでした："+(e.message||e))}
 }
 async function joinOnlineRoom(code=null){
- if(!authUser){alert("ログインしてください。");return}
+ if(!authUser){try{await initializeOnlineAccounts()}catch(e){}}
+ if(!authUser){alert("ゲスト接続に失敗しました。通信状態を確認してください。");return}
  const roomCode=String(code||$("joinRoomCode")?.value||"").replace(/\D/g,"").slice(0,6);
  if(roomCode.length!==6){alert("6桁の部屋コードを入力してください。");return}
  try{
