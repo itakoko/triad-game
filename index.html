@@ -153,7 +153,7 @@ canvas#mapCanvas{aspect-ratio:16/10;background:#0b1522}
   <div class="card"><h3>🌐 オンライン対戦</h3><p class="muted">フレンドと遊ぶ・公開ルームを探す・AI人数や特別ルールを設定。</p><button class="primary" style="width:100%" onclick="openSocialHub()">オンラインロビーへ</button></div>
   <div class="card"><h3>📘 遊び方</h3><p class="muted">試作版のルールと操作方法を確認します。</p><button style="width:100%" onclick="openHelp()">ルールを見る</button></div>
   <div class="card"><h3>👥 アカウント図鑑</h3><p class="muted">プレイヤーとAIアカウント全員の能力・成績・得意な役職を確認できます。</p><button style="width:100%" onclick="openAccountsScreen()">アカウントを見る</button></div>
-  <div class="card"><h3>📋 アップデートログ</h3><p class="muted">見たいバージョンを選択してください。</p><div class="field"><label for="updateVersionSelect">バージョン</label><select id="updateVersionSelect" onchange="renderUpdateLog(this.value)"><option value="0.42">v0.42（最新）</option><option value="0.41">v0.41</option><option value="0.40">v0.40</option><option value="0.39">v0.39</option><option value="0.38">v0.38</option><option value="0.37">v0.37</option><option value="0.36">v0.36</option><option value="0.35">v0.35</option><option value="0.34">v0.34</option><option value="0.33">v0.33</option><option value="0.32">v0.32</option><option value="0.31">v0.31</option><option value="0.29">v0.29</option><option value="0.28">v0.28</option><option value="0.27">v0.27</option><option value="0.26">v0.26</option><option value="0.25">v0.25</option><option value="0.23">v0.23</option></select></div><div id="updateLogContent" class="updateLogContent" aria-live="polite"></div></div>
+  <div class="card"><h3>📋 アップデートログ</h3><p class="muted">見たいバージョンを選択してください。</p><div class="field"><label for="updateVersionSelect">バージョン</label><select id="updateVersionSelect" onchange="renderUpdateLog(this.value)"><option value="0.43">v0.43（最新）</option><option value="0.42">v0.42</option><option value="0.41">v0.41</option><option value="0.40">v0.40</option><option value="0.39">v0.39</option><option value="0.38">v0.38</option><option value="0.37">v0.37</option><option value="0.36">v0.36</option><option value="0.35">v0.35</option><option value="0.34">v0.34</option><option value="0.33">v0.33</option><option value="0.32">v0.32</option><option value="0.31">v0.31</option><option value="0.29">v0.29</option><option value="0.28">v0.28</option><option value="0.27">v0.27</option><option value="0.26">v0.26</option><option value="0.25">v0.25</option><option value="0.23">v0.23</option></select></div><div id="updateLogContent" class="updateLogContent" aria-live="polite"></div></div>
  </div>
 </section>
 
@@ -221,7 +221,7 @@ canvas#mapCanvas{aspect-ratio:16/10;background:#0b1522}
    <div class="row">
     <div class="field"><label>会議時間</label><select id="roomMeetingTime"><option value="60">1分</option><option value="90" selected>1分30秒</option><option value="120">2分</option><option value="180">3分</option><option value="240">4分</option></select></div>
     <div class="field"><label>黒陣営人数</label><select id="roomBlackCount"><option>1</option><option selected>2</option><option>3</option></select></div>
-    <div class="field"><label>第三陣営人数</label><select id="roomThirdCount"><option selected>0</option><option>1</option><option>2</option><option>3</option><option>4</option></select></div>
+    <div class="field"><label>第三陣営人数</label><select id="roomThirdCount"><option>0</option><option selected>1</option><option>2</option><option>3</option><option>4</option></select></div>
    </div>
    <div class="field"><label><input id="roomSpecialMode" type="checkbox" style="width:auto;margin-right:8px">特別モード（同じ役職の複数出現を許可）</label></div>
    <p class="muted">特別モードでは役職重複を許可する設定として保存します。通常モードでは重複なしを基本にします。</p>
@@ -255,10 +255,11 @@ canvas#mapCanvas{aspect-ratio:16/10;background:#0b1522}
     <div class="field"><label>黒陣営</label><select id="editRoomBlack"><option>1</option><option>2</option><option>3</option></select></div>
     <div class="field"><label>第三陣営</label><select id="editRoomThird"><option>0</option><option>1</option><option>2</option><option>3</option><option>4</option></select></div>
    </div>
-   <label><input id="editRoomSpecial" type="checkbox" style="width:auto;margin-right:8px">特別モード：役職重複を許可</label>
+   <label><input id="editRoomSpecial" type="checkbox" style="width:auto;margin-right:8px" onchange="renderRoleConfigEditor(activeRoomSnapshot?.settings)">特別モード：役職重複を許可</label>
+   <p class="muted">各役職の人数を指定。0は登場なし。指定人数の合計が陣営人数に満たない場合、残りは自動補充します。</p><div id="roleConfigEditor"></div>
    <button style="width:100%;margin-top:10px" onclick="saveRoomSettings()">設定を保存</button>
   </div>
-  <div class="row" style="margin-top:14px"><button id="roomReadyButton" class="primary" onclick="toggleRoomReady()">準備完了</button><button class="warn" onclick="leaveOnlineRoom()">退出する</button></div>
+  <div class="row" style="margin-top:14px"><button id="roomReadyButton" class="primary" onclick="toggleRoomReady()">準備完了</button><button id="roomStartButton" class="primary" hidden onclick="startOnlineMatch()">試合開始</button><button class="warn" onclick="leaveOnlineRoom()">退出する</button></div>
   <p class="muted" id="roomLobbyStatus" aria-live="polite"></p>
  </div>
 </section>
@@ -633,7 +634,7 @@ function activateScreen(id){
 }
 function show(id){
  if(!activateScreen(id))return;
- if(id==="home"){renderUpdateLog($("updateVersionSelect")?.value||"0.42");updateResumeGameUI()}
+ if(id==="home"){renderUpdateLog($("updateVersionSelect")?.value||"0.43");updateResumeGameUI()}
  if(id==="accounts")loadAccountDirectoryData();
  if(id==="socialHub")loadSocialHub();
 }
@@ -661,33 +662,42 @@ function makeRoles(team,count,whiteCount=0){
   return shuffle(pool).slice(0,count);
 }
 async function startGame(){
-  let ai=Math.max(3,Math.min(29,Math.floor(Number($("aiCount").value)||9)));
-  let black=Math.max(1,Math.min(3,Math.floor(Number($("blackCount").value)||1)));
-  let third=Math.max(0,Math.min(4,Math.floor(Number($("thirdCount").value)||0)));
- let white=ai+1-black-third;
+ const onlineHost=!!(activeRoomId&&activeRoomSnapshot&&authUser&&activeRoomSnapshot.host_user_id===authUser.id&&activeRoomSnapshot.status==="playing");
+ const members=onlineHost?[...(activeRoomSnapshot.members||[])].sort((a,b)=>(b.is_host?1:0)-(a.is_host?1:0)):[{user_id:null,display_name:"あなた",is_host:true}];
+ const ai=onlineHost?Math.max(0,Math.min(28,Number(activeRoomSnapshot.ai_count)||0)):Math.max(3,Math.min(29,Math.floor(Number($("aiCount").value)||9)));
+ const black=onlineHost?Math.max(1,Math.min(3,Number(activeRoomSnapshot.settings?.black_count)||2)):Math.max(1,Math.min(3,Math.floor(Number($("blackCount").value)||1)));
+ const third=onlineHost?Math.max(0,Math.min(4,Number(activeRoomSnapshot.settings?.third_count)||0)):Math.max(0,Math.min(4,Math.floor(Number($("thirdCount").value)||0)));
+ const totalPlayers=members.length+ai,white=totalPlayers-black-third;
  if(white<1){alert("白陣営が1人以上必要です。");return}
- if(black>ROLE_POOLS.black.length){alert("黒陣営の役職は最大3人までです。");return}
- if(third>ROLE_POOLS.third.length){alert("第三陣営の役職は最大4人までです。");return}
- if(white>9){alert("白陣営は恋人2人を含めて最大9人です。AI人数または陣営人数を調整してください。");return}
-   if(state.aiTurnTimer)clearTimeout(state.aiTurnTimer);
-    state.map=maps.lab;state.worldWidth=state.map.width;state.worldHeight=state.map.height;state.players=[];state.dead=[];state.seconds=0;state.done=0;state.total=Math.floor(rand(53,58));state.log=[];state.camera={x:0,y:0};state.bountyIds=[];state.scentedIds=new Set();state.sabotageUntil=0;state.targetAction=null;state.lastDirection={x:1,y:0};state.meetingPhase="";state.selectedVote=null;state.lastBallots=[];state.meetingClaims=[];state.meetingEvents=[];state.aiTurnCount=0;state.aiTurnTimer=null;state.sightTick=0;state.killEvents=[];
-  const roleAssignments={white:makeRoles("white",white),black:makeRoles("black",black),third:makeRoles("third",third,white)};
- if(!roleAssignments.white||!roleAssignments.black||(third>0&&!roleAssignments.third)){alert("この人数では重複なしの役職を割り当てられません。陣営人数を減らしてください。");return}
-  await loadAIProfiles();
-  startAudio();
- let teams=shuffle(Array(black).fill("black").concat(Array(third).fill("third"),Array(white).fill("white")));
- const roleQueues={white:[...roleAssignments.white],black:[...roleAssignments.black],third:[...(roleAssignments.third||[])]};
-  const startedAt=Date.now(),profileDeck=shuffle([...aiProfilePool]);gameNameDeck=shuffle([...naturalAINames]);profileDeck.forEach(profile=>{profile.memory={...loadAILongTermMemory(profile.id),...(profile.memory||{})}});
-     for(let i=0;i<ai+1;i++){let spawn=i===0?[250,250]:randomSpawn();let team=teams[i],profile=i===0?null:(profileDeck[i-1]||null);let p={id:i,name:i===0?"あなた":fallbackAIName(i),number:i+1,team,role:roleQueues[team].pop(),aiProfile:profile,alive:true,ghost:false,x:spawn[0],y:spawn[1],color:colors[i%colors.length],colorName:colorNames[i%colorNames.length],shape:i%4,taskCount:0,partnerId:null,protected:false,abilityUsed:false,roleReadyAt:startedAt,killReadyAt:startedAt+(team==="black"?30000:0),sabotageReadyAt:startedAt+(team==="black"?35000:0),emergencyReadyAt:startedAt+rand(30000,65000),aiNextGoalAt:startedAt+rand(2500,8000),aiNextTaskAt:startedAt+rand(3500,6500),aiTaskIndex:null,aiGoal:null,aiPath:[],disguiseId:null,disguiseUntil:0,charging:false,charge:{x:0,y:0},scented:false,aiMemory:{suspicion:{},trust:{},sightings:{}}};state.players.push(p)}
- state.me=state.players[0];
-  const lovers=state.players.filter(p=>p.role==="恋人");
-  if(lovers.length===2){lovers[0].partnerId=lovers[1].id;lovers[1].partnerId=lovers[0].id}
-  if(state.players.some(p=>p.role==="暗殺者"))state.bountyIds=shuffle(state.players.filter(p=>p.team==="white").map(p=>p.id)).slice(0,3);
-  state.players.filter(p=>p.role==="放浪者").forEach(p=>state.scentedIds.add(p.id));
-  state.tasks=state.map.tasks.map((p,i)=>{const quota=Math.floor(state.total/state.map.tasks.length)+(i<state.total%state.map.tasks.length?1:0),spec=taskKinds[i%taskKinds.length];return {id:i,x:p[0],y:p[1],done:false,quota,remaining:quota,completedBy:[],label:spec.label,room:spec.room,kind:spec.kind}});
-  $("mapLabel").textContent="マップ：研究施設";$("roleLabel").textContent="役職："+state.me.role;$("myRoleText").textContent="陣営："+teamName(state.me.team)+" ／ 役職："+state.me.role+"。"+roleDescription(state.me);
-  $("myStatus").textContent="生存";$("ghostBanner").hidden=true;$("taskCount").textContent="0 / "+state.total;$("taskProgress").style.width="0%";log("研究施設に到着。");
-  show("game");state.running=true;updateNearbyActions();draw();clearInterval(loop);clearInterval(clock);loop=setInterval(tick,70);clock=setInterval(()=>{if(!state.running)return;state.seconds++;$("timer").textContent=String(Math.floor(state.seconds/60)).padStart(2,"0")+":"+String(state.seconds%60).padStart(2,"0");aiAction();checkWin()},1000);startMatchAutosave();
+ if(white>9&&!activeRoomSnapshot?.special_mode){alert("通常モードの白陣営は最大9人です。人数を調整してください。");return}
+ if(state.aiTurnTimer)clearTimeout(state.aiTurnTimer);
+ state.map=maps.lab;state.worldWidth=state.map.width;state.worldHeight=state.map.height;state.players=[];state.dead=[];state.seconds=0;state.done=0;state.total=Math.floor(rand(53,58));state.log=[];state.camera={x:0,y:0};state.bountyIds=[];state.scentedIds=new Set();state.sabotageUntil=0;state.targetAction=null;state.lastDirection={x:1,y:0};state.meetingPhase="";state.selectedVote=null;state.lastBallots=[];state.meetingClaims=[];state.meetingEvents=[];state.aiTurnCount=0;state.aiTurnTimer=null;state.sightTick=0;state.killEvents=[];
+ const roleCounts=onlineHost?activeRoomSnapshot.settings?.role_counts:null,special=onlineHost&&!!activeRoomSnapshot.special_mode;let roleQueues;
+ try{
+  if(roleCounts&&Object.values(roleCounts).some(v=>Number(v)>0))roleQueues=configuredRoleQueues(roleCounts,{white,black,third},special);
+  else roleQueues={white:makeRoles("white",white),black:makeRoles("black",black),third:makeRoles("third",third,white)};
+ }catch(e){alert(e.message||"役職設定が不正です。");return}
+ if(!roleQueues.white||!roleQueues.black||(third>0&&!roleQueues.third)){alert("この人数では役職を割り当てられません。役職設定を調整してください。");return}
+ await loadAIProfiles();startAudio();
+ const teams=shuffle(Array(black).fill("black").concat(Array(third).fill("third"),Array(white).fill("white")));
+ const startedAt=Date.now(),profileDeck=shuffle([...aiProfilePool]);gameNameDeck=shuffle([...naturalAINames]);profileDeck.forEach(profile=>{profile.memory={...loadAILongTermMemory(profile.id),...(profile.memory||{})}});
+ for(let i=0;i<totalPlayers;i++){
+  const member=i<members.length?members[i]:null,aiIndex=i-members.length,isHuman=!!(onlineHost&&member);
+  const spawn=isHuman&&member.user_id===authUser.id?[250,250]:randomSpawn(),team=teams[i],profile=member?null:(profileDeck[aiIndex]||null);
+  const p={id:i,userId:member?.user_id||null,isHuman,name:member?.display_name||fallbackAIName(aiIndex+1),number:i+1,team,role:roleQueues[team].pop(),aiProfile:profile,alive:true,ghost:false,x:spawn[0],y:spawn[1],color:colors[i%colors.length],colorName:colorNames[i%colorNames.length],shape:i%4,taskCount:0,partnerId:null,protected:false,abilityUsed:false,roleReadyAt:startedAt,killReadyAt:startedAt+(team==="black"?30000:0),sabotageReadyAt:startedAt+(team==="black"?35000:0),emergencyReadyAt:startedAt+rand(30000,65000),aiNextGoalAt:startedAt+rand(2500,8000),aiNextTaskAt:startedAt+rand(3500,6500),aiTaskIndex:null,aiGoal:null,aiPath:[],disguiseId:null,disguiseUntil:0,charging:false,charge:{x:0,y:0},scented:false,aiMemory:{suspicion:{},trust:{},sightings:{}}};
+  state.players.push(p);
+ }
+ state.me=onlineHost?state.players.find(p=>p.userId===authUser.id):state.players[0];if(!state.me){alert("自分の参加情報が見つかりません。");return}
+ const lovers=state.players.filter(p=>p.role==="恋人");if(lovers.length===2){lovers[0].partnerId=lovers[1].id;lovers[1].partnerId=lovers[0].id}
+ if(state.players.some(p=>p.role==="暗殺者"))state.bountyIds=shuffle(state.players.filter(p=>p.team==="white").map(p=>p.id)).slice(0,3);
+ state.players.filter(p=>p.role==="放浪者").forEach(p=>state.scentedIds.add(p.id));
+ state.tasks=state.map.tasks.map((p,i)=>{const quota=Math.floor(state.total/state.map.tasks.length)+(i<state.total%state.map.tasks.length?1:0),spec=taskKinds[i%taskKinds.length];return {id:i,x:p[0],y:p[1],done:false,quota,remaining:quota,completedBy:[],label:spec.label,room:spec.room,kind:spec.kind}});
+ state.meetingDuration=onlineHost?Math.max(30,Math.min(300,Number(activeRoomSnapshot.settings?.meeting_duration)||90)):Number($("meetingDuration")?.value)||90;
+ $("mapLabel").textContent="マップ：研究施設";$("roleLabel").textContent="役職："+state.me.role;$("myRoleText").textContent="陣営："+teamName(state.me.team)+" ／ 役職："+state.me.role+"。"+roleDescription(state.me);
+ $("myStatus").textContent="生存";$("ghostBanner").hidden=true;$("taskCount").textContent="0 / "+state.total;$("taskProgress").style.width="0%";log("研究施設に到着。");
+ show("game");state.running=true;updateNearbyActions();draw();clearInterval(loop);clearInterval(clock);loop=setInterval(tick,70);
+ clock=setInterval(()=>{if(!state.running)return;state.seconds++;$("timer").textContent=String(Math.floor(state.seconds/60)).padStart(2,"0")+":"+String(state.seconds%60).padStart(2,"0");aiAction();checkWin()},1000);
+ startMatchAutosave();
 }
 function randomSpawn(){
  const areas=[[250,250],[600,250],[1180,250],[1540,260],[250,800],[670,800],[1160,800],[1540,800],[900,520]];
@@ -854,7 +864,7 @@ function tick(){
    if(hit){killPlayer(hit,a,"突進");if(!a.alive){a.charging=false;return}}
   });
    if((p.alive||p.ghost)&&!p.charging){let mag=Math.hypot(state.move.x,state.move.y)||1,speed=3.5,nx=p.x+(state.move.x/mag)*speed,ny=p.y+(state.move.y/mag)*speed;if(isWalkable(nx,p.y))p.x=nx;if(isWalkable(p.x,ny))p.y=ny}
-   state.players.slice(1).forEach(a=>{
+   state.players.filter(p=>p.id!==0&&!p.isHuman&&!p.isHuman).forEach(a=>{
     if(!a.alive||!a.aiGoal)return;
     while(a.aiPath.length&&Math.hypot(a.aiPath[0][0]-a.x,a.aiPath[0][1]-a.y)<12)a.aiPath.shift();
     if(!a.aiPath.length){a.aiGoal=null;return}
@@ -1354,7 +1364,7 @@ function recordMeetingClaim(speakerId,text,kind=claimKind(text),truth=null,subje
  const claim={speakerId,text,kind,truth,subjectIds:ids,at:Date.now()};state.meetingClaims.push(claim);updateMeetingSummary();
  // 名前が出ただけ・疑いを口にしただけでは疑いスコアを変えない。
  // 実際のキル現場を直接見たAIだけが、目撃した犯人に確かな疑いを持つ。
- state.players.filter(p=>p.alive&&p.id!==0&&p.id!==speakerId).forEach(listener=>{
+ state.players.filter(p=>p.alive&&p.id!==0&&!p.isHuman&&p.id!==speakerId).forEach(listener=>{
   const direct=state.meetingEvents.find(e=>e.witnessIds.includes(listener.id));
   if(!direct)return;
   if(ids.includes(direct.killerId)&&kind==="witness"&&truth===true&&/倒す|攻撃|キル|殺害/.test(text)){
@@ -1753,6 +1763,44 @@ function renderAccountDetail(id){
 
 
 let activeRoomId=null,activeRoomChannel=null,activeRoomSnapshot=null;
+const ROLE_CONFIG_GROUPS=[
+ {team:"white",label:"⚪ 白陣営",roles:["クルー","サイエンティスト","恋人","占い師","狩人","保安官","僧侶","ライトキーパー"]},
+ {team:"black",label:"⚫ 黒陣営",roles:["インポスター","イノシシ","百面相"]},
+ {team:"third",label:"🟣 第三陣営",roles:["放浪者","暗殺者","てるてる","狂人"]}
+];
+let onlineGame=null,onlineMoveTimer=null,onlineSnapshotTimer=null,onlineInputChannels=[],onlineUserChannels=[],onlineInputs=new Map(),onlineVotes=new Map(),onlineMeetingLog=[],onlineGameRevision=0;
+
+
+function renderRoleConfigEditor(settings={}){
+ const root=$("roleConfigEditor");if(!root)return;const counts=settings?.role_counts||{};
+ root.innerHTML=ROLE_CONFIG_GROUPS.map(g=>'<div class="accountSection"><b>'+g.label+'</b><div class="grid">'+g.roles.map(role=>'<div class="field"><label>'+escapeAccountText(role)+'</label><input type="number" min="0" max="30" step="1" data-role-count="'+escapeAccountText(role)+'" value="'+Number(counts[role]||0)+'" inputmode="numeric"></div>').join("")+'</div></div>').join("");
+}
+function readRoleConfigEditor(){
+ const out={};document.querySelectorAll("#roleConfigEditor [data-role-count]").forEach(el=>out[el.dataset.roleCount]=Math.max(0,Math.min(30,Math.floor(Number(el.value)||0))));
+ return Object.values(out).some(v=>v>0)?out:null;
+}
+function configuredRoleQueues(counts,teamCounts,special){
+ const queues={white:[],black:[],third:[]};
+ for(const g of ROLE_CONFIG_GROUPS){
+  const total=teamCounts[g.team]||0,chosen=[],used=new Set();
+  g.roles.forEach(role=>{
+   const n=Math.max(0,Math.min(30,Math.floor(Number(counts?.[role])||0)));
+   if(!special&&role!=="クルー"&&role!=="恋人"&&n>1)throw new Error("通常モードでは「"+role+"」は1人までです。");
+   if(role==="恋人"&&n!==0&&n!==2)throw new Error("恋人は0人または2人にしてください。");
+   chosen.push(...Array(n).fill(role));if(role!=="クルー"&&n)used.add(role);
+  });
+  if(chosen.length>total)throw new Error(g.label+"の役職人数合計が陣営人数を超えています。");
+  while(chosen.length<total){
+   if(g.team==="white"){chosen.push("クルー");continue}
+   const pool=g.roles.filter(r=>!used.has(r));
+   if(!pool.length){if(!special)throw new Error(g.label+"の役職が不足しています。");chosen.push(g.team==="black"?"インポスター":"放浪者")}
+   else{const role=pool[Math.floor(Math.random()*pool.length)];chosen.push(role);used.add(role)}
+  }
+  queues[g.team]=shuffle(chosen);
+ }
+ return queues;
+}
+
 function socialMessage(message,isError=false){const el=$("roomLobbyStatus");if(el){el.textContent=message;el.style.color=isError?"#ff9aa2":"var(--muted)"}}
 async function openSocialHub(){
  if(!authUser){alert("オンライン対戦にはアカウントへのログインが必要です。先にアカウント画面でログインしてください。");openAccountsScreen();return}
@@ -1868,8 +1916,11 @@ function renderActiveRoom(r){
  $("editRoomMeetingTime").value=String(r.settings?.meeting_duration||90);
  $("editRoomBlack").value=String(r.settings?.black_count||2);$("editRoomThird").value=String(r.settings?.third_count||0);
  $("editRoomSpecial").checked=!!r.special_mode;
+ renderRoleConfigEditor(r.settings||{});
  $("roomReadyButton").textContent=me?.is_ready?"準備を取り消す":"準備完了";
  $("roomReadyButton").disabled=!!isHost;
+ $("roomStartButton").hidden=!isHost;
+ $("roomStartButton").disabled=!isHost||r.members.some(m=>!m.is_host&&!m.is_ready);
  socialMessage(isHost?"あなたはホストです。設定を調整できます。":(me?.is_ready?"準備完了。ホストの開始を待っています。":"準備ができたらボタンを押してください。"));
 }
 async function toggleRoomReady(){
@@ -1881,7 +1932,7 @@ async function saveRoomSettings(){
  if(!activeRoomId)return;
  try{
   const special=$("editRoomSpecial").checked;
-  const settings={meeting_duration:Number($("editRoomMeetingTime").value),black_count:Number($("editRoomBlack").value),third_count:Number($("editRoomThird").value),role_duplicates:special,discussion_enabled:true,task_mode:"standard"};
+  const settings={meeting_duration:Number($("editRoomMeetingTime").value),black_count:Number($("editRoomBlack").value),third_count:Number($("editRoomThird").value),role_duplicates:special,role_counts:readRoleConfigEditor(),discussion_enabled:true,task_mode:"standard"};
   const {error}=await supabaseClient.rpc("update_game_room",{p_room:activeRoomId,p_max_humans:Number($("editRoomMaxHumans").value),p_ai_count:Number($("editRoomAICount").value),p_special_mode:special,p_settings:settings});
   if(error)throw error;await broadcastRoomRefresh();await loadActiveRoom();socialMessage("部屋設定を保存しました。");
  }catch(e){socialMessage("設定を保存できません："+(e.message||e),true)}
@@ -1894,8 +1945,9 @@ async function leaveOnlineRoom(){
  activeRoomId=null;activeRoomSnapshot=null;await disconnectRoomChannel();show("socialHub");await loadSocialHub();
 }
 
-function renderUpdateLog(version="0.42"){
+function renderUpdateLog(version="0.43"){
  const logs={
+  "0.43":{date:"2026年11月8日",items:["部屋ごとに役職の登場人数を指定できる役職構成エディターを追加。","通常モードでは役職重複を制限し、特別モードでは複数人への割り当てを許可。","部屋の全員が準備完了後、ホストがオンライン試合を開始できるように変更。"]},
   "0.42":{date:"2026年11月8日",items:["オンライン用のフレンド申請・承認・解除機能とプレイヤー検索を追加。","プライベート／パブリック部屋の作成、コード参加、公開部屋一覧を追加。","部屋の最大人数・AI人数・会議時間・陣営人数・特別モード設定、準備状態を追加。","部屋ロビーにRealtimeの参加状態と更新通知を追加。"]},
   "0.41":{date:"2026年11月8日",items:["サイトを開いた直後に保存済み試合を確認し、ホーム画面へ再開ボタンを表示するよう修正。","保存データからマップや一時的な対象参照を除き、再開時に研究施設マップを復元するよう改善。"]},
   "0.40":{date:"2026年11月8日",items:["試合中の状態を1秒ごとに端末内へ自動保存。","ページ更新・誤って閉じた後も、ホーム画面から中断した試合を再開可能に。","プレイヤーとAIの位置・生死・役職・タスク・経過時間・会議状態などを保存。","試合終了またはホームへ戻る操作で中断データを削除。"]},
