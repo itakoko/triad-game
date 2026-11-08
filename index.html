@@ -11,7 +11,7 @@
 button,input,select{font:inherit}button{border:1px solid var(--line);background:#304663;color:var(--text);border-radius:12px;padding:11px 14px;font-weight:700;cursor:pointer}button:active{transform:scale(.98)}button.primary{background:#267d82;border-color:#58c9c5}button.warn{background:#75454d;border-color:#b86b74}button:disabled{opacity:.4}
 header{padding:14px 18px;border-bottom:1px solid #ffffff18;display:flex;align-items:center;justify-content:space-between;gap:12px}
 .logo{font-weight:950;letter-spacing:.16em;font-size:20px}.logo span{color:var(--cyan)}.tag{font-size:11px;color:var(--muted);border:1px solid var(--line);border-radius:99px;padding:5px 9px}
-main{max-width:1100px;margin:auto;padding:18px}.screen{display:none}.screen.active{display:block}.hero{padding:26px 8px 18px}.hero h1{font-size:clamp(27px,5vw,44px);line-height:1.15;margin:8px 0}.hero p{color:var(--muted);max-width:650px}
+main{max-width:1100px;margin:auto;padding:18px}.screen{display:none}.screen.active{display:block}.headerAccountButton{padding:7px 11px;font-size:12px;white-space:nowrap}.hero{padding:26px 8px 18px}.hero h1{font-size:clamp(27px,5vw,44px);line-height:1.15;margin:8px 0}.hero p{color:var(--muted);max-width:650px}
 .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px}.card{background:linear-gradient(145deg,#20314b,#18263b);border:1px solid var(--line);border-radius:18px;padding:16px;box-shadow:0 10px 30px #0002}.card h3{margin:0 0 8px}.muted{color:var(--muted);font-size:13px}.field{display:grid;gap:6px;margin:12px 0}.field label{font-size:13px;color:var(--muted)}input,select{width:100%;background:#111e31;color:var(--text);border:1px solid var(--line);border-radius:10px;padding:10px}
 .row{display:flex;gap:9px;align-items:center;flex-wrap:wrap}.row>*{flex:1}.pill{padding:5px 9px;border-radius:99px;background:#ffffff12;font-size:12px}.actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}
 .accountAuthCard{margin:12px 0}.accountAuthCard .field{margin:10px 0}.accountToolbar{align-items:end;gap:10px;margin:8px 0 14px}.accountToolbar .field{min-width:150px;margin:0;flex:1}
@@ -143,15 +143,15 @@ canvas#mapCanvas{aspect-ratio:16/10;background:#0b1522}
 </style>
 </head>
 <body>
-<header><div class="logo">TRI<span>AD</span></div><div class="tag">オフライン試作 · v0.34</div></header>
+<header><div class="logo">TRI<span>AD</span></div><div class="row" style="align-items:center;gap:8px;flex:0 0 auto"><div class="tag">オンラインアカウント対応 · v0.36</div><button class="headerAccountButton" type="button" onclick="openAccountsScreen()">アカウント</button></div></header>
 <main>
 <section id="home" class="screen active">
  <div class="hero"><div class="pill">研究施設マップ・探索型推理ゲーム</div><h1>閉鎖された研究所。<br>見えない場所に誰かがいる。</h1><p>部屋と通路を自分で探索し、タスクを進めながら状況を判断します。視界はプレイヤーの周囲に限られます。</p></div>
  <div class="grid">
   <div class="card"><h3>🎮 ゲームを始める</h3><p class="muted">AIと対戦するオフライン試合を開始します。</p><button class="primary" style="width:100%" onclick="show('setup')">試合設定へ</button></div>
   <div class="card"><h3>📘 遊び方</h3><p class="muted">試作版のルールと操作方法を確認します。</p><button style="width:100%" onclick="openHelp()">ルールを見る</button></div>
-  <div class="card"><h3>👥 アカウント図鑑</h3><p class="muted">プレイヤーとAIアカウント全員の能力・成績・得意な役職を確認できます。</p><button style="width:100%" onclick="show('accounts')">アカウントを見る</button></div>
-  <div class="card"><h3>📋 アップデートログ</h3><p class="muted">見たいバージョンを選択してください。</p><div class="field"><label for="updateVersionSelect">バージョン</label><select id="updateVersionSelect" onchange="renderUpdateLog(this.value)"><option value="0.35">v0.35（最新）</option><option value="0.34">v0.34</option><option value="0.33">v0.33</option><option value="0.32">v0.32</option><option value="0.31">v0.31</option><option value="0.29">v0.29</option><option value="0.28">v0.28</option><option value="0.27">v0.27</option><option value="0.26">v0.26</option><option value="0.25">v0.25</option><option value="0.23">v0.23</option></select></div><div id="updateLogContent" class="updateLogContent" aria-live="polite"></div></div>
+  <div class="card"><h3>👥 アカウント図鑑</h3><p class="muted">プレイヤーとAIアカウント全員の能力・成績・得意な役職を確認できます。</p><button style="width:100%" onclick="openAccountsScreen()">アカウントを見る</button></div>
+  <div class="card"><h3>📋 アップデートログ</h3><p class="muted">見たいバージョンを選択してください。</p><div class="field"><label for="updateVersionSelect">バージョン</label><select id="updateVersionSelect" onchange="renderUpdateLog(this.value)"><option value="0.36">v0.36（最新）</option><option value="0.35">v0.35</option><option value="0.34">v0.34</option><option value="0.33">v0.33</option><option value="0.32">v0.32</option><option value="0.31">v0.31</option><option value="0.29">v0.29</option><option value="0.28">v0.28</option><option value="0.27">v0.27</option><option value="0.26">v0.26</option><option value="0.25">v0.25</option><option value="0.23">v0.23</option></select></div><div id="updateLogContent" class="updateLogContent" aria-live="polite"></div></div>
  </div>
 </section>
 
@@ -226,7 +226,7 @@ canvas#mapCanvas{aspect-ratio:16/10;background:#0b1522}
 </section>
 
 </main>
-<footer>TRIAD v0.28 · 研究施設 · オフライン版</footer>
+<footer>TRIAD v0.36 · 研究施設 · オンラインアカウント対応</footer>
 
   <div class="modal" id="mapModal"><div class="modalbox"><h2>研究施設マップ</h2><canvas id="overviewCanvas" width="900" height="600"></canvas><div class="mapLegend"><span>● あなた　♥ 恋人の相手（恋人のみ）</span><span>● タスク端末</span><span>■ 緊急会議ボタン</span><span>！ 手配書端末</span><span>■ 遮蔽物・チェイスカバー</span><span>× 死体</span></div><button class="primary" style="width:100%" onclick="closeMap()">閉じる</button></div></div>
  <div class="modal" id="targetModal"><div class="modalbox"><h2 id="targetTitle">対象を選択</h2><p id="targetInfo" class="muted"></p><div id="targetList" class="targetList"></div><button style="width:100%" onclick="closeTargetModal()">キャンセル</button></div></div>
@@ -434,7 +434,21 @@ const colorNames=["赤","青","黄色","紫","緑","オレンジ","ピンク","�
 const colors=["#e53935","#1e88e5","#fdd835","#8e24aa","#43a047","#fb8c00","#ec407a","#00acc1","#7cb342","#8d6e63","#3949ab","#d81b60","#00897b","#c0a000","#ff7043","#c0ca33","#283593","#9575cd","#f4511e","#26a69a","#b08d00","#ad1457","#00a152","#1565c0","#f9a825","#6d1b3b","#66bb6a","#7e57c2","#a65e2e","#eeeeee"];
 const naturalAINames=["ねこもち","もちもち","しろくま","くろまめ","ぽてと","ぷりん","たこやき","しらす","ぺんぎん","からあげ","こむぎ","みたらし","ねむねむ","うさぎもち","わたあめ","めんだこ","ましゅまろ","こんぺいとう","ほっとけーき","おにぎり","きなこもち","すいか","りんごあめ","ぽんず","ふわり","もちぱん","しおこんぶ","だいふく","ちくわ","くりーむ"];let gameNameDeck=[];function fallbackAIName(index){return gameNameDeck[index-1]||naturalAINames[(index-1)%naturalAINames.length]}function playerTag(p){return `#${String(p.number||p.id+1).padStart(2,"0")} ${p.name}`}
 function meetingNameColor(p){return state.meeting&&state.me?.team==="black"&&p?.team==="black"&&p.id!==state.me.id?"#ff777e":"";}
-function show(id){document.querySelectorAll(".screen").forEach(s=>s.classList.remove("active"));const target=$(id);if(!target){console.warn("Screen not found:",id);return}target.classList.add("active");if(id==="home")renderUpdateLog($("updateVersionSelect")?.value||"0.35");if(id==="accounts")openAccounts()}
+function activateScreen(id){
+ document.querySelectorAll(".screen").forEach(screen=>screen.classList.remove("active"));
+ const target=document.getElementById(id);
+ if(!target){console.error("Screen not found:",id);return false}
+ target.classList.add("active");return true;
+}
+function show(id){
+ if(!activateScreen(id))return;
+ if(id==="home")renderUpdateLog($("updateVersionSelect")?.value||"0.36");
+ if(id==="accounts")loadAccountDirectoryData();
+}
+function openAccountsScreen(){
+ if(!activateScreen("accounts"))return;
+ loadAccountDirectoryData();
+}
 function log(t){}
 function rand(a,b){return Math.random()*(b-a)+a}
 function shuffle(items){let a=[...items];for(let i=a.length-1;i>0;i--){let j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a}
@@ -1469,9 +1483,24 @@ function endGame(msg,winners={teams:[]}){
  $("gameOverModal").classList.add("show");
 }
 function endToHome(){if(state.running)saveAILongTermMemories({teams:[]},true);state.running=false;clearInterval(loop);clearInterval(clock);stopMove();stopBGM();document.querySelectorAll(".modal").forEach(m=>m.classList.remove("show"));show("home")}
-function openAccounts(){showAccountLoading();Promise.all([initializeOnlineAccounts(),loadAIProfiles()]).then(()=>{renderAccountList();const detail=$("accountDetail");if(detail&&!detail.dataset.selected)renderAccountDetail(authUser?.id||"player")}).catch(error=>{console.warn(error);renderAccountList()})}
-function showAccountLoading(){const list=$("accountList");if(list)list.innerHTML='<div class="muted">AIプロフィールを読み込んでいます…</div>'}
-function refreshAccounts(){aiProfilesLoaded=false;openAccounts()}
+let accountDirectoryLoadId=0;
+function openAccounts(){openAccountsScreen()}
+function showAccountLoading(){const list=$("accountList");if(list)list.innerHTML='<div class="muted">アカウント情報を読み込んでいます…</div>'}
+function loadAccountDirectoryData(){
+ const loadId=++accountDirectoryLoadId;showAccountLoading();
+ if($("accountCount"))$("accountCount").textContent="読み込み中";
+ setAccountAuthMessage("オンライン情報を確認しています…");
+ Promise.allSettled([initializeOnlineAccounts(),loadAIProfiles()]).then(results=>{
+  if(loadId!==accountDirectoryLoadId)return;
+  renderAccountList();
+  const detail=$("accountDetail");
+  if(detail&&!detail.dataset.selected)renderAccountDetail(authUser?.id||"player");
+  if(results.some(r=>r.status==="rejected"))setAccountAuthMessage("一部の情報を取得できませんでした。通信状態を確認して「最新情報に更新」を押してください。",true);
+  else if(!authUser)setAccountAuthMessage("未ログインです。新規登録またはログインすると、オンラインプレイヤー一覧に表示されます。");
+  else setAccountAuthMessage("オンラインアカウントに接続中です。");
+ }).catch(error=>{console.error("Account directory load failed",error);if(loadId===accountDirectoryLoadId){renderAccountList();setAccountAuthMessage("アカウント情報を読み込めませんでした。ページを再読み込みしてください。",true)}});
+}
+function refreshAccounts(){aiProfilesLoaded=false;onlinePlayerProfiles=[];loadAccountDirectoryData()}
 function escapeAccountText(value){return String(value??"").replace(/[&<>"']/g,ch=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[ch]))}
 function mergeAIAccountMemory(cloud,local){
  const out={...(local||{}),...(cloud||{})};
@@ -1529,8 +1558,9 @@ function renderAccountDetail(id){
  renderAccountList();
 }
 
-function renderUpdateLog(version="0.35"){
+function renderUpdateLog(version="0.36"){
  const logs={
+  "0.36":{date:"2026年11月8日",items:["アカウント画面を直接開く専用処理を追加し、ホームとヘッダーの両方から移動できるよう修正。","オンライン登録・ログイン・ログアウトとプレイヤー一覧の読み込み状態を改善。","通信失敗時も画面が空白にならず、再読み込み案内を表示。"]},
   "0.35":{date:"2026年11月8日",items:["アカウント図鑑の画面配置と関数の配置を修正。","オンラインプレイヤーアカウント登録・ログイン・ログアウトを追加。","公開ニックネームと戦績をサーバーに保存し、プレイヤー一覧に表示。"]},
   "0.34":{date:"2026年11月8日",items:["ホームにアカウント図鑑を追加。プレイヤーとAIアカウント200体を検索・並び替え。","能力パラメーター、得意・苦手、勝利数、試合数、勝率、生存率、自動練習数を表示。","役職別の試合数・勝利数・生存数を記録し、AI戦績をサーバーへ保存。プレイヤー戦績は端末内に保存。"]},
   "0.33":{date:"2026年11月8日",items:["黒陣営で会議に参加したとき、自分の味方の名前を自分の画面だけ赤色で表示。","AIがプレイヤーだけでなく他のAIの質問・意見にも順番に反応し、確認した情報と推測を分けて回答。","AIアカウント200体が10分ごとに3回の自動練習試合を行い、個体差を保ちながら能力値を成長。"]},
