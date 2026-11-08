@@ -380,7 +380,7 @@ canvas#mapCanvas{aspect-ratio:16/10;background:#0b1522}
 </section>
 
 </main>
-<footer>TRIAD v0.64 · サポート能力・勝利判定</footer>
+<footer>TRIAD v0.65 · 能力効果・勝利処理調整</footer>
 
   <div id="onlineConnectionBanner" role="status">オンライン接続が不安定です。<button type="button" onclick="retryOnlineConnection()">再接続</button></div>
   <div class="modal" id="offlineRoleSettingsModal"><div class="modalbox"><h2>通常対戦・役職詳細設定</h2><p class="muted">固定人数を指定した役職は必ず登場します。残りの枠はONになっている役職から出現重みに応じて抽選します。</p>
@@ -658,7 +658,7 @@ async function enterRankedServerMatch(snap){
  state.tasks=(snap.tasks||[]).map(t=>{const spec=taskKinds[Number(t.id)%taskKinds.length];return{id:Number(t.id),x:Number(t.x),y:Number(t.y),done:!!t.done,quota:4,remaining:Number(t.remaining),completedBy:[],label:spec.label,room:spec.room,kind:spec.kind}});
  state.total=state.tasks.length*4;state.done=state.tasks.reduce((n,t)=>n+(4-Math.max(0,Number(t.remaining)||0)),0);
  const ownSeat=Number(snap.self?.seat);
- for(const v of(snap.players||[])){const seat=Number(v.seat),isSelf=seat===ownSeat,isAI=!!v.is_ai;state.players.push({id:seat-1,number:seat,userId:isSelf?authUser?.id:null,isHuman:!isAI,name:isSelf?"あなた":(isAI?"AI "+String(seat).padStart(2,"0"):"プレイヤー "+String(seat).padStart(2,"0")),team:isSelf?snap.self.faction:"unknown",role:isSelf?snap.self.role:"？？？",alive:!!v.alive,ghost:false,x:Number(v.x),y:Number(v.y),color:colors[(seat-1)%colors.length],colorName:colorNames[(seat-1)%colorNames.length],shape:(seat-1)%4,taskCount:0,protected:false,abilityUsed:false,charging:false,charge:{x:0,y:0}})}
+ for(const v of(snap.players||[])){const seat=Number(v.seat),isSelf=seat===ownSeat,isAI=!!v.is_ai;state.players.push({id:seat-1,number:seat,userId:isSelf?authUser?.id:null,isHuman:!isAI,name:isSelf?"あなた":(isAI?"AI "+String(seat).padStart(2,"0"):"プレイヤー "+String(seat).padStart(2,"0")),baseName:isSelf?"あなた":(isAI?"AI "+String(seat).padStart(2,"0"):"プレイヤー "+String(seat).padStart(2,"0")),team:isSelf?snap.self.faction:"unknown",role:isSelf?snap.self.role:"？？？",alive:!!v.alive,ghost:false,x:Number(v.x),y:Number(v.y),color:colors[(seat-1)%colors.length],colorName:colorNames[(seat-1)%colorNames.length],shape:(seat-1)%4,taskCount:0,protected:false,abilityUsed:false,charging:false,charge:{x:0,y:0}})}
  state.me=state.players.find(p=>p.number===ownSeat);if(!state.me)throw new Error("自分の参加情報が見つかりません。");
  $("mapLabel").textContent="マップ：研究施設（サーバー試験）";$("roleLabel").textContent="役職："+state.me.role;$("myRoleText").textContent="陣営："+teamName(state.me.team)+" ／ 役職："+state.me.role+"。サーバー試験モードです。";
  $("myStatus").textContent=state.me.alive?"生存":"死亡";$("taskCount").textContent=state.done+" / "+state.total;$("taskProgress").style.width=(state.total?state.done/state.total*100:0)+"%";
@@ -702,7 +702,7 @@ function syncRankedMeetingUI(meeting){
 }
 function applyRankedServerSnapshot(snap){
  if(!rankedServerMode||snap?.status!=="ok")return;const ownSeat=Number(snap.self?.seat);state.serverPhase=snap.phase;state.emergencyMeetingReadyAt=Number(snap.meeting_cooldown_until)||state.emergencyMeetingReadyAt;
- (snap.players||[]).forEach(v=>{const p=state.players.find(x=>x.number===Number(v.seat));if(p){p.x=Number(v.x);p.y=Number(v.y);p.alive=!!v.alive}});
+ (snap.players||[]).forEach(v=>{const p=state.players.find(x=>x.number===Number(v.seat));if(p){p.x=Number(v.x);p.y=Number(v.y);p.alive=!!v.alive;const ap=Number(v.appearance_seat)||Number(v.seat);const target=state.players.find(q=>q.number===ap);p.color=colors[(ap-1)%colors.length];p.shape=(ap-1)%4;p.name=ap!==Number(v.seat)&&target?(target.baseName||target.name):p.baseName||p.name}});
  const me=state.players.find(p=>p.number===ownSeat);if(me){me.team=snap.self.faction;me.role=snap.self.role;me.alive=!!snap.self.alive;me.abilityUsed=!!snap.self.ability_used;me.roleReadyAt=Number(snap.self.role_ready_at)||0;me.gamblerKillReady=!!snap.self.gambler_kill_ready;state.me=me;if(me.role==="放浪者"&&Array.isArray(snap.self.scented_seats))state.scentedIds=new Set(snap.self.scented_seats.map(n=>Number(n)-1));}
  state.tasks=(snap.tasks||[]).map(t=>{const old=state.tasks.find(x=>x.id===Number(t.id))||{},spec=taskKinds[Number(t.id)%taskKinds.length];return{...old,id:Number(t.id),x:Number(t.x),y:Number(t.y),done:!!t.done,remaining:Number(t.remaining),label:spec.label,room:spec.room,kind:spec.kind}});
  state.done=state.tasks.reduce((n,t)=>n+(4-Math.max(0,Number(t.remaining)||0)),0);state.total=state.tasks.length*4;state.seconds=Number(snap.elapsed_seconds)||state.seconds;
@@ -716,7 +716,9 @@ async function rankedServerPulse(){
  catch(e){console.warn("Ranked server sync failed",e);$("nearHint").textContent="サーバー再接続中…"}finally{rankedServerBusy=false}
 }
 async function rankedServerDoTask(task){
+
  if(!rankedServerMode||!task)return;try{const result=await rankedEngineCall("task",{task_id:task.id});
+ if(result.status==="match_completed"){state.running=false;clearInterval(loop);$("nearHint").textContent="試合終了："+result.winner_faction+" 陣営の勝利";alert("試合終了："+result.winner_faction+" 陣営の勝利");return}
  if(result.status==="too_far"){$("nearHint").textContent="タスク端末にもう少し近づいてください。";return}
  if(result.status==="task_throttled"){$("nearHint").textContent="少し待ってからもう一度操作してください。";return}
  $("nearHint").textContent=result.status==="completed"?"タスク完了！":result.status==="progress"?"タスク進行："+result.progress+"/4":"タスク状態："+result.status;
@@ -864,7 +866,7 @@ async function loadRankedProfile(){
 
 function show(id){
  if(!activateScreen(id))return;
- if(id==="home"){renderUpdateLog($("updateVersionSelect")?.value||"0.64");updateResumeGameUI()}
+ if(id==="home"){renderUpdateLog($("updateVersionSelect")?.value||"0.65");updateResumeGameUI()}
  if(id==="accounts")loadAccountDirectoryData();
  if(id==="socialHub")loadSocialHub();
 }
@@ -2834,8 +2836,9 @@ async function leaveOnlineRoom(){
  activeRoomId=null;activeRoomSnapshot=null;await disconnectRoomChannel();show("socialHub");await loadSocialHub();
 }
 
-function renderUpdateLog(version="0.64"){
+function renderUpdateLog(version="0.65"){
  const logs={
+  "0.65":{date:"2026年11月9日",items:["百面相の変身表示をサーバー同期し、放浪者の匂い付与状況を本人の再接続時に復元。タスク完了による試合終了表示を追加。"],},
   "0.64":{date:"2026年11月9日",items:["ランク戦にサイエンティスト・占い師・僧侶・放浪者・百面相のサーバー能力操作を接続。勝利時の試合確定と終了表示を追加。"],},
   "0.63":{date:"2026年11月9日",items:["ランク戦の進捗説明を更新。会議チャット・キル・役職能力・勝敗判定・ランク確定の未対応範囲を明記。"],},
   "0.62":{date:"2026年11月9日",items:["ランク戦の再接続時に投票選択状態・会議状態・緊急会議クールダウンを初期化／復元する処理を調整。"],},
