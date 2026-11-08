@@ -1317,7 +1317,7 @@ function aiStat(actor,key,fallback=5){return Math.max(1,Math.min(10,Number(actor
 function updateAIWhiteTasks(now=Date.now()){
  if(!state.running||state.meeting)return;
  for(const actor of state.players.slice(1)){
-  if(!actor.alive||actor.team!=="white"||actor.aiGoal?.kind==="emergency")continue;
+  if(!actor.alive||actor.aiGoal?.kind==="emergency")continue;
   let station=state.tasks[actor.aiTaskIndex];
   if(!station||station.done||station.remaining<=0||station.completedBy?.includes(actor.id)){
    actor.aiTaskIndex=null;
