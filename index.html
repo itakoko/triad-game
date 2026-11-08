@@ -143,16 +143,17 @@ canvas#mapCanvas{aspect-ratio:16/10;background:#0b1522}
 </style>
 </head>
 <body>
-<header><div class="logo">TRI<span>AD</span></div><div class="row" style="align-items:center;gap:8px;flex:0 0 auto"><div class="tag">オンラインアカウント対応 · 連携限定報酬 · v0.41</div><button class="headerAccountButton" type="button" onclick="openAccountsScreen()">アカウント</button></div></header>
+<header><div class="logo">TRI<span>AD</span></div><div class="row" style="align-items:center;gap:8px;flex:0 0 auto"><div class="tag">オンラインアカウント対応 · 連携限定報酬 · v0.42</div><button class="headerAccountButton" type="button" onclick="openAccountsScreen()">アカウント</button></div></header>
 <main>
 <section id="home" class="screen active">
  <div class="hero"><div class="pill">研究施設マップ・探索型推理ゲーム</div><h1>閉鎖された研究所。<br>見えない場所に誰かがいる。</h1><p>部屋と通路を自分で探索し、タスクを進めながら状況を判断します。視界はプレイヤーの周囲に限られます。</p></div>
  <div id="resumeGameCard" class="card" hidden style="margin:14px 0;border:1px solid #55c8a4"><h3>▶️ 中断した試合があります</h3><p class="muted">前回の続きから再開できます。</p><button class="primary" style="width:100%" onclick="resumeSavedGame()">試合を再開する</button><button style="width:100%;margin-top:8px" onclick="discardSavedGame()">保存データを削除する</button></div>
  <div class="grid">
   <div class="card"><h3>🎮 ゲームを始める</h3><p class="muted">AIと対戦するオフライン試合を開始します。</p><button class="primary" style="width:100%" onclick="show('setup')">試合設定へ</button></div>
+  <div class="card"><h3>🌐 オンライン対戦</h3><p class="muted">フレンドと遊ぶ・公開ルームを探す・AI人数や特別ルールを設定。</p><button class="primary" style="width:100%" onclick="openSocialHub()">オンラインロビーへ</button></div>
   <div class="card"><h3>📘 遊び方</h3><p class="muted">試作版のルールと操作方法を確認します。</p><button style="width:100%" onclick="openHelp()">ルールを見る</button></div>
   <div class="card"><h3>👥 アカウント図鑑</h3><p class="muted">プレイヤーとAIアカウント全員の能力・成績・得意な役職を確認できます。</p><button style="width:100%" onclick="openAccountsScreen()">アカウントを見る</button></div>
-  <div class="card"><h3>📋 アップデートログ</h3><p class="muted">見たいバージョンを選択してください。</p><div class="field"><label for="updateVersionSelect">バージョン</label><select id="updateVersionSelect" onchange="renderUpdateLog(this.value)"><option value="0.41">v0.41（最新）</option><option value="0.40">v0.40</option><option value="0.39">v0.39</option><option value="0.38">v0.38</option><option value="0.37">v0.37</option><option value="0.36">v0.36</option><option value="0.35">v0.35</option><option value="0.34">v0.34</option><option value="0.33">v0.33</option><option value="0.32">v0.32</option><option value="0.31">v0.31</option><option value="0.29">v0.29</option><option value="0.28">v0.28</option><option value="0.27">v0.27</option><option value="0.26">v0.26</option><option value="0.25">v0.25</option><option value="0.23">v0.23</option></select></div><div id="updateLogContent" class="updateLogContent" aria-live="polite"></div></div>
+  <div class="card"><h3>📋 アップデートログ</h3><p class="muted">見たいバージョンを選択してください。</p><div class="field"><label for="updateVersionSelect">バージョン</label><select id="updateVersionSelect" onchange="renderUpdateLog(this.value)"><option value="0.42">v0.42（最新）</option><option value="0.41">v0.41</option><option value="0.40">v0.40</option><option value="0.39">v0.39</option><option value="0.38">v0.38</option><option value="0.37">v0.37</option><option value="0.36">v0.36</option><option value="0.35">v0.35</option><option value="0.34">v0.34</option><option value="0.33">v0.33</option><option value="0.32">v0.32</option><option value="0.31">v0.31</option><option value="0.29">v0.29</option><option value="0.28">v0.28</option><option value="0.27">v0.27</option><option value="0.26">v0.26</option><option value="0.25">v0.25</option><option value="0.23">v0.23</option></select></div><div id="updateLogContent" class="updateLogContent" aria-live="polite"></div></div>
  </div>
 </section>
 
@@ -199,6 +200,68 @@ canvas#mapCanvas{aspect-ratio:16/10;background:#0b1522}
  <p class="muted">AI情報とオンラインプレイヤーの公開プロフィール・戦績はサーバーに保存されます。未ログイン時の「あなた」の戦績はこの端末内だけに保存されます。</p>
 </section>
 
+<section id="socialHub" class="screen">
+ <div class="hero"><h1>オンラインロビー</h1><p>フレンドと遊ぶか、公開ルームに参加できます。オンラインアカウントでログインしてください。</p></div>
+ <div class="grid">
+  <div class="card">
+   <h3>フレンドを探す</h3>
+   <div class="field"><label>公開ニックネームで検索（2文字以上）</label><input id="friendSearchInput" maxlength="30" placeholder="プレイヤー名"></div>
+   <button onclick="searchFriendPlayers()">検索</button>
+   <div id="friendSearchResults" class="targetList muted">検索結果がここに表示されます。</div>
+   <div class="accountSection"><h3>フレンド・申請</h3><div id="friendList" class="targetList muted">読み込み中…</div></div>
+  </div>
+  <div class="card">
+   <h3>部屋を作成</h3>
+   <div class="field"><label>公開設定</label><select id="roomVisibility"><option value="private">プライベート（コードで参加）</option><option value="public">パブリック（一覧に公開）</option></select></div>
+   <div class="field"><label>合言葉（任意・4文字以上）</label><input id="roomPassword" type="password" maxlength="40" placeholder="プライベート部屋用"></div>
+   <div class="row">
+    <div class="field"><label>人間の最大人数</label><select id="roomMaxHumans"><option>2</option><option>3</option><option>4</option><option selected>6</option><option>8</option><option>10</option></select></div>
+    <div class="field"><label>追加するAI人数</label><select id="roomAICount"><option>0</option><option>2</option><option>4</option><option selected>6</option><option>8</option><option>10</option><option>12</option><option>16</option><option>20</option><option>24</option><option>28</option></select></div>
+   </div>
+   <div class="row">
+    <div class="field"><label>会議時間</label><select id="roomMeetingTime"><option value="60">1分</option><option value="90" selected>1分30秒</option><option value="120">2分</option><option value="180">3分</option><option value="240">4分</option></select></div>
+    <div class="field"><label>黒陣営人数</label><select id="roomBlackCount"><option>1</option><option selected>2</option><option>3</option></select></div>
+    <div class="field"><label>第三陣営人数</label><select id="roomThirdCount"><option selected>0</option><option>1</option><option>2</option><option>3</option><option>4</option></select></div>
+   </div>
+   <div class="field"><label><input id="roomSpecialMode" type="checkbox" style="width:auto;margin-right:8px">特別モード（同じ役職の複数出現を許可）</label></div>
+   <p class="muted">特別モードでは役職重複を許可する設定として保存します。通常モードでは重複なしを基本にします。</p>
+   <button class="primary" style="width:100%" onclick="createOnlineRoom()">部屋を作成</button>
+  </div>
+ </div>
+ <div class="card" style="margin-top:12px">
+  <div class="row" style="justify-content:space-between"><h3>公開ルーム一覧</h3><button onclick="loadPublicRooms()">更新</button></div>
+  <div id="publicRoomList" class="targetList muted">読み込み中…</div>
+  <div class="row" style="margin-top:12px"><div class="field"><label>部屋コードで参加</label><input id="joinRoomCode" inputmode="numeric" maxlength="6" placeholder="6桁のコード"></div><div class="field"><label>合言葉（必要な場合）</label><input id="joinRoomPassword" type="password" maxlength="40"></div></div>
+  <button class="primary" onclick="joinOnlineRoom()">コードで参加</button>
+ </div>
+ <div class="actions"><button onclick="show('home')">ホームに戻る</button><button onclick="openAccountsScreen()">アカウント設定</button></div>
+</section>
+
+<section id="roomLobby" class="screen">
+ <div class="hero"><h1>ルーム待機室</h1><p>参加者と設定を確認します。</p></div>
+ <div class="card">
+  <div class="row" style="justify-content:space-between"><div><div class="muted">部屋コード</div><div class="stat" id="activeRoomCode">------</div></div><button onclick="copyActiveRoomCode()">コードをコピー</button></div>
+  <div id="activeRoomInfo" class="muted">部屋情報を読み込み中…</div>
+  <div class="accountSection"><h3>参加者</h3><div id="activeRoomMembers" class="targetList"></div></div>
+  <div class="accountSection" id="hostRoomSettings">
+   <h3>ホスト設定</h3>
+   <div class="row">
+    <div class="field"><label>最大人間人数</label><select id="editRoomMaxHumans"><option>2</option><option>3</option><option>4</option><option>6</option><option>8</option><option>10</option></select></div>
+    <div class="field"><label>AI人数</label><select id="editRoomAICount"><option>0</option><option>2</option><option>4</option><option>6</option><option>8</option><option>10</option><option>12</option><option>16</option><option>20</option><option>24</option><option>28</option></select></div>
+    <div class="field"><label>会議時間</label><select id="editRoomMeetingTime"><option value="60">1分</option><option value="90">1分30秒</option><option value="120">2分</option><option value="180">3分</option><option value="240">4分</option></select></div>
+   </div>
+   <div class="row">
+    <div class="field"><label>黒陣営</label><select id="editRoomBlack"><option>1</option><option>2</option><option>3</option></select></div>
+    <div class="field"><label>第三陣営</label><select id="editRoomThird"><option>0</option><option>1</option><option>2</option><option>3</option><option>4</option></select></div>
+   </div>
+   <label><input id="editRoomSpecial" type="checkbox" style="width:auto;margin-right:8px">特別モード：役職重複を許可</label>
+   <button style="width:100%;margin-top:10px" onclick="saveRoomSettings()">設定を保存</button>
+  </div>
+  <div class="row" style="margin-top:14px"><button id="roomReadyButton" class="primary" onclick="toggleRoomReady()">準備完了</button><button class="warn" onclick="leaveOnlineRoom()">退出する</button></div>
+  <p class="muted" id="roomLobbyStatus" aria-live="polite"></p>
+ </div>
+</section>
+
 <section id="game" class="screen">
  <div id="gameLayout">
   <div class="gamebox">
@@ -227,7 +290,7 @@ canvas#mapCanvas{aspect-ratio:16/10;background:#0b1522}
 </section>
 
 </main>
-<footer>TRIAD v0.38 · 研究施設 · メール連携限定報酬</footer>
+<footer>TRIAD v0.42 · オンラインロビー準備</footer>
 
   <div class="modal" id="mapModal"><div class="modalbox"><h2>研究施設マップ</h2><canvas id="overviewCanvas" width="900" height="600"></canvas><div class="mapLegend"><span>● あなた　♥ 恋人の相手（恋人のみ）</span><span>● タスク端末</span><span>■ 緊急会議ボタン</span><span>！ 手配書端末</span><span>■ 遮蔽物・チェイスカバー</span><span>× 死体</span></div><button class="primary" style="width:100%" onclick="closeMap()">閉じる</button></div></div>
  <div class="modal" id="targetModal"><div class="modalbox"><h2 id="targetTitle">対象を選択</h2><p id="targetInfo" class="muted"></p><div id="targetList" class="targetList"></div><button style="width:100%" onclick="closeTargetModal()">キャンセル</button></div></div>
@@ -324,7 +387,7 @@ async function initializeOnlineAccounts(){
   authUser=data.session?.user||null;
   if(!authSubscription){
    const result=supabaseClient.auth.onAuthStateChange((_event,session)=>{
-    authUser=session?.user||null;updateAccountAuthUI();
+    authUser=session?.user||null;updateAccountAuthUI();if(authUser&&$("socialHub")?.classList.contains("active"))loadSocialHub();
     if(authUser)setTimeout(async()=>{try{await ensureOwnPlayerProfile();await loadOnlinePlayerProfiles();await syncLocalPlayerStatsOnLogin();await loadOnlinePlayerProfiles();await refreshEmailLinkReward()}catch(e){console.warn(e)}},0);
     else {loadOnlinePlayerProfiles().catch(console.warn)}
    });
@@ -569,8 +632,9 @@ function activateScreen(id){
 }
 function show(id){
  if(!activateScreen(id))return;
- if(id==="home"){renderUpdateLog($("updateVersionSelect")?.value||"0.41");updateResumeGameUI()}
+ if(id==="home"){renderUpdateLog($("updateVersionSelect")?.value||"0.42");updateResumeGameUI()}
  if(id==="accounts")loadAccountDirectoryData();
+ if(id==="socialHub")loadSocialHub();
 }
 function openAccountsScreen(){
  if(!activateScreen("accounts"))return;
@@ -1686,8 +1750,152 @@ function renderAccountDetail(id){
  renderAccountList();
 }
 
-function renderUpdateLog(version="0.41"){
+
+let activeRoomId=null,activeRoomChannel=null,activeRoomSnapshot=null;
+function socialMessage(message,isError=false){const el=$("roomLobbyStatus");if(el){el.textContent=message;el.style.color=isError?"#ff9aa2":"var(--muted)"}}
+async function openSocialHub(){
+ if(!authUser){alert("オンライン対戦にはアカウントへのログインが必要です。先にアカウント画面でログインしてください。");openAccountsScreen();return}
+ show("socialHub");await loadSocialHub();
+}
+async function loadSocialHub(){
+ if(!supabaseClient||!authUser)return;
+ await Promise.allSettled([loadFriendList(),loadPublicRooms()]);
+}
+async function searchFriendPlayers(){
+ const root=$("friendSearchResults"),q=String($("friendSearchInput")?.value||"").trim();
+ if(q.length<2){root.textContent="2文字以上入力してください。";return}
+ root.textContent="検索中…";
+ try{
+  const {data,error}=await supabaseClient.rpc("search_players",{p_query:q});if(error)throw error;
+  root.innerHTML=(data||[]).map(p=>'<div class="socialItem"><span>'+escapeAccountText(p.display_name)+'</span><button onclick="sendFriendRequest(\''+p.user_id+'\')">フレンド申請</button></div>').join("")||'<div class="muted">プレイヤーが見つかりません。</div>';
+ }catch(e){root.textContent="検索に失敗しました："+(e.message||e)}
+}
+async function sendFriendRequest(id){
+ try{const {data,error}=await supabaseClient.rpc("send_friend_request",{p_target:id});if(error)throw error;alert(data?.status==="accepted"?"フレンドになりました。":"フレンド申請を送りました。");await loadFriendList()}
+ catch(e){alert("申請できませんでした："+(e.message||e))}
+}
+async function respondFriend(id,accept){
+ try{const {error}=await supabaseClient.rpc("respond_friend_request",{p_target:id,p_accept:accept});if(error)throw error;await loadFriendList()}
+ catch(e){alert("申請を処理できませんでした："+(e.message||e))}
+}
+async function removeFriend(id){
+ if(!confirm("このフレンドを解除しますか？"))return;
+ try{const {error}=await supabaseClient.rpc("remove_friend",{p_target:id});if(error)throw error;await loadFriendList()}
+ catch(e){alert("解除できませんでした："+(e.message||e))}
+}
+async function loadFriendList(){
+ const root=$("friendList");if(!root||!supabaseClient)return;
+ root.textContent="読み込み中…";
+ try{
+  const {data,error}=await supabaseClient.rpc("list_friends");if(error)throw error;
+  root.innerHTML=(data||[]).map(p=>{
+   if(p.status==="accepted")return '<div class="socialItem"><span>🟢 '+escapeAccountText(p.display_name)+'</span><button onclick="removeFriend(\''+p.user_id+'\')">解除</button></div>';
+   if(p.requested_by===authUser.id)return '<div class="socialItem"><span>申請中：'+escapeAccountText(p.display_name)+'</span><span class="pill">送信済み</span></div>';
+   return '<div class="socialItem"><span>申請：'+escapeAccountText(p.display_name)+'</span><span><button onclick="respondFriend(\''+p.user_id+'\',true)">承認</button> <button onclick="respondFriend(\''+p.user_id+'\',false)">拒否</button></span></div>';
+  }).join("")||'<div class="muted">フレンドや申請はまだありません。</div>';
+ }catch(e){root.textContent="フレンド情報を取得できません："+(e.message||e)}
+}
+function roomSettingsFromForm(prefix="room"){
+ return {meeting_duration:Number($(prefix+"MeetingTime")?.value||90),black_count:Number($(prefix+"BlackCount")?.value||2),third_count:Number($(prefix+"ThirdCount")?.value||0),role_duplicates:!!$(prefix+"SpecialMode")?.checked,discussion_enabled:true,task_mode:"standard"};
+}
+async function createOnlineRoom(){
+ if(!authUser){alert("ログインしてください。");return}
+ try{
+  const visibility=$("roomVisibility").value,password=$("roomPassword").value;
+  const settings=roomSettingsFromForm("room");
+  const {data,error}=await supabaseClient.rpc("create_game_room",{p_visibility:visibility,p_password:password||null,p_max_humans:Number($("roomMaxHumans").value),p_ai_count:Number($("roomAICount").value),p_special_mode:settings.role_duplicates,p_settings:settings});
+  if(error)throw error;
+  $("roomPassword").value="";await enterOnlineRoom(data.id);
+ }catch(e){alert("部屋を作成できませんでした："+(e.message||e))}
+}
+async function joinOnlineRoom(code=null){
+ if(!authUser){alert("ログインしてください。");return}
+ const roomCode=String(code||$("joinRoomCode")?.value||"").replace(/\D/g,"").slice(0,6);
+ if(roomCode.length!==6){alert("6桁の部屋コードを入力してください。");return}
+ try{
+  const {data,error}=await supabaseClient.rpc("join_game_room",{p_code:roomCode,p_password:$("joinRoomPassword")?.value||null});
+  if(error)throw error;
+  await enterOnlineRoom(data.id);
+ }catch(e){alert("部屋に参加できませんでした："+(e.message||e))}
+}
+async function loadPublicRooms(){
+ const root=$("publicRoomList");if(!root||!supabaseClient)return;
+ root.textContent="読み込み中…";
+ try{
+  const {data,error}=await supabaseClient.rpc("list_public_rooms");if(error)throw error;
+  root.innerHTML=(data||[]).map(r=>'<div class="socialItem"><span><b>'+escapeAccountText(r.host_name)+'</b> · '+r.humans+'/'+r.max_humans+'人 · AI '+r.ai_count+(r.special_mode?' · 特別':'')+'</span><button onclick="joinOnlineRoom(\''+r.join_code+'\')">参加</button></div>').join("")||'<div class="muted">募集中の公開ルームはありません。</div>';
+ }catch(e){root.textContent="公開ルームを取得できません："+(e.message||e)}
+}
+async function enterOnlineRoom(id){
+ await disconnectRoomChannel();activeRoomId=id;show("roomLobby");
+ try{
+  await supabaseClient.realtime.setAuth();
+  activeRoomChannel=supabaseClient.channel("room:"+id,{config:{private:true,presence:{key:authUser.id}}})
+   .on("broadcast",{event:"lobby_refresh"},()=>loadActiveRoom())
+   .on("presence",{event:"sync"},()=>loadActiveRoom());
+  activeRoomChannel.subscribe(async status=>{
+   if(status==="SUBSCRIBED"){
+    try{await activeRoomChannel.track({user_id:authUser.id,display_name:authUser.user_metadata?.display_name||"プレイヤー",online:true})}catch(e){console.warn("Presence tracking failed",e)}
+    await loadActiveRoom();
+   }else if(status==="CHANNEL_ERROR"||status==="TIMED_OUT"){socialMessage("リアルタイム接続に失敗しました。通信状態を確認してください。",true)}
+  });
+  await loadActiveRoom();
+ }catch(e){socialMessage("部屋を開けません："+(e.message||e),true)}
+}
+async function disconnectRoomChannel(){
+ if(activeRoomChannel&&supabaseClient){try{await supabaseClient.removeChannel(activeRoomChannel)}catch(e){}}
+ activeRoomChannel=null;
+}
+async function broadcastRoomRefresh(){
+ if(activeRoomChannel)try{await activeRoomChannel.send({type:"broadcast",event:"lobby_refresh",payload:{at:Date.now()}})}catch(e){console.warn(e)}
+}
+async function loadActiveRoom(){
+ if(!activeRoomId||!supabaseClient)return;
+ try{
+  const {data,error}=await supabaseClient.rpc("get_game_room",{p_room:activeRoomId});if(error)throw error;
+  activeRoomSnapshot=data;renderActiveRoom(data);
+ }catch(e){socialMessage("部屋情報を取得できません："+(e.message||e),true)}
+}
+function renderActiveRoom(r){
+ $("activeRoomCode").textContent=r.join_code;
+ const me=r.members.find(m=>m.user_id===authUser.id);
+ $("activeRoomInfo").textContent=(r.visibility==="public"?"パブリック":"プライベート")+" ／ 人間 "+r.members.length+"/"+r.max_humans+" ／ AI "+r.ai_count+" ／ "+(r.special_mode?"特別モード（役職重複あり）":"通常モード（役職重複なし）")+" ／ 会議 "+(r.settings?.meeting_duration||90)+"秒";
+ $("activeRoomMembers").innerHTML=r.members.map(m=>'<div class="socialItem"><span>'+escapeAccountText(m.display_name)+(m.is_host?' 👑 ホスト':'')+'</span><span class="pill">'+(m.is_ready?'準備完了':'準備中')+'</span></div>').join("");
+ const isHost=r.host_user_id===authUser.id;
+ $("hostRoomSettings").hidden=!isHost;
+ $("editRoomMaxHumans").value=String(r.max_humans);$("editRoomAICount").value=String(r.ai_count);
+ $("editRoomMeetingTime").value=String(r.settings?.meeting_duration||90);
+ $("editRoomBlack").value=String(r.settings?.black_count||2);$("editRoomThird").value=String(r.settings?.third_count||0);
+ $("editRoomSpecial").checked=!!r.special_mode;
+ $("roomReadyButton").textContent=me?.is_ready?"準備を取り消す":"準備完了";
+ $("roomReadyButton").disabled=!!isHost;
+ socialMessage(isHost?"あなたはホストです。設定を調整できます。":(me?.is_ready?"準備完了。ホストの開始を待っています。":"準備ができたらボタンを押してください。"));
+}
+async function toggleRoomReady(){
+ if(!activeRoomId)return;
+ try{const me=activeRoomSnapshot?.members?.find(m=>m.user_id===authUser.id);const {error}=await supabaseClient.rpc("set_room_ready",{p_room:activeRoomId,p_ready:!me?.is_ready});if(error)throw error;await broadcastRoomRefresh();await loadActiveRoom()}
+ catch(e){socialMessage("準備状態を変更できません："+(e.message||e),true)}
+}
+async function saveRoomSettings(){
+ if(!activeRoomId)return;
+ try{
+  const special=$("editRoomSpecial").checked;
+  const settings={meeting_duration:Number($("editRoomMeetingTime").value),black_count:Number($("editRoomBlack").value),third_count:Number($("editRoomThird").value),role_duplicates:special,discussion_enabled:true,task_mode:"standard"};
+  const {error}=await supabaseClient.rpc("update_game_room",{p_room:activeRoomId,p_max_humans:Number($("editRoomMaxHumans").value),p_ai_count:Number($("editRoomAICount").value),p_special_mode:special,p_settings:settings});
+  if(error)throw error;await broadcastRoomRefresh();await loadActiveRoom();socialMessage("部屋設定を保存しました。");
+ }catch(e){socialMessage("設定を保存できません："+(e.message||e),true)}
+}
+async function copyActiveRoomCode(){if(activeRoomSnapshot?.join_code){await navigator.clipboard?.writeText(activeRoomSnapshot.join_code);socialMessage("部屋コードをコピーしました。")}}
+async function leaveOnlineRoom(){
+ if(!activeRoomId)return;
+ const id=activeRoomId;
+ try{await supabaseClient.rpc("leave_game_room",{p_room:id});await broadcastRoomRefresh()}catch(e){console.warn(e)}
+ activeRoomId=null;activeRoomSnapshot=null;await disconnectRoomChannel();show("socialHub");await loadSocialHub();
+}
+
+function renderUpdateLog(version="0.42"){
  const logs={
+  "0.42":{date:"2026年11月8日",items:["オンライン用のフレンド申請・承認・解除機能とプレイヤー検索を追加。","プライベート／パブリック部屋の作成、コード参加、公開部屋一覧を追加。","部屋の最大人数・AI人数・会議時間・陣営人数・特別モード設定、準備状態を追加。","部屋ロビーにRealtimeの参加状態と更新通知を追加。"]},
   "0.41":{date:"2026年11月8日",items:["サイトを開いた直後に保存済み試合を確認し、ホーム画面へ再開ボタンを表示するよう修正。","保存データからマップや一時的な対象参照を除き、再開時に研究施設マップを復元するよう改善。"]},
   "0.40":{date:"2026年11月8日",items:["試合中の状態を1秒ごとに端末内へ自動保存。","ページ更新・誤って閉じた後も、ホーム画面から中断した試合を再開可能に。","プレイヤーとAIの位置・生死・役職・タスク・経過時間・会議状態などを保存。","試合終了またはホームへ戻る操作で中断データを削除。"]},
   "0.39":{date:"2026年11月8日",items:["ブラウザからAI戦績を直接サーバーへ書き込む処理を停止。不正なAI戦績登録を防止。","AIプロフィール表の一般ユーザー向け書き込み権限を取り消し、閲覧専用に変更。","AI戦績記録関数をサーバー権限専用に制限。"]},
@@ -1706,7 +1914,7 @@ function renderUpdateLog(version="0.41"){
   "0.24":{date:"2026年11月8日",items:["会議マップは自分の位置だけを表示。","会議画面に生存者・死亡者の一覧を追加。","AIの役職発言・推理・会話パターンを拡充。","AIプロフィール通信が止まっても4.5秒でローカル設定に切替。"]},
   "0.23":{date:"2026年11月8日",items:["試合開始後に移動とタイマーが進む安定版を復元。","タスクを暗号解読方式に整理。","AIプロフィール取得に失敗した場合もローカル設定で試合を進行。"]}
  };
- const entry=logs[version]||logs["0.32"],root=$("updateLogContent");
+ const entry=logs[version]||logs["0.42"],root=$("updateLogContent");
  if(root)root.innerHTML='<strong>'+("v"+version)+' · '+entry.date+'</strong><ul>'+entry.items.map(item=>'<li>'+item+'</li>').join('')+'</ul>';
 }
 function setHelpTab(tab){const roles=tab==="roles";$("helpRulesPanel").hidden=roles;$("helpRolesPanel").hidden=!roles;$("helpRulesTab").classList.toggle("primary",!roles);$("helpRolesTab").classList.toggle("primary",roles)}
