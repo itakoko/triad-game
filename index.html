@@ -1852,8 +1852,8 @@ function startOnlineClient(){
  onlineGame={roomId:activeRoomId,isHost:false,userId:authUser.id};state.running=true;
  ensureOnlineInputChannel().catch(e=>socialMessage(e.message||String(e),true));
  if(onlineMoveTimer)clearInterval(onlineMoveTimer);let last="";
- onlineMoveTimer=setInterval(()=>{if(!isOnlineClient())return;const m=state.move||{x:0,y:0},key=m.x.toFixed(2)+","+m.y.toFixed(2);if(key!==last||Math.abs(m.x)+Math.abs(m.y)>.02){last=key;sendOnlineInput({kind:"move",x:m.x,y:m.y})}},80);
- if(loop)clearInterval(loop);loop=setInterval(()=>{if(!isOnlineClient())return;applyOnlineRenderInterpolation();predictOnlineLocalMovement();updateNearbyActions();draw()},33);
+ onlineMoveTimer=setInterval(()=>{if(!isOnlineClient())return;const m=state.move||{x:0,y:0},key=m.x.toFixed(2)+","+m.y.toFixed(2);if(key!==last||Math.abs(m.x)+Math.abs(m.y)>.02){last=key;sendOnlineInput({kind:"move",x:m.x,y:m.y})}},50);
+ onlinePredictionLastAt=0;if(loop)clearInterval(loop);loop=setInterval(()=>{if(!isOnlineClient())return;applyOnlineRenderInterpolation();predictOnlineLocalMovement();updateNearbyActions();draw()},33);
  if(clock)clearInterval(clock);show("game");startAudio();
 }
 function applyOnlinePrivatePlayer(){
@@ -1904,7 +1904,7 @@ async function startOnlineHostSync(){
   socialMessage("オンライン同期チャンネルを準備できませんでした。部屋を作り直して再試行してください："+(e.message||e),true);throw e;
  }
  if(onlineSnapshotTimer)clearInterval(onlineSnapshotTimer);
- onlineSnapshotTimer=setInterval(()=>{broadcastOnlineSnapshot();if(onlineGameRevision%8===0)sendOnlinePrivateStates()},200);
+ onlineSnapshotTimer=setInterval(()=>{broadcastOnlineSnapshot();if(onlineGameRevision%8===0)sendOnlinePrivateStates()},100);
  await broadcastOnlineToUsers("match_start",{host:authUser.id});
  await sendOnlinePrivateStates();await broadcastOnlineSnapshot();
 }
@@ -1912,13 +1912,18 @@ function applyOnlineRenderInterpolation(){
  if(!isOnlineClient())return;const now=performance.now();
  for(const p of state.players||[]){if(!Number.isFinite(p._netStart))continue;const t=Math.min(1,(now-p._netStart)/Math.max(1,p._netDuration||200));p.x=p._netFromX+(p._netToX-p._netFromX)*t;p.y=p._netFromY+(p._netToY-p._netFromY)*t;if(t>=1){delete p._netStart;delete p._netFromX;delete p._netFromY;delete p._netToX;delete p._netToY;delete p._netDuration}}
 }
+let onlinePredictionLastAt=0;
 function predictOnlineLocalMovement(){
- const p=state.me;if(!isOnlineClient()||!p||( !p.alive&&!p.ghost)||p.charging)return;
- const m=state.move||{x:0,y:0},mag=Math.hypot(m.x,m.y);if(mag<.015)return;
- const nx=p.x+(m.x/mag)*3.5,ny=p.y+(m.y/mag)*3.5;
- if(isWalkable(nx,p.y))p.x=nx;if(isWalkable(p.x,ny))p.y=ny;
+ const p=state.me;if(!isOnlineClient()||!p)return;
+ const now=performance.now(),dt=Math.min(50,onlinePredictionLastAt?now-onlinePredictionLastAt:33);onlinePredictionLastAt=now;
+ // Match the host's 3.5-unit / 70ms movement step instead of moving 3.5 units on every 33ms render.
+ if((p.alive||p.ghost)&&!p.charging){
+  const m=state.move||{x:0,y:0},mag=Math.hypot(m.x,m.y);
+  if(mag>=.015){const step=3.5*(dt/70),nx=p.x+(m.x/mag)*step,ny=p.y+(m.y/mag)*step;if(isWalkable(nx,p.y))p.x=nx;if(isWalkable(p.x,ny))p.y=ny}
+ }
+ // Apply server corrections even when the player has released the movement control.
  if(Number.isFinite(p._correctionX)&&Number.isFinite(p._correctionY)){
-  const cx=p._correctionX*.24,cy=p._correctionY*.24;p.x+=cx;p.y+=cy;p._correctionX-=cx;p._correctionY-=cy;
+  const cx=p._correctionX*.18,cy=p._correctionY*.18;p.x+=cx;p.y+=cy;p._correctionX-=cx;p._correctionY-=cy;
   if(Math.abs(p._correctionX)<.04&&Math.abs(p._correctionY)<.04){delete p._correctionX;delete p._correctionY}
  }
 }
@@ -1932,7 +1937,7 @@ function receiveOnlineSnapshot(payload){
   const old=previousPlayers.get(p.id);
   if(old&&Number.isFinite(old.x)&&Number.isFinite(old.y)&&Number.isFinite(p.x)&&Number.isFinite(p.y)){
    if(p.userId===authUser.id){const authoritativeX=p.x,authoritativeY=p.y;p.x=old.x;p.y=old.y;p._correctionX=authoritativeX-old.x;p._correctionY=authoritativeY-old.y;}
-   else{p._netFromX=old.x;p._netFromY=old.y;p._netToX=p.x;p._netToY=p.y;p._netStart=now;p._netDuration=200;p.x=old.x;p.y=old.y;}
+   else{p._netFromX=old.x;p._netFromY=old.y;p._netToX=p.x;p._netToY=p.y;p._netStart=now;p._netDuration=100;p.x=old.x;p.y=old.y;}
   }
   return p;
  });
@@ -1953,8 +1958,9 @@ function renderOnlineMeeting(){
  $("meetingModal").classList.add("show");$("meetingTitle").textContent="会議";
  $("meetingPhaseLabel").textContent=state.meetingPhase==="voting"?"投票フェーズ":"議論フェーズ";
  $("meetingTimeLeft").textContent=state.meetingSecondsLeft+"秒";
- const voted=(state.onlineVotedUserIds||[]).includes(authUser.id)||!!state.onlineVoteSubmitted;
- $("meetingInfo").textContent=state.meetingPhase==="voting"?(voted?"投票を送信しました。他の参加者の投票を待っています。":"投票先を選んで「投票を確定」してください。"):"全員で話し合ってください。";
+ const resolved=(state.lastBallots||[]).length>0;
+ const voted=resolved||(state.onlineVotedUserIds||[]).includes(authUser.id)||!!state.onlineVoteSubmitted;
+ $("meetingInfo").textContent=state.meetingPhase==="voting"?(resolved?"投票が完了しました。結果を確認してください。":voted?"投票を送信しました。他の参加者の投票を待っています。":"投票先を選んで「投票を確定」してください。"):"全員で話し合ってください。";
  $("meetingComposer").hidden=state.meetingPhase!=="discussion"||!state.me.alive;
  $("beginVoteAction").hidden=state.meetingPhase!=="discussion"||!state.me.alive;
  $("meetingVotePanel").hidden=state.meetingPhase!=="voting";
@@ -1966,6 +1972,14 @@ function renderOnlineMeeting(){
   $("voteList").querySelectorAll("button").forEach(b=>{const id=Number(b.dataset.voteId);b.classList.toggle("selected",state.selectedVote!==null&&state.selectedVote!=="skip"&&id===Number(state.selectedVote));b.disabled=voted||!state.me.alive});
   $("selectedVoteText").textContent=state.selectedVote==="skip"?"投票先：スキップ":state.selectedVote!==null?"投票先："+playerTag(state.players.find(p=>p.id===Number(state.selectedVote))):"投票先：未選択";
   $("submitVoteAction").disabled=voted||state.selectedVote===null||!state.me.alive;
+  if(resolved){
+   const counts={skip:0};alive.forEach(p=>counts[p.id]=0);state.lastBallots.forEach(b=>{counts[b.target]=(counts[b.target]||0)+1});
+   $("voteBreakdown").innerHTML=alive.map(p=>'<div class="voteTally">'+escapeAccountText(p.name)+'<br><strong>'+(counts[p.id]||0)+' 票</strong></div>').join("")+'<div class="voteTally">スキップ<br><strong>'+(counts.skip||0)+' 票</strong></div>';
+   $("ballotBreakdown").innerHTML=state.lastBallots.map(b=>{const v=state.players.find(p=>p.id===b.voter),t=b.target==="skip"?"スキップ":state.players.find(p=>p.id===b.target)?.name||"不明";return '<div class="pill">'+escapeAccountText(v?.name||"不明")+' → '+escapeAccountText(t)+'</div>'}).join("");
+   $("submitVoteAction").disabled=true;$("closeMeetingAction").disabled=false;
+   const max=Math.max(...Object.values(counts)),winners=Object.keys(counts).filter(k=>counts[k]===max);
+   $("voteResult").textContent=winners.length!==1?"最多票が同数のため、今回は誰も追放されません。":winners[0]==="skip"?"スキップが最多の"+max+"票。誰も追放されません。":(state.players.find(p=>p.id===Number(winners[0]))?.name||"対象者")+" が "+max+" 票で最多票です。";
+  }else{$("voteBreakdown").textContent="";$("ballotBreakdown").textContent="";$("voteResult").textContent=""}
  }
 }
 async function handleOnlineAction(payload){
