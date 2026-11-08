@@ -143,7 +143,7 @@ canvas#mapCanvas{aspect-ratio:16/10;background:#0b1522}
 </style>
 </head>
 <body>
-<header><div class="logo">TRI<span>AD</span></div><div class="row" style="align-items:center;gap:8px;flex:0 0 auto"><div class="tag">オンラインアカウント対応 · 連携限定報酬 · v0.40</div><button class="headerAccountButton" type="button" onclick="openAccountsScreen()">アカウント</button></div></header>
+<header><div class="logo">TRI<span>AD</span></div><div class="row" style="align-items:center;gap:8px;flex:0 0 auto"><div class="tag">オンラインアカウント対応 · 連携限定報酬 · v0.41</div><button class="headerAccountButton" type="button" onclick="openAccountsScreen()">アカウント</button></div></header>
 <main>
 <section id="home" class="screen active">
  <div class="hero"><div class="pill">研究施設マップ・探索型推理ゲーム</div><h1>閉鎖された研究所。<br>見えない場所に誰かがいる。</h1><p>部屋と通路を自分で探索し、タスクを進めながら状況を判断します。視界はプレイヤーの周囲に限られます。</p></div>
@@ -152,7 +152,7 @@ canvas#mapCanvas{aspect-ratio:16/10;background:#0b1522}
   <div class="card"><h3>🎮 ゲームを始める</h3><p class="muted">AIと対戦するオフライン試合を開始します。</p><button class="primary" style="width:100%" onclick="show('setup')">試合設定へ</button></div>
   <div class="card"><h3>📘 遊び方</h3><p class="muted">試作版のルールと操作方法を確認します。</p><button style="width:100%" onclick="openHelp()">ルールを見る</button></div>
   <div class="card"><h3>👥 アカウント図鑑</h3><p class="muted">プレイヤーとAIアカウント全員の能力・成績・得意な役職を確認できます。</p><button style="width:100%" onclick="openAccountsScreen()">アカウントを見る</button></div>
-  <div class="card"><h3>📋 アップデートログ</h3><p class="muted">見たいバージョンを選択してください。</p><div class="field"><label for="updateVersionSelect">バージョン</label><select id="updateVersionSelect" onchange="renderUpdateLog(this.value)"><option value="0.40">v0.40（最新）</option><option value="0.39">v0.39</option><option value="0.38">v0.38</option><option value="0.37">v0.37</option><option value="0.36">v0.36</option><option value="0.35">v0.35</option><option value="0.34">v0.34</option><option value="0.33">v0.33</option><option value="0.32">v0.32</option><option value="0.31">v0.31</option><option value="0.29">v0.29</option><option value="0.28">v0.28</option><option value="0.27">v0.27</option><option value="0.26">v0.26</option><option value="0.25">v0.25</option><option value="0.23">v0.23</option></select></div><div id="updateLogContent" class="updateLogContent" aria-live="polite"></div></div>
+  <div class="card"><h3>📋 アップデートログ</h3><p class="muted">見たいバージョンを選択してください。</p><div class="field"><label for="updateVersionSelect">バージョン</label><select id="updateVersionSelect" onchange="renderUpdateLog(this.value)"><option value="0.41">v0.41（最新）</option><option value="0.40">v0.40</option><option value="0.39">v0.39</option><option value="0.38">v0.38</option><option value="0.37">v0.37</option><option value="0.36">v0.36</option><option value="0.35">v0.35</option><option value="0.34">v0.34</option><option value="0.33">v0.33</option><option value="0.32">v0.32</option><option value="0.31">v0.31</option><option value="0.29">v0.29</option><option value="0.28">v0.28</option><option value="0.27">v0.27</option><option value="0.26">v0.26</option><option value="0.25">v0.25</option><option value="0.23">v0.23</option></select></div><div id="updateLogContent" class="updateLogContent" aria-live="polite"></div></div>
  </div>
 </section>
 
@@ -479,7 +479,8 @@ function meetingNameColor(p){return state.meeting&&state.me?.team==="black"&&p?.
 function saveActiveMatch(){
  if(!state.running||!state.me||!state.players.length)return;
  try{
-  const snapshot={version:1,savedAt:Date.now(),state:{...state,aiTurnTimer:null,meetingTimer:null,move:{x:0,y:0}}};
+  const safeState={...state,map:null,me:null,nearTask:null,nearBody:null,targetAction:null,aiTurnTimer:null,meetingTimer:null,move:{x:0,y:0}};
+  const snapshot={version:1,savedAt:Date.now(),state:safeState};
   localStorage.setItem(MATCH_SAVE_KEY,JSON.stringify(snapshot,(key,value)=>value instanceof Set?{__triadSet:[...value]}:value));
   updateResumeGameUI();
  }catch(error){console.warn("Match autosave failed",error)}
@@ -568,7 +569,7 @@ function activateScreen(id){
 }
 function show(id){
  if(!activateScreen(id))return;
- if(id==="home"){renderUpdateLog($("updateVersionSelect")?.value||"0.40");updateResumeGameUI()}
+ if(id==="home"){renderUpdateLog($("updateVersionSelect")?.value||"0.41");updateResumeGameUI()}
  if(id==="accounts")loadAccountDirectoryData();
 }
 function openAccountsScreen(){
@@ -1685,8 +1686,9 @@ function renderAccountDetail(id){
  renderAccountList();
 }
 
-function renderUpdateLog(version="0.40"){
+function renderUpdateLog(version="0.41"){
  const logs={
+  "0.41":{date:"2026年11月8日",items:["サイトを開いた直後に保存済み試合を確認し、ホーム画面へ再開ボタンを表示するよう修正。","保存データからマップや一時的な対象参照を除き、再開時に研究施設マップを復元するよう改善。"]},
   "0.40":{date:"2026年11月8日",items:["試合中の状態を1秒ごとに端末内へ自動保存。","ページ更新・誤って閉じた後も、ホーム画面から中断した試合を再開可能に。","プレイヤーとAIの位置・生死・役職・タスク・経過時間・会議状態などを保存。","試合終了またはホームへ戻る操作で中断データを削除。"]},
   "0.39":{date:"2026年11月8日",items:["ブラウザからAI戦績を直接サーバーへ書き込む処理を停止。不正なAI戦績登録を防止。","AIプロフィール表の一般ユーザー向け書き込み権限を取り消し、閲覧専用に変更。","AI戦績記録関数をサーバー権限専用に制限。"]},
   "0.38":{date:"2026年11月8日",items:["メール確認済みのオンラインアカウントに限定称号「リンクパイオニア」と限定バッジを付与。","報酬はサーバー側で本人のメール確認状態を検証して一度だけ付与。","アカウント画面に報酬状態を表示し、他プレイヤーにメールアドレスを表示しないようログイン表示を修正。"]},
@@ -1709,6 +1711,6 @@ function renderUpdateLog(version="0.40"){
 }
 function setHelpTab(tab){const roles=tab==="roles";$("helpRulesPanel").hidden=roles;$("helpRolesPanel").hidden=!roles;$("helpRulesTab").classList.toggle("primary",!roles);$("helpRolesTab").classList.toggle("primary",roles)}
 function openHelp(){setHelpTab("rules");$("helpModal").classList.add("show")}function closeHelp(){$("helpModal").classList.remove("show")}
-if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",()=>initializeOnlineAccounts());else initializeOnlineAccounts();
+if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",()=>{initializeOnlineAccounts();updateResumeGameUI()});else{initializeOnlineAccounts();updateResumeGameUI()}
 </script>
 </body></html>
