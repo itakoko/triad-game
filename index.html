@@ -1024,7 +1024,7 @@ function updateNearbyActions(){
  if(dead&&!ghost&&!state.players.some(p=>p.id===spectatorTargetId&&p.alive)){spectatorTargetId=state.players.find(p=>p.alive)?.id??null;}
  $("ghostBanner").textContent=dead?(ghost?"👻 幽霊モード：自由に移動できます":"👁 観戦モード：生存者の視点を見ています"):"";
  $("deathChoice").hidden=!dead||!deathChoicePending;
- state.nearTask=alive&&me.team==="white"?state.tasks.find(t=>!t.done&&!t.completedBy?.includes(me.id)&&Math.hypot(t.x-me.x,t.y-me.y)<72)||null:null;
+ state.nearTask=alive?state.tasks.find(t=>!t.done&&!t.completedBy?.includes(me.id)&&Math.hypot(t.x-me.x,t.y-me.y)<72)||null:null;
  state.nearBody=alive?state.dead.find(d=>Math.hypot(d.x-me.x,d.y-me.y)<82)||null:null;
  state.nearEmergency=alive&&Math.hypot(900-me.x,520-me.y)<82;const emergencyWait=Math.max(0,Math.ceil(((state.emergencyMeetingReadyAt||0)-now)/1000));const emergencyAvailable=state.nearEmergency&&!me.emergencyMeetingUsed&&emergencyWait===0;
   $("taskAction").textContent=ghost?"👻 タスクを解読":state.nearTask?`🔧 ${state.nearTask.label}を解析（残り${state.nearTask.remaining}件）`:"🔧 タスクを行う";
@@ -1194,18 +1194,20 @@ function submitTaskPuzzle(){
  if(completeSharedTask(task,state.me)){updateNearbyActions();draw()}
 }
 function completeSharedTask(task,actor){if(isOnlineClient()){sendOnlineInput({kind:"action",action:"task",taskId:task?.id});return true}
- if(!state.running||!task||task.done||task.remaining<=0||actor?.team!=="white")return false;
+ if(!state.running||!task||task.done||task.remaining<=0||!actor?.alive)return false;
  task.completedBy=task.completedBy||[];
  if(task.completedBy.includes(actor.id))return false;
- task.completedBy.push(actor.id);
- task.remaining--;state.done++;actor.taskCount=(actor.taskCount||0)+1;if(task.remaining<=0)task.done=true;
- $("taskCount").textContent=state.done+" / "+state.total;$("taskProgress").style.width=(state.done/state.total*100)+"%";
+ task.completedBy.push(actor.id);actor.taskCount=(actor.taskCount||0)+1;
+ if(actor.team==="white"){
+  task.remaining--;state.done++;if(task.remaining<=0)task.done=true;
+  $("taskCount").textContent=state.done+" / "+state.total;$("taskProgress").style.width=(state.done/state.total*100)+"%";
+  if(state.done>=state.total)endGame("白陣営全員で共有タスクを"+state.total+"件完了しました。白陣営の勝利です。",{teams:["white"]});
+ }
  if(actor.id===state.me.id)playSfx("task");
- if(state.done>=state.total)endGame("白陣営全員で共有タスクを"+state.total+"件完了しました。白陣営の勝利です。",{teams:["white"]});
  return true;
 }
 function doTask(){
- if(!state.running||!state.me.alive||state.me.team!=="white"||!state.nearTask)return;
+ if(!state.running||!state.me.alive||!state.nearTask)return;
  openTaskPuzzle(state.nearTask);
 }
 function targetCandidates(actor,range,allowSelf=false,filter=()=>true){return state.players.filter(p=>p.alive&&(allowSelf||p.id!==actor.id)&&Math.hypot(p.x-actor.x,p.y-actor.y)<=range&&hasLineOfSight(actor,p)&&filter(p))}
@@ -1844,7 +1846,17 @@ function closeMeeting(){if(isOnlineClient()){sendOnlineInput({kind:"action",acti
   $("meetingModal").classList.remove("show");
   if(state.running)respawnLivingPlayers();
   state.dead=[];state.tasks.forEach(task=>{task.completedBy=[]});
-  state.players.slice(1).forEach(p=>{p.aiTaskIndex=null;if(p.aiGoal?.kind==="task"){p.aiGoal=null;p.aiPath=[]}p.aiNextTaskAt=Date.now()+rand(3500,6000)});
+  const cooldownStart=Date.now();
+  state.players.filter(p=>p.alive).forEach(p=>{
+   if(p.team==="black")p.killReadyAt=cooldownStart+30000;
+   else if(p.role==="暗殺者")p.killReadyAt=cooldownStart+20000;
+   else if(p.role==="狂人")p.killReadyAt=cooldownStart+30000;
+   if(p.team==="black")p.sabotageReadyAt=cooldownStart+35000;
+   const roleCooldown={"イノシシ":20000,"暗殺者":20000,"百面相":35000,"放浪者":15000}[p.role];
+   if(roleCooldown)p.roleReadyAt=cooldownStart+roleCooldown;
+   p.emergencyReadyAt=cooldownStart+25000;
+   if(p.id!==0){p.aiTaskIndex=null;if(p.aiGoal?.kind==="task"){p.aiGoal=null;p.aiPath=[]}p.aiNextTaskAt=cooldownStart+rand(3500,6000)}
+  });
   state.meeting=false;state.meetingPhase="";state.selectedVote=null;state._closingMeeting=false;
   updateNearbyActions();draw();if(state.running)checkWin();
  },1050);
