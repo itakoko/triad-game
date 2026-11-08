@@ -174,14 +174,18 @@ const SUPABASE_PUBLISHABLE_KEY="sb_publishable_79x6YIEy9SYlaoiiDFoDQA_eP37cFfQ";
 let supabaseClient=null,aiProfilePool=[],aiProfilesLoaded=false;
 async function loadAIProfiles(){
  if(aiProfilesLoaded)return;
+ let timeoutId=null;
  try{
   if(!window.supabase?.createClient)throw new Error("Supabase SDK unavailable");
   supabaseClient=supabaseClient||window.supabase.createClient(SUPABASE_URL,SUPABASE_PUBLISHABLE_KEY);
-  const {data,error}=await supabaseClient.from("ai_profiles").select("id,display_name,personality,skill_level,task_skill,deduction_skill,caution,sociability,aggression,task_priority,memory").order("id");
+  const request=supabaseClient.from("ai_profiles").select("id,display_name,personality,skill_level,task_skill,deduction_skill,caution,sociability,aggression,task_priority,memory").order("id");
+  const timeout=new Promise((_,reject)=>{timeoutId=setTimeout(()=>reject(new Error("AI profile request timed out")),4500)});
+  const {data,error}=await Promise.race([request,timeout]);
   if(error)throw error;
   aiProfilePool=Array.isArray(data)?data:[];
   aiProfilesLoaded=true;
  }catch(error){console.warn("AI profile load failed; using local fallback.",error);aiProfilePool=[];aiProfilesLoaded=true;}
+ finally{if(timeoutId)clearTimeout(timeoutId)}
 }
 
 const $=id=>document.getElementById(id);
