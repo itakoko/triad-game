@@ -380,7 +380,7 @@ canvas#mapCanvas{aspect-ratio:16/10;background:#0b1522}
 </section>
 
 </main>
-<footer>TRIAD v0.63 · 会議・投票サーバー接続</footer>
+<footer>TRIAD v0.64 · サポート能力・勝利判定</footer>
 
   <div id="onlineConnectionBanner" role="status">オンライン接続が不安定です。<button type="button" onclick="retryOnlineConnection()">再接続</button></div>
   <div class="modal" id="offlineRoleSettingsModal"><div class="modalbox"><h2>通常対戦・役職詳細設定</h2><p class="muted">固定人数を指定した役職は必ず登場します。残りの枠はONになっている役職から出現重みに応じて抽選します。</p>
@@ -703,7 +703,7 @@ function syncRankedMeetingUI(meeting){
 function applyRankedServerSnapshot(snap){
  if(!rankedServerMode||snap?.status!=="ok")return;const ownSeat=Number(snap.self?.seat);state.serverPhase=snap.phase;state.emergencyMeetingReadyAt=Number(snap.meeting_cooldown_until)||state.emergencyMeetingReadyAt;
  (snap.players||[]).forEach(v=>{const p=state.players.find(x=>x.number===Number(v.seat));if(p){p.x=Number(v.x);p.y=Number(v.y);p.alive=!!v.alive}});
- const me=state.players.find(p=>p.number===ownSeat);if(me){me.team=snap.self.faction;me.role=snap.self.role;me.alive=!!snap.self.alive;state.me=me}
+ const me=state.players.find(p=>p.number===ownSeat);if(me){me.team=snap.self.faction;me.role=snap.self.role;me.alive=!!snap.self.alive;me.abilityUsed=!!snap.self.ability_used;me.roleReadyAt=Number(snap.self.role_ready_at)||0;me.gamblerKillReady=!!snap.self.gambler_kill_ready;state.me=me;if(me.role==="放浪者"&&Array.isArray(snap.self.scented_seats))state.scentedIds=new Set(snap.self.scented_seats.map(n=>Number(n)-1));}
  state.tasks=(snap.tasks||[]).map(t=>{const old=state.tasks.find(x=>x.id===Number(t.id))||{},spec=taskKinds[Number(t.id)%taskKinds.length];return{...old,id:Number(t.id),x:Number(t.x),y:Number(t.y),done:!!t.done,remaining:Number(t.remaining),label:spec.label,room:spec.room,kind:spec.kind}});
  state.done=state.tasks.reduce((n,t)=>n+(4-Math.max(0,Number(t.remaining)||0)),0);state.total=state.tasks.length*4;state.seconds=Number(snap.elapsed_seconds)||state.seconds;
  $("taskCount").textContent=state.done+" / "+state.total;$("taskProgress").style.width=(state.total?state.done/state.total*100:0)+"%";$("timer").textContent=String(Math.floor(state.seconds/60)).padStart(2,"0")+":"+String(state.seconds%60).padStart(2,"0");$("myStatus").textContent=state.me.alive?"生存":"死亡";syncRankedMeetingUI(snap.meeting);updateNearbyActions();draw();
@@ -711,7 +711,7 @@ function applyRankedServerSnapshot(snap){
 async function rankedServerPulse(){
  if(!rankedServerMode||!state.running||rankedServerBusy)return;rankedServerBusy=true;
  try{const now=Date.now(),mv=state.move||{x:0,y:0};if((Math.abs(mv.x)+Math.abs(mv.y))>.08&&now-rankedLastMoveAt>=110){rankedLastMoveAt=now;await rankedEngineCall("move",{dx:mv.x,dy:mv.y})}
- if(now-rankedLastTickAt>=360){rankedLastTickAt=now;await rankedEngineCall("tick")}
+ if(now-rankedLastTickAt>=360){rankedLastTickAt=now;const tr=await rankedEngineCall("tick");if(tr.status==="match_completed"){state.running=false;clearInterval(loop);$("nearHint").textContent="試合終了："+tr.winner_faction+" 陣営の勝利";alert("試合終了："+tr.winner_faction+" 陣営の勝利");return}}
  if(now-rankedLastStateAt>=720){rankedLastStateAt=now;applyRankedServerSnapshot(await rankedEngineCall("state"))}}
  catch(e){console.warn("Ranked server sync failed",e);$("nearHint").textContent="サーバー再接続中…"}finally{rankedServerBusy=false}
 }
@@ -864,7 +864,7 @@ async function loadRankedProfile(){
 
 function show(id){
  if(!activateScreen(id))return;
- if(id==="home"){renderUpdateLog($("updateVersionSelect")?.value||"0.63");updateResumeGameUI()}
+ if(id==="home"){renderUpdateLog($("updateVersionSelect")?.value||"0.64");updateResumeGameUI()}
  if(id==="accounts")loadAccountDirectoryData();
  if(id==="socialHub")loadSocialHub();
 }
@@ -1523,7 +1523,15 @@ function resolveGamblerRoll(actor,now=Date.now()){
  else{actor.gamblerBadLuckCount=(actor.gamblerBadLuckCount||0)+1;announce("💀 大凶！累計"+actor.gamblerBadLuckCount+"/3回");playSfx("death");if(actor.gamblerBadLuckCount>=3)markPlayerDead(actor,"大凶を3回引いた",actor)}
  updateNearbyActions();draw();if(!actor.alive)checkWin();
 }
-function useAbility(){if(isOnlineClient()){if(state.me?.role==="サイエンティスト"){showAliveList();return}if(state.me?.role==="暗殺者"){openBounty();sendOnlineInput({kind:"action",action:"ability"});return}if(state.me?.role==="ギャンブラー"&&state.me.gamblerKillReady){openTargetSelection("JACKPOTキル","近くの相手1人をキルできます。",targetCandidates(state.me,100,false,p=>p.team!==state.me.team),"gamblerKill");return}if(!["占い師","狩人","保安官","僧侶","百面相","放浪者"].includes(state.me?.role)){sendOnlineInput({kind:"action",action:"ability"});return}}
+function useAbility(){if(rankedServerMode){
+ const actor=state.me;if(!actor?.alive)return;
+ if(actor.role==="サイエンティスト"){rankedEngineCall("ability",{kind:"scientist"}).then(r=>{if(r.status==="alive_count")alert("生存者は "+r.alive_count+" 人です。");else alert("能力を使えません："+r.status)});return}
+ if(actor.role==="占い師"){openTargetSelection("占う相手を選択","近くの生存者1人を一度だけ占えます。",targetCandidates(actor,100),"seer");return}
+ if(actor.role==="僧侶"){openTargetSelection("加護を与える相手を選択","生存者1人に一度だけ加護を与えます。",targetCandidates(actor,Infinity,true),"protect");return}
+ if(actor.role==="放浪者"){openTargetSelection("匂いを移す相手を選択","近くの生存者に匂いを移します。",targetCandidates(actor,90),"scent");return}
+ if(actor.role==="百面相"){openTargetSelection("変身する相手を選択","選んだ相手の姿に10秒間変身します。",targetCandidates(actor,Infinity),"disguise");return}
+ return;
+ }if(isOnlineClient()){if(state.me?.role==="サイエンティスト"){showAliveList();return}if(state.me?.role==="暗殺者"){openBounty();sendOnlineInput({kind:"action",action:"ability"});return}if(state.me?.role==="ギャンブラー"&&state.me.gamblerKillReady){openTargetSelection("JACKPOTキル","近くの相手1人をキルできます。",targetCandidates(state.me,100,false,p=>p.team!==state.me.team),"gamblerKill");return}if(!["占い師","狩人","保安官","僧侶","百面相","放浪者"].includes(state.me?.role)){sendOnlineInput({kind:"action",action:"ability"});return}}
  const actor=state.me;if(!state.running||!actor.alive)return;
  const role=actor.role,now=Date.now();
  if(role==="サイエンティスト"){playSfx("ability");showAliveList();return}
@@ -1537,7 +1545,25 @@ function useAbility(){if(isOnlineClient()){if(state.me?.role==="サイエンテ�
  if(role==="百面相"){playSfx("ability");openTargetSelection("変身する相手を選択","選んだ相手の姿に10秒間変身します。",targetCandidates(actor,Infinity),"disguise");return}
  if(role==="放浪者"){playSfx("ability");openTargetSelection("匂いを移す相手を選択","匂いを移された相手には通知されません。",targetCandidates(actor,90),"scent");return}
 }
-function selectTarget(id){if(isOnlineClient()){const kind=state.targetAction?.kind;if(kind){closeTargetModal();sendOnlineInput({kind:"action",action:"target",actionKind:kind,targetId:Number(id)})}return}
+function selectTarget(id){if(rankedServerMode){
+ const action=state.targetAction,kind=action?.kind,target=state.players.find(p=>p.id===Number(id));closeTargetModal();
+ if(!kind||!target)return;
+ const apiKind={seer:"seer",protect:"protect",scent:"scent",disguise:"disguise"}[kind];if(!apiKind)return;
+ rankedEngineCall("ability",{kind:apiKind,target_seat:Number(target.number||target.id+1)}).then(async result=>{
+  if(result.status==="seer_result"){target.team=result.target_faction;showSeerResult(target)}
+  else if(result.status==="protected"){target.protected=true;alert(target.name+" に加護を与えました。")}
+  else if(result.status==="scented"){state.scentedIds.add(target.id);$("nearHint").textContent="匂いを移しました。対象 "+result.scented_count+" 人";alert("匂いを移しました。")}
+  else if(result.status==="disguised"){alert("10秒間、選んだ相手の姿に変身しました。")}
+  else if(result.status==="objective_complete"){state.running=false;clearInterval(loop);alert("放浪者の単独勝利！");}
+  else if(result.status==="match_completed"){state.running=false;clearInterval(loop);alert("試合終了： "+result.winner_faction+" 陣営の勝利");}
+  else if(result.status==="too_far")alert("対象にもう少し近づいてください。");
+  else if(result.status==="ability_used")alert("この能力は使用済みです。");
+  else if(result.status==="cooldown")alert("能力の再使用まで待ってください。");
+  else alert("能力を使えません："+result.status);
+  if(result.status!=="match_completed"&&result.status!=="objective_complete")applyRankedServerSnapshot(await rankedEngineCall("state"));
+ }).catch(e=>alert("能力送信エラー："+(e.message||String(e))));
+ return;
+ }if(isOnlineClient()){const kind=state.targetAction?.kind;if(kind){closeTargetModal();sendOnlineInput({kind:"action",action:"target",actionKind:kind,targetId:Number(id)})}return}
  const action=state.targetAction,actor=state.me,target=state.players.find(p=>p.id===Number(id));closeTargetModal();
  if(!action||!target||!target.alive||!actor?.alive)return;
  const now=Date.now();
@@ -2808,8 +2834,9 @@ async function leaveOnlineRoom(){
  activeRoomId=null;activeRoomSnapshot=null;await disconnectRoomChannel();show("socialHub");await loadSocialHub();
 }
 
-function renderUpdateLog(version="0.63"){
+function renderUpdateLog(version="0.64"){
  const logs={
+  "0.64":{date:"2026年11月9日",items:["ランク戦にサイエンティスト・占い師・僧侶・放浪者・百面相のサーバー能力操作を接続。勝利時の試合確定と終了表示を追加。"],},
   "0.63":{date:"2026年11月9日",items:["ランク戦の進捗説明を更新。会議チャット・キル・役職能力・勝敗判定・ランク確定の未対応範囲を明記。"],},
   "0.62":{date:"2026年11月9日",items:["ランク戦の再接続時に投票選択状態・会議状態・緊急会議クールダウンを初期化／復元する処理を調整。"],},
   "0.61":{date:"2026年11月9日",items:["投票済み状態を本人にだけ返し、再接続後の二重投票を防止。ランク戦終了後に通常対戦へ戻る際のモード解除を追加。"],},
