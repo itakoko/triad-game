@@ -222,8 +222,8 @@ canvas#mapCanvas{aspect-ratio:16/10;background:#0b1522}
    <div class="card" style="background:#15263b"><h3>10人戦</h3><p>白6人・黒2人・第三2人</p><span class="pill">準備中</span></div>
    <div class="card" style="background:#15263b"><h3>12人戦</h3><p>白6人・黒3人・第三3人</p><span class="pill">準備中</span></div>
   </div>
-  <p class="muted">マッチング用のサーバー基盤は追加済みです。試合中の移動・会議・能力・勝敗をサーバーで処理するゲームエンジンは、まだ接続していません。安全に遊べる状態になるまでは、参加ボタンを公開しません。</p>
-  <button onclick="loadRankedProfile()">ランク情報を更新</button>
+  <p class="muted">サーバー移動・AI移動・タスク進行をゲーム画面から同期する処理を追加しました。進行中の試合がある場合は再接続できます。会議・役職能力・勝敗判定・ランク確定は未完成のため、新規マッチングはまだ公開していません。</p>
+  <div class="row"><button onclick="connectRankedActiveMatch()">進行中の試合に再接続</button><button onclick="loadRankedProfile()">ランク情報を更新</button></div>
  </div>
  <div class="card">
   <h3>ランク帯</h3>
@@ -380,7 +380,7 @@ canvas#mapCanvas{aspect-ratio:16/10;background:#0b1522}
 </section>
 
 </main>
-<footer>TRIAD v0.58 · ランク戦準備</footer>
+<footer>TRIAD v0.59 · ランク戦サーバー接続準備</footer>
 
   <div id="onlineConnectionBanner" role="status">オンライン接続が不安定です。<button type="button" onclick="retryOnlineConnection()">再接続</button></div>
   <div class="modal" id="offlineRoleSettingsModal"><div class="modalbox"><h2>通常対戦・役職詳細設定</h2><p class="muted">固定人数を指定した役職は必ず登場します。残りの枠はONになっている役職から出現重みに応じて抽選します。</p>
@@ -635,6 +635,56 @@ const ROLE_POOLS={
 };
 let state={players:[],me:null,map:null,tasks:[],done:0,total:0,seconds:0,move:{x:0,y:0},lastDirection:{x:1,y:0},running:false,meeting:false,meetingPhase:"",meetingId:null,selectedVote:null,lastBallots:[],meetingClaims:[],meetingEvents:[],aiTurnCount:0,aiTurnTimer:null,meetingTimer:null,meetingSecondsLeft:90,meetingDuration:90,sightTick:0,killEvents:[],dead:[],log:[],camera:{x:0,y:0},worldWidth:2000,worldHeight:1320,nearTask:null,nearBody:null,nearEmergency:false,emergencyMeetingReadyAt:0,bountyIds:[],scentedIds:new Set(),sabotageUntil:0,targetAction:null};
 let loop=null,clock=null,autosaveTimer=null;
+let rankedServerMode=false,rankedServerBusy=false,rankedLastMoveAt=0,rankedLastTickAt=0,rankedLastStateAt=0;
+async function rankedEngineCall(action,extra={}){
+ if(!supabaseClient)supabaseClient=window.supabase.createClient(SUPABASE_URL,SUPABASE_PUBLISHABLE_KEY);
+ if(!authUser){const {data,error}=await supabaseClient.auth.getSession();if(error)throw error;authUser=data.session?.user||null}
+ if(!authUser)throw new Error("オンライン接続が必要です。");
+ const {data,error}=await supabaseClient.functions.invoke("triad-engine",{body:{action,...extra}});
+ if(error)throw error;if(data?.error)throw new Error(data.message||data.error);return data;
+}
+async function connectRankedActiveMatch(){
+ const message=$("rankedProfileMessage");if(message)message.textContent="進行中のランク戦を確認しています…";
+ try{const snap=await rankedEngineCall("state");if(snap.status!=="ok"){if(message)message.textContent="現在、接続できるランク戦はありません。";return}await enterRankedServerMatch(snap)}
+ catch(e){if(message)message.textContent="接続できません："+(e.message||String(e))}
+}
+async function enterRankedServerMatch(snap){
+ if(snap?.status!=="ok")throw new Error("試合情報を取得できません。");
+ rankedServerMode=true;rankedServerBusy=false;rankedLastMoveAt=rankedLastTickAt=rankedLastStateAt=0;
+ state.map=maps.lab;state.worldWidth=maps.lab.width;state.worldHeight=maps.lab.height;state.players=[];state.dead=[];state.move={x:0,y:0};state.camera={x:0,y:0};state.scentedIds=new Set();state.bountyIds=[];state.sabotageUntil=0;state.meeting=false;state.meetingPhase="";state.log=[];
+ state.seconds=Number(snap.elapsed_seconds)||0;
+ state.tasks=(snap.tasks||[]).map(t=>{const spec=taskKinds[Number(t.id)%taskKinds.length];return{id:Number(t.id),x:Number(t.x),y:Number(t.y),done:!!t.done,quota:4,remaining:Number(t.remaining),completedBy:[],label:spec.label,room:spec.room,kind:spec.kind}});
+ state.total=state.tasks.length*4;state.done=state.tasks.reduce((n,t)=>n+(4-Math.max(0,Number(t.remaining)||0)),0);
+ const ownSeat=Number(snap.self?.seat);
+ for(const v of(snap.players||[])){const seat=Number(v.seat),isSelf=seat===ownSeat,isAI=!!v.is_ai;state.players.push({id:seat-1,number:seat,userId:isSelf?authUser?.id:null,isHuman:!isAI,name:isSelf?"あなた":(isAI?"AI "+String(seat).padStart(2,"0"):"プレイヤー "+String(seat).padStart(2,"0")),team:isSelf?snap.self.faction:"unknown",role:isSelf?snap.self.role:"？？？",alive:!!v.alive,ghost:false,x:Number(v.x),y:Number(v.y),color:colors[(seat-1)%colors.length],colorName:colorNames[(seat-1)%colorNames.length],shape:(seat-1)%4,taskCount:0,protected:false,abilityUsed:false,charging:false,charge:{x:0,y:0}})}
+ state.me=state.players.find(p=>p.number===ownSeat);if(!state.me)throw new Error("自分の参加情報が見つかりません。");
+ $("mapLabel").textContent="マップ：研究施設（サーバー試験）";$("roleLabel").textContent="役職："+state.me.role;$("myRoleText").textContent="陣営："+teamName(state.me.team)+" ／ 役職："+state.me.role+"。サーバー試験モードです。";
+ $("myStatus").textContent=state.me.alive?"生存":"死亡";$("taskCount").textContent=state.done+" / "+state.total;$("taskProgress").style.width=(state.total?state.done/state.total*100:0)+"%";
+ show("game");state.running=true;startAudio();updateNearbyActions();draw();clearInterval(loop);clearInterval(clock);loop=setInterval(tick,70);$("nearHint").textContent="サーバー試験：移動とタスク進行をサーバーに送信しています。";
+}
+function applyRankedServerSnapshot(snap){
+ if(!rankedServerMode||snap?.status!=="ok")return;const ownSeat=Number(snap.self?.seat);
+ (snap.players||[]).forEach(v=>{const p=state.players.find(x=>x.number===Number(v.seat));if(p){p.x=Number(v.x);p.y=Number(v.y);p.alive=!!v.alive}});
+ const me=state.players.find(p=>p.number===ownSeat);if(me){me.team=snap.self.faction;me.role=snap.self.role;me.alive=!!snap.self.alive;state.me=me}
+ state.tasks=(snap.tasks||[]).map(t=>{const old=state.tasks.find(x=>x.id===Number(t.id))||{},spec=taskKinds[Number(t.id)%taskKinds.length];return{...old,id:Number(t.id),x:Number(t.x),y:Number(t.y),done:!!t.done,remaining:Number(t.remaining),label:spec.label,room:spec.room,kind:spec.kind}});
+ state.done=state.tasks.reduce((n,t)=>n+(4-Math.max(0,Number(t.remaining)||0)),0);state.total=state.tasks.length*4;state.seconds=Number(snap.elapsed_seconds)||state.seconds;
+ $("taskCount").textContent=state.done+" / "+state.total;$("taskProgress").style.width=(state.total?state.done/state.total*100:0)+"%";$("timer").textContent=String(Math.floor(state.seconds/60)).padStart(2,"0")+":"+String(state.seconds%60).padStart(2,"0");$("myStatus").textContent=state.me.alive?"生存":"死亡";updateNearbyActions();draw();
+}
+async function rankedServerPulse(){
+ if(!rankedServerMode||!state.running||rankedServerBusy)return;rankedServerBusy=true;
+ try{const now=Date.now(),mv=state.move||{x:0,y:0};if((Math.abs(mv.x)+Math.abs(mv.y))>.08&&now-rankedLastMoveAt>=110){rankedLastMoveAt=now;await rankedEngineCall("move",{dx:mv.x,dy:mv.y})}
+ if(now-rankedLastTickAt>=360){rankedLastTickAt=now;await rankedEngineCall("tick")}
+ if(now-rankedLastStateAt>=720){rankedLastStateAt=now;applyRankedServerSnapshot(await rankedEngineCall("state"))}}
+ catch(e){console.warn("Ranked server sync failed",e);$("nearHint").textContent="サーバー再接続中…"}finally{rankedServerBusy=false}
+}
+async function rankedServerDoTask(task){
+ if(!rankedServerMode||!task)return;try{const result=await rankedEngineCall("task",{task_id:task.id});
+ if(result.status==="too_far"){$("nearHint").textContent="タスク端末にもう少し近づいてください。";return}
+ if(result.status==="task_throttled"){$("nearHint").textContent="少し待ってからもう一度操作してください。";return}
+ $("nearHint").textContent=result.status==="completed"?"タスク完了！":result.status==="progress"?"タスク進行："+result.progress+"/4":"タスク状態："+result.status;
+ applyRankedServerSnapshot(await rankedEngineCall("state"))}catch(e){$("nearHint").textContent="タスク送信エラー："+(e.message||String(e))}
+}
+
 const MATCH_SAVE_KEY="triad_active_match_v1";
 const colorNames=["赤","青","黄色","紫","緑","オレンジ","ピンク","水色","黄緑","茶色","紺","マゼンタ","青緑","金","サーモン","ライム","群青","ラベンダー","朱色","ターコイズ","黄土","ローズ","エメラルド","コバルト","レモン","ワイン","ミント","藤色","銅色","白"];
 const colors=["#e53935","#1e88e5","#fdd835","#8e24aa","#43a047","#fb8c00","#ec407a","#00acc1","#7cb342","#8d6e63","#3949ab","#d81b60","#00897b","#c0a000","#ff7043","#c0ca33","#283593","#9575cd","#f4511e","#26a69a","#b08d00","#ad1457","#00a152","#1565c0","#f9a825","#6d1b3b","#66bb6a","#7e57c2","#a65e2e","#eeeeee"];
@@ -776,7 +826,7 @@ async function loadRankedProfile(){
 
 function show(id){
  if(!activateScreen(id))return;
- if(id==="home"){renderUpdateLog($("updateVersionSelect")?.value||"0.58");updateResumeGameUI()}
+ if(id==="home"){renderUpdateLog($("updateVersionSelect")?.value||"0.59");updateResumeGameUI()}
  if(id==="accounts")loadAccountDirectoryData();
  if(id==="socialHub")loadSocialHub();
 }
@@ -1013,6 +1063,7 @@ function recordAISightings(){
  });
 }
 function tick(){
+ if(rankedServerMode){if(!state.running)return;rankedServerPulse();updateNearbyActions();draw();return}
   // Online clients only render host snapshots; they never simulate movement or AI.
   if(!state.running||state.meeting)return;let p=state.me;if(onlineGame&&!onlineGame.isHost){if(!p.alive&&deathViewMode==="ghost")moveGhostPlayer(p);updateNearbyActions();draw();return}
   state.players.filter(a=>a.alive&&a.charging).forEach(a=>{
@@ -1115,6 +1166,7 @@ function updateNearbyActions(){
  if(dead&&!ghost&&!state.players.some(p=>p.id===spectatorTargetId&&p.alive)){spectatorTargetId=state.players.find(p=>p.alive)?.id??null;}
  $("ghostBanner").textContent=dead?(ghost?"👻 幽霊モード：自由に移動できます":"👁 観戦モード：生存者の視点を見ています"):"";
  $("deathChoice").hidden=!dead||!deathChoicePending;
+ if(rankedServerMode){$("killAction").hidden=true;$("sabotageAction").hidden=true;$("reportAction").hidden=true;$("emergencyAction").hidden=true;$("abilityAction").disabled=true;$("abilityAction").textContent="能力（試験版では未対応）"}
  state.nearTask=alive?state.tasks.find(t=>(me.team!=="white"||!t.done)&&!t.completedBy?.includes(me.id)&&Math.hypot(t.x-me.x,t.y-me.y)<72)||null:null;
  state.nearBody=alive?state.dead.find(d=>Math.hypot(d.x-me.x,d.y-me.y)<82)||null:null;
  state.nearEmergency=alive&&Math.hypot(900-me.x,520-me.y)<82;const emergencyWait=Math.max(0,Math.ceil(((state.emergencyMeetingReadyAt||0)-now)/1000));const emergencyAvailable=state.nearEmergency&&!me.emergencyMeetingUsed&&emergencyWait===0;
@@ -1284,6 +1336,7 @@ function submitTaskPuzzle(){
  else if(d.kind==="calibrate")correct=d.calValues.every((v,i)=>v===d.calTargets[i]);
  if(!correct){$("taskPuzzleFeedback").textContent="まだ正しく完了していません。内容を確認してください。";return}
  const task=activeTaskPuzzle;closeTaskPuzzle();
+ if(rankedServerMode){rankedServerDoTask(task);return}
  if(completeSharedTask(task,state.me)){updateNearbyActions();draw()}
 }
 function completeSharedTask(task,actor){if(isOnlineClient()){sendOnlineInput({kind:"action",action:"task",taskId:task?.id});return true}
@@ -2715,8 +2768,9 @@ async function leaveOnlineRoom(){
  activeRoomId=null;activeRoomSnapshot=null;await disconnectRoomChannel();show("socialHub");await loadSocialHub();
 }
 
-function renderUpdateLog(version="0.58"){
+function renderUpdateLog(version="0.59"){
  const logs={
+  "0.59":{date:"2026年11月9日",items:["ランク戦画面に進行中の試合への再接続を追加。サーバー移動・AI更新・タスク進行を画面側から同期する処理を実装。","会議・役職能力・勝敗判定・ランク確定が未完成のため、新規マッチングは引き続き停止。"],},
   "0.58":{date:"2026年11月9日",items:["ランク戦のプロフィール画面を追加。現在のランクポイント・ランク帯・戦績をサーバーから取得して表示。","ランク戦用のサーバー側マッチング基盤と10人戦・12人戦の陣営／役職割り当てを追加。試合エンジン接続前のため、マッチング参加はまだ公開していません。"]},
   "0.57":{date:"2026年11月9日",items:["ランダム設定でAI人数に加え、白・黒・第三の陣営人数も毎回抽選するよう明示的に改善。","通常対戦の役職設定に公式おすすめプリセット「基準」「カオス」「第三陣営祭り」「推理重視」「少人数戦」を追加。陣営バランスと役職構成をまとめて適用できます。"]},
   "0.56":{date:"2026年11月9日",items:["通常対戦の役職詳細設定に「標準設定に戻す」「人数・役職をすべてランダム」を追加。AI人数・各陣営人数・役職固定人数・重複許可・出現重みをまとめて初期化／抽選できます。"]},
