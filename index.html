@@ -33,6 +33,7 @@ main{max-width:1100px;margin:auto;padding:18px}.screen{display:none}.screen.acti
 .controls{display:grid;grid-template-columns:1fr 1fr;gap:8px}.controls .taskBtn{background:#8a6725;border-color:#d5ad58}.controls .abilityBtn{background:#315b85;border-color:#6fa5dc}.controls button{min-height:48px}
 
 .log{font-size:12px;color:var(--muted);max-height:120px;overflow:auto;line-height:1.55}.hidden{display:none!important}
+#onlineConnectionBanner{display:none;position:fixed;top:58px;left:10px;right:10px;z-index:40;padding:10px 12px;border:1px solid #e5b65d;border-radius:12px;background:#382e1c;color:#ffe8ad;font-size:13px;text-align:center;box-shadow:0 5px 20px #0008}#onlineConnectionBanner.show{display:block}#onlineConnectionBanner button{margin-left:8px;padding:6px 10px;font-size:12px}#spectatorControls{position:absolute;left:50%;bottom:12px;transform:translateX(-50%);z-index:5;display:flex;gap:6px;align-items:center;background:#101827eF;border:1px solid #c69cff;border-radius:12px;padding:6px}#spectatorControls[hidden]{display:none!important}#spectatorControls button{padding:7px 10px;font-size:12px}#spectatorTargetName{font-size:12px;white-space:nowrap}
 .modal{position:fixed;inset:0;background:#07101ddd;display:none;align-items:center;justify-content:center;padding:14px;z-index:10}.modal.show{display:flex}.modalbox{width:min(600px,100%);max-height:90vh;overflow:auto;background:#1b2a41;border:1px solid var(--line);border-radius:18px;padding:18px}
 .helpTabs{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:10px 0 14px}.roleGroup{margin:14px 0}.roleGroup h3{margin:10px 0;color:#9ee5e1}.roleCard{background:#101a2a;border:1px solid var(--line);border-radius:10px;padding:10px;margin:7px 0}.roleCard b{color:#fff}.roleCard p{margin:5px 0 0;font-size:13px;line-height:1.55;color:#c8d5e4}
 .taskPuzzleCode{font-size:28px;letter-spacing:.22em;text-align:center;padding:14px;background:#101a2a;border:1px solid var(--line);border-radius:12px;font-weight:900}.taskCipher{display:grid;grid-template-columns:repeat(3,1fr);gap:7px;margin:10px 0}.taskCipher span{background:#101a2a;border:1px solid var(--line);border-radius:9px;padding:8px;text-align:center;font-weight:800}.taskPuzzleInput{font-size:24px!important;letter-spacing:.3em;text-align:center}.taskPuzzleFeedback{min-height:22px;color:#ffd36b;font-size:13px}
@@ -271,7 +272,7 @@ canvas#mapCanvas{aspect-ratio:16/10;background:#0b1522}
    <canvas id="mapCanvas" width="640" height="400"></canvas>
    <div class="stickHint">左スティックで移動</div><div class="stickZone" id="stickZone"><div class="stickBase" id="stickBase"><div class="stickKnob" id="stickKnob"></div></div></div>
    <div class="hud"><span id="mapLabel">マップ</span><span id="timer">00:00</span><span id="roleLabel">役職</span></div>
-    <div id="ghostBanner" hidden>👻 幽霊：移動とタスクのみ可能</div>
+    <div id="ghostBanner" hidden>👻 観戦モード：生存者を観戦できます</div><div id="spectatorControls" hidden><button type="button" onclick="cycleSpectatorTarget(-1)">◀ 前へ</button><span id="spectatorTargetName">観戦対象</span><button type="button" onclick="cycleSpectatorTarget(1)">次へ ▶</button></div>
   </div>
   <div class="side">
    <div class="card"><div class="muted">あなたの状態</div><div class="stat" id="myStatus">生存</div><div id="myRoleText" class="muted">役職</div></div>
@@ -295,6 +296,7 @@ canvas#mapCanvas{aspect-ratio:16/10;background:#0b1522}
 </main>
 <footer>TRIAD v0.46 · 役職選択・出現確率・重複設定</footer>
 
+  <div id="onlineConnectionBanner" role="status">オンライン接続が不安定です。<button type="button" onclick="retryOnlineConnection()">再接続</button></div>
   <div class="modal" id="mapModal"><div class="modalbox"><h2>研究施設マップ</h2><canvas id="overviewCanvas" width="900" height="600"></canvas><div class="mapLegend"><span>● あなた　♥ 恋人の相手（恋人のみ）</span><span>● タスク端末</span><span>■ 緊急会議ボタン</span><span>！ 手配書端末</span><span>■ 遮蔽物・チェイスカバー</span><span>× 死体</span></div><button class="primary" style="width:100%" onclick="closeMap()">閉じる</button></div></div>
  <div class="modal" id="targetModal"><div class="modalbox"><h2 id="targetTitle">対象を選択</h2><p id="targetInfo" class="muted"></p><div id="targetList" class="targetList"></div><button style="width:100%" onclick="closeTargetModal()">キャンセル</button></div></div>
  <div class="modal" id="taskPuzzleModal"><div class="modalbox"><h2>🔐 暗号解読</h2><p id="taskPuzzleLabel" class="muted">端末の暗号を解読してください。</p><div id="taskCipherMap" class="taskCipher"></div><div id="taskCipherCode" class="taskPuzzleCode"></div><p class="muted">対応表を見て、暗号を4桁の数字に変換してください。</p><input id="taskPuzzleInput" class="taskPuzzleInput" type="text" inputmode="numeric" maxlength="4" placeholder="4桁の数字" onkeydown="if(event.key==='Enter'){event.preventDefault();submitTaskPuzzle()}"><p id="taskPuzzleFeedback" class="taskPuzzleFeedback"></p><div class="actions"><button onclick="closeTaskPuzzle()">中断</button><button class="primary" onclick="submitTaskPuzzle()">解読する</button></div></div></div>
@@ -902,7 +904,10 @@ function draw(){
  // 表示領域に合わせてカメラ位置を計算する。マップやキャラの実サイズは変更しない。
  const cameraZoom=1.65,viewW=W/cameraZoom,viewH=H/cameraZoom;
  const maxX=Math.max(0,state.worldWidth-viewW),maxY=Math.max(0,state.worldHeight-viewH);
- state.camera.x=Math.max(0,Math.min(maxX,state.me.x-viewW/2));state.camera.y=Math.max(0,Math.min(maxY,state.me.y-viewH/2));
+ const spectating=!!(state.me&&!state.me.alive),watchTarget=spectating?(state.players.find(p=>p.id===spectatorTargetId&&p.alive)||state.players.find(p=>p.alive)||state.me):state.me;
+ if(spectating&&watchTarget)spectatorTargetId=watchTarget.id;
+ state.camera.x=Math.max(0,Math.min(maxX,watchTarget.x-viewW/2));state.camera.y=Math.max(0,Math.min(maxY,watchTarget.y-viewH/2));
+ const spectatorLabel=$("spectatorTargetName");if(spectatorLabel)spectatorLabel.textContent=spectating&&watchTarget?"観戦中："+watchTarget.name:"";
  ctx.save();ctx.setTransform(cameraZoom,0,0,cameraZoom,-state.camera.x*cameraZoom,-state.camera.y*cameraZoom);ctx.fillStyle="#0b1724";ctx.fillRect(0,0,state.worldWidth,state.worldHeight);
  // corridor floors and room floors
  state.map.corridors.forEach(a=>{ctx.fillStyle="#526778";ctx.fillRect(a[0],a[1],a[2],a[3]);ctx.strokeStyle="#8296a8";ctx.lineWidth=12;ctx.strokeRect(a[0],a[1],a[2],a[3]);ctx.strokeStyle="#1b2a39";ctx.lineWidth=3;ctx.strokeRect(a[0]+8,a[1]+8,a[2]-16,a[3]-16)});
@@ -965,6 +970,10 @@ stickZone.addEventListener("pointerup",releaseStick);stickZone.addEventListener(
 function updateNearbyActions(){
  if(!state.running||!state.me)return;
  const me=state.me,alive=me.alive,ghost=!alive&&me.ghost,now=Date.now();
+ $("spectatorControls").hidden=!ghost;
+ $("stickZone").style.display=ghost?"none":"grid";
+ if(ghost&&!state.players.some(p=>p.id===spectatorTargetId&&p.alive)){spectatorTargetId=state.players.find(p=>p.alive)?.id??null;}
+ $("ghostBanner").textContent=ghost?"👻 観戦モード：生存者を観戦できます":"";
  state.nearTask=(alive||ghost)&&me.team==="white"?state.tasks.find(t=>!t.done&&!t.completedBy?.includes(me.id)&&Math.hypot(t.x-me.x,t.y-me.y)<72)||null:null;
  state.nearBody=alive?state.dead.find(d=>Math.hypot(d.x-me.x,d.y-me.y)<82)||null:null;
  state.nearEmergency=alive&&Math.hypot(900-me.x,520-me.y)<82;const emergencyWait=Math.max(0,Math.ceil(((state.emergencyMeetingReadyAt||0)-now)/1000));const emergencyAvailable=state.nearEmergency&&!me.emergencyMeetingUsed&&emergencyWait===0;
@@ -980,10 +989,10 @@ function updateNearbyActions(){
  else setButton("sabotageAction","⚡ サボタージュ",true,true);
  let label="能力なし",disabled=true;
  const rem=remainingText(me.roleReadyAt);
- if(me.role==="サイエンティスト"){label="🔬 生存者を確認";disabled=!alive}
- else if(me.role==="占い師"){label=me.abilityUsed?"🔮 占い済み":`🔮 近くの人を占う${rem?`（${rem}秒）`:""}`;disabled=!alive||me.abilityUsed||rem>0}
- else if(me.role==="狩人"||me.role==="保安官"){label=me.abilityUsed?"能力使用済み":me.role==="狩人"?"🏹 近くの人をキル（1回）":"⚖️ 近くの人をキル（1回）";disabled=!alive||me.abilityUsed}
- else if(me.role==="僧侶"){label=me.abilityUsed?"加護使用済み":"🛡️ 近くの人に加護";disabled=!alive||me.abilityUsed}
+ if(me.role==="サイエンティスト"){label="🔬 生存者を確認（常時）";disabled=!alive}
+ else if(me.role==="占い師"){label=me.abilityUsed?"🔮 占い済み（1/1）":`🔮 近くの人を占う（残り1回）${rem?`・${rem}秒`:""}`;disabled=!alive||me.abilityUsed||rem>0}
+ else if(me.role==="狩人"||me.role==="保安官"){label=me.abilityUsed?"能力使用済み（1/1）":me.role==="狩人"?"🏹 近くの人をキル（残り1回）":"⚖️ 近くの人をキル（残り1回）";disabled=!alive||me.abilityUsed}
+ else if(me.role==="僧侶"){label=me.abilityUsed?"加護使用済み（1/1）":"🛡️ 近くの人に加護（残り1回）";disabled=!alive||me.abilityUsed}
  else if(me.role==="ライトキーパー"){label="🔦 常時能力：視界良好"}
  else if(me.role==="恋人"){label="💞 相手の位置はマップに表示"}
  else if(me.role==="イノシシ"){label=rem?`🐗 突進（${rem}秒）`:"🐗 突進";disabled=!alive||rem>0}
@@ -1003,6 +1012,11 @@ function updateNearbyActions(){
  if(me.role==="暗殺者")hints.push(`手配書の対象 ${state.bountyIds.filter(id=>state.players.find(p=>p.id===id)?.alive).length}/3 人が生存`);
  if(state.sabotageUntil>now)hints.push(`停電中 ${remainingText(state.sabotageUntil)}秒`);
  $("nearHint").textContent=hints.join(" ／ ")||"黄色い端末・赤い会議ボタン・死体に近づくと操作できます。";
+}
+function cycleSpectatorTarget(direction=1){
+ if(!state.me||state.me.alive)return;
+ const alive=state.players.filter(p=>p.alive);if(!alive.length){spectatorTargetId=null;$("spectatorTargetName").textContent="生存者なし";draw();return}
+ let index=alive.findIndex(p=>p.id===spectatorTargetId);index=(index+(direction>=0?1:-1)+alive.length)%alive.length;spectatorTargetId=alive[index].id;draw();
 }
 let activeTaskPuzzle=null,activeTaskAnswer="",activeTaskData=null;
 const taskKinds=[
@@ -1680,7 +1694,9 @@ function closeMeeting(){if(isOnlineClient()){sendOnlineInput({kind:"action",acti
  if(state.running)checkWin();
 }
 function checkWin(){
- if(!state.running)return;
+ if(!state.running||state._checkingWin)return;
+ state._checkingWin=true;
+ try{
  const alive=state.players.filter(p=>p.alive),b=alive.filter(p=>p.team==="black").length,w=alive.filter(p=>p.team==="white").length;
  const assassin=alive.find(p=>p.role==="暗殺者");
  if(assassin&&state.bountyIds.length===3&&state.bountyIds.every(id=>!state.players.find(p=>p.id===id)?.alive)){endGame("暗殺者が手配対象全員を倒したため、暗殺者の単独勝利",{roles:["暗殺者"]});return}
@@ -1690,6 +1706,7 @@ function checkWin(){
  if(madman){const others=alive.filter(p=>p.team==="white"||(p.team==="third"&&p.role!=="狂人")).length;if(others<b+1){endGame("狂人の条件達成：白陣営と他の第三陣営が黒陣営＋狂人を下回ったため、狂人の単独勝利",{roles:["狂人"]});return}}
  if(b===0)endGame("黒陣営が全滅しました。白・第三陣営の勝利です。",{teams:["white","third"]});
  else if(b>=w)endGame("黒陣営が人数で優位になりました。",{teams:["black"]});
+ }finally{state._checkingWin=false}
 }
 function loadAILongTermMemory(profileId){try{return JSON.parse(localStorage.getItem("triad_ai_memory_"+profileId)||"{}")}catch{return {}}}
 function saveAILongTermMemories(winners={teams:[]},interrupted=false){state.players.filter(p=>p.id!==0&&p.aiProfile?.id).forEach(ai=>{const old=ai.aiProfile.memory||{},won=(winners.roles||[]).includes(ai.role)||(winners.teams||[]).includes(ai.team),sus=Number(ai.aiMemory?.suspicion?.[0]||0),trust=Number(ai.aiMemory?.trust?.[0]||0),roleStats={...(old.roleStats||{})},rs={...(roleStats[ai.role]||{})};if(!interrupted){rs.matches=(rs.matches||0)+1;rs.wins=(rs.wins||0)+(won?1:0);rs.survived=(rs.survived||0)+(ai.alive?1:0);roleStats[ai.role]=rs}const memory={...old,matchesPlayed:(old.matchesPlayed||0)+(interrupted?0:1),wins:(old.wins||0)+(!interrupted&&won?1:0),losses:(old.losses||0)+(!interrupted&&!won?1:0),survived:(old.survived||0)+(!interrupted&&ai.alive?1:0),roleStats,lastRole:ai.role,lastFaction:ai.team,lastResult:interrupted?"中断":won?"勝利":"敗北",humanSuspicion:Math.max(0,Math.min(10,(old.humanSuspicion||0)*.72+sus*.28)),humanTrust:Math.max(0,Math.min(10,(old.humanTrust||0)*.72+trust*.28)),roleHistory:[...(old.roleHistory||[]),ai.role].slice(-8),lastPlayedAt:Date.now()};ai.aiProfile.memory=memory;try{localStorage.setItem("triad_ai_memory_"+ai.aiProfile.id,JSON.stringify(memory))}catch(e){console.warn("AI memory save failed",e)}/* AI match records are written only by the server-side scheduled simulation. Browser results are not trusted. */})}
@@ -1712,7 +1729,10 @@ function endGame(msg,winners={teams:[]}){
  $("roleReveal").innerHTML=state.players.map(p=>`<div class="pill"><span class="dot" style="background:${p.color}"></span> ${playerTag(p)} — ${teamName(p.team)}「${p.role}」${p.alive?"":"（死亡）"}</div>`).join("");
  $("gameOverModal").classList.add("show");
 }
-function endToHome(){stopMatchAutosave();discardSavedGame();if(state.running)saveAILongTermMemories({teams:[]},true);state.running=false;clearInterval(loop);clearInterval(clock);stopMove();stopBGM();document.querySelectorAll(".modal").forEach(m=>m.classList.remove("show"));show("home")}
+async function endToHome(){
+ if(onlineGame&&activeRoomId){if(!confirm("オンラインルームから退出してホームへ戻りますか？"))return;try{await leaveOnlineRoom()}catch(e){console.warn("online leave failed",e)}}
+ stopMatchAutosave();discardSavedGame();if(state.running)saveAILongTermMemories({teams:[]},true);state.running=false;clearInterval(loop);clearInterval(clock);stopMove();stopBGM();document.querySelectorAll(".modal").forEach(m=>m.classList.remove("show"));show("home")
+}
 let accountDirectoryLoadId=0;
 function openAccounts(){openAccountsScreen()}
 function showAccountLoading(){const list=$("accountList");if(list)list.innerHTML='<div class="muted">アカウント情報を読み込んでいます…</div>'}
@@ -1852,6 +1872,7 @@ function handleOnlineInputForUser(userId,payload){
 }
 function startOnlineClient(){
  if(!activeRoomId||!authUser)return;
+ setOnlineConnectionStatus(true);spectatorTargetId=null;
  onlineGame={roomId:activeRoomId,isHost:false,userId:authUser.id};state.running=true;
  ensureOnlineInputChannel().catch(e=>socialMessage(e.message||String(e),true));
  if(onlineMoveTimer)clearInterval(onlineMoveTimer);let last="";
@@ -1866,7 +1887,7 @@ function applyOnlinePrivatePlayer(){
  const privateKeys=["role","team","abilityUsed","roleReadyAt","killReadyAt","sabotageReadyAt","emergencyReadyAt","partnerId","bountyIds","scented","disguiseId","disguiseUntil","protected"];
  privateKeys.forEach(k=>{if(Object.prototype.hasOwnProperty.call(onlinePrivatePlayer,k))p[k]=onlinePrivatePlayer[k]});state.me=p;state.bountyIds=onlinePrivatePlayer.bountyIds||state.bountyIds||[];
  $("roleLabel").textContent="役職："+(p.role||"確認中");$("myRoleText").textContent="陣営："+teamName(p.team)+" ／ 役職："+p.role+"。"+roleDescription(p);
- $("myStatus").textContent=p.alive?"生存":"死亡";$("ghostBanner").hidden=!!p.alive;updateNearbyActions();
+ $("myStatus").textContent=p.alive?"生存":"死亡";$("ghostBanner").hidden=!!p.alive;if(p.alive)spectatorTargetId=null;else if(!state.players.some(x=>x.id===spectatorTargetId&&x.alive))spectatorTargetId=state.players.find(x=>x.alive)?.id??null;updateNearbyActions();
 }
 function serializeOnlinePublicState(){
  const raw=JSON.parse(JSON.stringify(state,(k,v)=>v instanceof Set?{__triadSet:[...v]}:v));
@@ -1896,7 +1917,7 @@ async function broadcastOnlineSnapshot(){
  }catch(e){console.warn("snapshot send",e)}finally{onlineSnapshotBusy=false}
 }
 async function startOnlineHostSync(){
- onlineGame={roomId:activeRoomId,isHost:true,userId:authUser.id};onlineVotes.clear();onlineMeetingLog=[];onlineGameRevision=0;
+ setOnlineConnectionStatus(true);onlineGame={roomId:activeRoomId,isHost:true,userId:authUser.id};onlineVotes.clear();onlineMeetingLog=[];onlineGameRevision=0;
  const humans=state.players.filter(p=>p.isHuman&&p.userId);
  try{
   await Promise.all(humans.map(p=>ensureOnlineUserChannel(p.userId)));
@@ -1916,6 +1937,31 @@ function applyOnlineRenderInterpolation(){
  for(const p of state.players||[]){if(!Number.isFinite(p._netStart))continue;const t=Math.min(1,(now-p._netStart)/Math.max(1,p._netDuration||200));p.x=p._netFromX+(p._netToX-p._netFromX)*t;p.y=p._netFromY+(p._netToY-p._netFromY)*t;if(t>=1){delete p._netStart;delete p._netFromX;delete p._netFromY;delete p._netToX;delete p._netToY;delete p._netDuration}}
 }
 let onlinePredictionLastAt=0;
+let spectatorTargetId=null,onlineReconnectBusy=false;
+function setOnlineConnectionStatus(connected,message=""){
+ const el=$("onlineConnectionBanner");if(!el)return;
+ el.classList.toggle("show",!connected);
+ if(!connected)el.innerHTML=(message||"オンライン接続が不安定です。")+" <button type=\"button\" onclick=\"retryOnlineConnection()\">再接続</button>";
+}
+async function retryOnlineConnection(){
+ if(onlineReconnectBusy||!activeRoomId||!authUser)return;
+ if(typeof navigator!=="undefined"&&navigator.onLine===false){setOnlineConnectionStatus(false,"インターネットに接続されていません。");return}
+ onlineReconnectBusy=true;setOnlineConnectionStatus(false,"オンライン接続を再確立しています…");
+ try{
+  const roomId=activeRoomId,wasRunning=!!state.running,wasHost=!!onlineGame?.isHost;
+  onlineGame=null;await disconnectRoomChannel();await enterOnlineRoom(roomId);
+  if(wasRunning&&activeRoomSnapshot?.status==="playing"){
+   if(activeRoomSnapshot.host_user_id===authUser.id){onlineGame={roomId,isHost:true,userId:authUser.id};await startOnlineHostSync()}
+   else{onlineGame=null;startOnlineClient()}
+  }
+  setOnlineConnectionStatus(true);
+ }catch(e){setOnlineConnectionStatus(false,"再接続できませんでした："+(e.message||e))}
+ finally{onlineReconnectBusy=false}
+}
+if(typeof window!=="undefined"){
+ window.addEventListener("offline",()=>setOnlineConnectionStatus(false,"通信が切断されました。接続が戻ったら再接続してください。"));
+ window.addEventListener("online",()=>{if(activeRoomId)retryOnlineConnection()});
+}
 function predictOnlineLocalMovement(){
  const p=state.me;if(!isOnlineClient()||!p)return;
  const now=performance.now(),dt=Math.min(50,onlinePredictionLastAt?now-onlinePredictionLastAt:33);onlinePredictionLastAt=now;
@@ -1951,6 +1997,7 @@ function receiveOnlineSnapshot(payload){
  $("mapLabel").textContent="マップ：研究施設";$("roleLabel").textContent="役職："+(state.me.role||"確認中");
  $("myRoleText").textContent=state.me.role?"陣営："+teamName(state.me.team)+" ／ 役職："+state.me.role+"。"+roleDescription(state.me):"役職情報を受信しています…";
  $("myStatus").textContent=state.me.alive?"生存":"死亡";$("ghostBanner").hidden=!!state.me.alive;
+ if(state.me.alive)spectatorTargetId=null;else if(!state.players.some(p=>p.id===spectatorTargetId&&p.alive))spectatorTargetId=state.players.find(p=>p.alive)?.id??null;
  $("taskCount").textContent=state.done+" / "+state.total;$("taskProgress").style.width=(state.total?Math.min(100,state.done/state.total*100):0)+"%";
  $("timer").textContent=String(Math.floor(state.seconds/60)).padStart(2,"0")+":"+String(state.seconds%60).padStart(2,"0");
  onlineMeetingLog=payload.chat||[];if(!$("game").classList.contains("active"))show("game");renderOnlineMeeting();updateNearbyActions();draw();
