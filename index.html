@@ -1353,9 +1353,15 @@ function openAccounts(){showAccountLoading();loadAIProfiles().then(()=>{renderAc
 function showAccountLoading(){const list=$("accountList");if(list)list.innerHTML='<div class="muted">AIプロフィールを読み込んでいます…</div>'}
 function refreshAccounts(){aiProfilesLoaded=false;openAccounts()}
 function escapeAccountText(value){return String(value??"").replace(/[&<>"']/g,ch=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[ch]))}
+function mergeAIAccountMemory(cloud,local){
+ const out={...(local||{}),...(cloud||{})};
+ ["matchesPlayed","wins","losses","survived"].forEach(k=>out[k]=Math.max(Number(local?.[k]||0),Number(cloud?.[k]||0)));
+ const mergedRoles={};[...new Set([...Object.keys(local?.roleStats||{}),...Object.keys(cloud?.roleStats||{})])].forEach(role=>{const a=local?.roleStats?.[role]||{},b=cloud?.roleStats?.[role]||{};mergedRoles[role]={matches:Math.max(Number(a.matches||0),Number(b.matches||0)),wins:Math.max(Number(a.wins||0),Number(b.wins||0)),survived:Math.max(Number(a.survived||0),Number(b.survived||0))}});
+ out.roleStats=mergedRoles;return out;
+}
 function accountRows(){
  const rows=[{id:"player",type:"player",name:"あなた",memory:loadHumanStats(),ability:5,personality:"プレイヤー",skill_level:5,task_skill:5,deduction_skill:5,caution:5,sociability:5,aggression:5,task_priority:5}];
- (aiProfilePool||[]).forEach(p=>rows.push({...p,id:p.id,type:"ai",name:p.display_name||p.id,memory:p.memory||{}}));
+ (aiProfilePool||[]).forEach(p=>rows.push({...p,id:p.id,type:"ai",name:p.display_name||p.id,memory:mergeAIAccountMemory(p.memory,loadAILongTermMemory(p.id))}));
  return rows;
 }
 function accountAbility(p){return ["skill_level","task_skill","deduction_skill","caution","sociability","aggression","task_priority"].reduce((a,k)=>a+(Number(p[k])||5),0)/7}
