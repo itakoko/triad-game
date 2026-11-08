@@ -222,7 +222,7 @@ canvas#mapCanvas{aspect-ratio:16/10;background:#0b1522}
    <div class="card" style="background:#15263b"><h3>10人戦</h3><p>白6人・黒2人・第三2人</p><span class="pill">準備中</span></div>
    <div class="card" style="background:#15263b"><h3>12人戦</h3><p>白6人・黒3人・第三3人</p><span class="pill">準備中</span></div>
   </div>
-  <p class="muted">サーバー移動・AI移動・タスク進行、緊急会議・投票・AI投票に加え、サイエンティスト・占い師・僧侶・放浪者・百面相の能力をサーバー接続しました。タスク完了・陣営人数・てるてる追放・放浪者の目標による勝敗確定とランク更新処理も追加済みです。会議チャット、その他の役職能力、全パターンの対戦検証は未完了のため、新規マッチングはまだ公開していません。</p>
+  <p class="muted">サーバー移動・AI移動・タスク進行、会議チャット・投票・AI投票に加え、サイエンティスト・占い師・狩人・保安官・僧侶・放浪者・百面相の能力をサーバー接続しました。タスク完了・陣営人数・てるてる追放・放浪者の目標による勝敗確定とランク更新処理も追加済みです。未対応の役職能力と全パターンの対戦検証が残るため、新規マッチングはまだ公開していません。</p>
   <div class="row"><button onclick="connectRankedActiveMatch()">進行中の試合に再接続</button><button onclick="loadRankedProfile()">ランク情報を更新</button></div>
  </div>
  <div class="card">
@@ -380,7 +380,7 @@ canvas#mapCanvas{aspect-ratio:16/10;background:#0b1522}
 </section>
 
 </main>
-<footer>TRIAD v0.70 · 狩人・保安官の能力接続</footer>
+<footer>TRIAD v0.71 · ランク戦機能更新</footer>
 
   <div id="onlineConnectionBanner" role="status">オンライン接続が不安定です。<button type="button" onclick="retryOnlineConnection()">再接続</button></div>
   <div class="modal" id="offlineRoleSettingsModal"><div class="modalbox"><h2>通常対戦・役職詳細設定</h2><p class="muted">固定人数を指定した役職は必ず登場します。残りの枠はONになっている役職から出現重みに応じて抽選します。</p>
@@ -883,7 +883,7 @@ async function loadRankedProfile(){
 
 function show(id){
  if(!activateScreen(id))return;
- if(id==="home"){renderUpdateLog($("updateVersionSelect")?.value||"0.70");updateResumeGameUI()}
+ if(id==="home"){renderUpdateLog($("updateVersionSelect")?.value||"0.71");updateResumeGameUI()}
  if(id==="accounts")loadAccountDirectoryData();
  if(id==="socialHub")loadSocialHub();
 }
@@ -1573,9 +1573,9 @@ function selectTarget(id){if(rankedServerMode){
  rankedEngineCall("ability",{kind:apiKind,target_seat:Number(target.number||target.id+1)}).then(async result=>{
   if(result.status==="seer_result"){target.team=result.target_faction;showSeerResult(target)}
   else if(result.status==="protected"){target.protected=true;alert(target.name+" に加護を与えました。")}
-  else if(result.status==="attack_success"){alert(target.name+" を倒しました。");applyRankedServerSnapshot(await rankedEngineCall("state"))}
-  else if(result.status==="attack_blocked"){alert("加護が攻撃を防ぎました。");applyRankedServerSnapshot(await rankedEngineCall("state"))}
-  else if(result.status==="sheriff_misfire"){alert("白陣営を誤って攻撃したため、保安官も脱落しました。");applyRankedServerSnapshot(await rankedEngineCall("state"))}
+  else if(result.status==="attack_success"){alert(target.name+" を倒しました。")}
+  else if(result.status==="attack_blocked"){alert("加護が攻撃を防ぎました。")}
+  else if(result.status==="sheriff_misfire"){alert("白陣営を誤って攻撃したため、保安官も脱落しました。")}
   else if(result.status==="scented"){state.scentedIds.add(target.id);$("nearHint").textContent="匂いを移しました。対象 "+result.scented_count+" 人";alert("匂いを移しました。")}
   else if(result.status==="disguised"){alert("10秒間、選んだ相手の姿に変身しました。")}
   else if(result.status==="objective_complete"){state.running=false;clearInterval(loop);alert("放浪者の単独勝利！");}
@@ -2867,8 +2867,9 @@ async function leaveOnlineRoom(){
  activeRoomId=null;activeRoomSnapshot=null;await disconnectRoomChannel();show("socialHub");await loadSocialHub();
 }
 
-function renderUpdateLog(version="0.70"){
+function renderUpdateLog(version="0.71"){
  const logs={
+  "0.71":{date:"2026年11月9日",items:["ランク戦の対応状況を更新し、会議チャットと狩人・保安官の能力接続を明記。攻撃結果後の状態更新を一本化。"],},
   "0.70":{date:"2026年11月9日",items:["ランク戦に狩人・保安官の一度限りの攻撃能力を追加。僧侶の加護による攻撃防御、保安官の白陣営誤射時の自身脱落をサーバーで処理。"],},
   "0.69":{date:"2026年11月9日",items:["ランク戦会議でサーバー同期チャットを実装。生存者の議論フェーズのみ発言可能、180文字制限・連投制限・最大80件保持をサーバー側で検証。"],},
   "0.68":{date:"2026年11月9日",items:["百面相の変身中に、他プレイヤーの色・形・表示名を画面上で再現し、変身終了後に本人の表示へ戻す処理を追加。"],},
