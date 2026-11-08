@@ -358,8 +358,8 @@ function setAccountAuthMessage(message,isError=false){
 function updateAccountAuthUI(){
  const signedIn=!!authUser,guestMode=!!authUser?.is_anonymous;
  if($("accountAuthStatus"))$("accountAuthStatus").textContent=guestMode?"ゲスト接続中":signedIn?"ログイン中":"未接続";
- if($("accountSignedOut"))$("accountSignedOut").hidden=signedIn;
- if($("accountSignedIn"))$("accountSignedIn").hidden=!signedIn;
+ if($("accountSignedOut"))$("accountSignedOut").hidden=signedIn&&!guestMode;
+ if($("accountSignedIn"))$("accountSignedIn").hidden=!signedIn||guestMode;
  if(!signedIn)emailLinkReward=null;
  if(signedIn){
   const profile=onlinePlayerProfiles.find(p=>p.user_id===authUser.id);
