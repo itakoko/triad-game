@@ -1964,8 +1964,8 @@ function renderRoleConfigEditor(settings={}){
  updateRoleConfigSummary();
 }
 function readRoleConfigEditor(){
- const collect=(selector,key,checkbox)=>{const out={};document.querySelectorAll("#roleConfigEditor "+selector).forEach(el=>out[el.dataset[key]]=checkbox?el.checked:Math.max(0,Math.min(100,Number(el.value)||0)));return out};
- return {role_counts:collect("[data-role-count]","roleCount",false),role_enabled:collect("[data-role-enabled]","roleEnabled",true),role_weights:collect("[data-role-weight]","roleWeight",false),role_duplicate_allowed:collect("[data-role-duplicate]","roleDuplicate",true)};
+ const collect=(selector,key,checkbox,max=100)=>{const out={};document.querySelectorAll("#roleConfigEditor "+selector).forEach(el=>out[el.dataset[key]]=checkbox?el.checked:Math.max(0,Math.min(max,Math.floor(Number(el.value)||0))));return out};
+ return {role_counts:collect("[data-role-count]","roleCount",false,30),role_enabled:collect("[data-role-enabled]","roleEnabled",true),role_weights:collect("[data-role-weight]","roleWeight",false,100),role_duplicate_allowed:collect("[data-role-duplicate]","roleDuplicate",true)};
 }
 function updateRoleConfigSummary(){
  const root=$("roleConfigSummary");if(!root)return;
