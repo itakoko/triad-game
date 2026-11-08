@@ -380,7 +380,7 @@ canvas#mapCanvas{aspect-ratio:16/10;background:#0b1522}
 </section>
 
 </main>
-<footer>TRIAD v0.60 · 会議・投票接続</footer>
+<footer>TRIAD v0.61 · ランク戦会議接続改善</footer>
 
   <div id="onlineConnectionBanner" role="status">オンライン接続が不安定です。<button type="button" onclick="retryOnlineConnection()">再接続</button></div>
   <div class="modal" id="offlineRoleSettingsModal"><div class="modalbox"><h2>通常対戦・役職詳細設定</h2><p class="muted">固定人数を指定した役職は必ず登場します。残りの枠はONになっている役職から出現重みに応じて抽選します。</p>
@@ -685,8 +685,8 @@ function syncRankedMeetingUI(meeting){
   const alive=state.players.filter(p=>p.alive);
   $("voteList").innerHTML=alive.map(p=>'<button data-vote-id="'+p.id+'" onclick="castVote('+p.id+')"><span class="dot" style="background:'+p.color+'"></span><span>'+escapeMeetingText(p.name)+'</span></button>').join("");
   $("voteList").querySelectorAll("button").forEach(b=>{b.disabled=!state.me.alive});
-  $("submitVoteAction").disabled=!state.me.alive||state.selectedVote===null;
-  $("selectedVoteText").textContent=state.selectedVote==="skip"?"投票先：スキップ":state.selectedVote!==null?"投票先："+(state.players.find(p=>p.id===Number(state.selectedVote))?.name||"選択済み"):"投票先：未選択";
+  $("submitVoteAction").disabled=!state.me.alive||state.selectedVote===null||!!meeting.own_voted;
+  $("selectedVoteText").textContent=state.selectedVote==="skip"?"投票先：スキップ":state.selectedVote!==null?"投票先："+(state.players.find(p=>p.id===Number(state.selectedVote))?.name||"選択済み"):"投票先：未選択";if(meeting.own_voted)$("meetingInfo").textContent="投票を受け付けました。他の参加者の投票を待っています。";
  }
  if(phase==="results"){
   $("beginVoteAction").hidden=true;$("meetingVotePanel").hidden=false;$("submitVoteAction").disabled=true;
@@ -863,7 +863,7 @@ async function loadRankedProfile(){
 
 function show(id){
  if(!activateScreen(id))return;
- if(id==="home"){renderUpdateLog($("updateVersionSelect")?.value||"0.60");updateResumeGameUI()}
+ if(id==="home"){renderUpdateLog($("updateVersionSelect")?.value||"0.61");updateResumeGameUI()}
  if(id==="accounts")loadAccountDirectoryData();
  if(id==="socialHub")loadSocialHub();
 }
@@ -903,6 +903,7 @@ async function startOnlineMatch(){
  catch(e){alert("試合を開始できません："+(e.message||e))}
 }
 async function startGame(){
+ rankedServerMode=false;rankedMeetingWasActive=false;
  const onlineHost=!!(activeRoomId&&activeRoomSnapshot&&authUser&&activeRoomSnapshot.host_user_id===authUser.id&&activeRoomSnapshot.status==="playing");
  const members=onlineHost?[...(activeRoomSnapshot.members||[])].sort((a,b)=>(b.is_host?1:0)-(a.is_host?1:0)):[{user_id:null,display_name:"あなた",is_host:true}];
  const ai=onlineHost?Math.max(0,Math.min(28,Number(activeRoomSnapshot.ai_count)||0)):Math.max(3,Math.min(29,Math.floor(Number($("aiCount").value)||9)));
@@ -2140,6 +2141,7 @@ function endGame(msg,winners={teams:[]}){
  $("gameOverModal").classList.add("show");
 }
 async function endToHome(){
+ rankedServerMode=false;rankedMeetingWasActive=false;
  if(onlineGame&&activeRoomId){if(!confirm("オンラインルームから退出してホームへ戻りますか？"))return;try{await leaveOnlineRoom()}catch(e){console.warn("online leave failed",e)}}
  stopMatchAutosave();discardSavedGame();if(state.running)saveAILongTermMemories({teams:[]},true);state.running=false;clearInterval(loop);clearInterval(clock);stopMove();stopBGM();document.querySelectorAll(".modal").forEach(m=>m.classList.remove("show"));show("home")
 }
@@ -2805,8 +2807,9 @@ async function leaveOnlineRoom(){
  activeRoomId=null;activeRoomSnapshot=null;await disconnectRoomChannel();show("socialHub");await loadSocialHub();
 }
 
-function renderUpdateLog(version="0.60"){
+function renderUpdateLog(version="0.61"){
  const logs={
+  "0.61":{date:"2026年11月9日",items:["投票済み状態を本人にだけ返し、再接続後の二重投票を防止。ランク戦終了後に通常対戦へ戻る際のモード解除を追加。"],},
   "0.60":{date:"2026年11月9日",items:["ランク戦の緊急会議・議論終了・投票送信・投票結果表示をサーバーエンジンに接続。","投票中の個別投票を非公開にし、サーバー側でAI投票と集計を処理。"],},
   "0.59":{date:"2026年11月9日",items:["ランク戦画面に進行中の試合への再接続を追加。サーバー移動・AI更新・タスク進行を画面側から同期する処理を実装。","会議・役職能力・勝敗判定・ランク確定が未完成のため、新規マッチングは引き続き停止。"],},
   "0.58":{date:"2026年11月9日",items:["ランク戦のプロフィール画面を追加。現在のランクポイント・ランク帯・戦績をサーバーから取得して表示。","ランク戦用のサーバー側マッチング基盤と10人戦・12人戦の陣営／役職割り当てを追加。試合エンジン接続前のため、マッチング参加はまだ公開していません。"]},
