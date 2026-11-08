@@ -1869,7 +1869,7 @@ function closeMeeting(){if(isOnlineClient()){sendOnlineInput({kind:"action",acti
    else if(p.role==="暗殺者")p.killReadyAt=cooldownStart+20000;
    else if(p.role==="狂人")p.killReadyAt=cooldownStart+30000;
    if(p.team==="black")p.sabotageReadyAt=cooldownStart+35000;
-   const roleCooldown={"イノシシ":20000,"暗殺者":20000,"百面相":35000,"放浪者":15000}[p.role];
+   const roleCooldown={"イノシシ":20000,"暗殺者":20000,"百面相":35000,"放浪者":15000,"ギャンブラー":25000}[p.role];
    if(roleCooldown)p.roleReadyAt=cooldownStart+roleCooldown;
    p.emergencyReadyAt=cooldownStart+25000;
    if(p.id!==0){p.aiTaskIndex=null;if(p.aiGoal?.kind==="task"){p.aiGoal=null;p.aiPath=[]}p.aiNextTaskAt=cooldownStart+rand(3500,6000)}
