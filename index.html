@@ -165,7 +165,23 @@ canvas#mapCanvas{aspect-ratio:16/10;background:#0b1522}
  <div id="personalEffect"><div class="effectCard"><strong id="personalEffectTitle"></strong><span id="personalEffectText"></span></div></div>
    <div class="modal" id="helpModal"><div class="modalbox"><h2>遊び方・ルール</h2><div class="helpTabs"><button id="helpRulesTab" class="primary" onclick="setHelpTab('rules')">遊び方</button><button id="helpRolesTab" onclick="setHelpTab('roles')">役職一覧</button></div><section id="helpRulesPanel"><ul><li>黄色い端末の近くでタスクボタンを押し、暗号解読を成功させると共有タスクが1件進みます。</li><li>白陣営の共有タスク目標は試合ごとに53〜57件。白陣営のAIも作業し、全員の合計が目標に達すると白陣営が勝利します。</li><li>同じ役職は原則として重複しません。恋人は特殊役職で、必ず2人1組で登場します。</li><li>同じ端末は、同じプレイヤーが1回の会議サイクルで1回だけ使用できます。会議終了後に再使用でき、全体のタスク進捗は保持されます。</li><li>死体の近くで通報、または研究所中央の緊急会議ボタンで会議を開始できます。会議終了後、生存者は研究所内に再配置され、死体と端末の使用制限がリセットされます。</li><li>遮蔽物の向こう側にいる相手は見えず、能力の対象にも選べません。</li><li>死亡後は幽霊となり、移動とタスクのみ行えます。</li><li>AIは周囲の状況や目撃情報をもとに行動し、死体の通報や緊急会議、会議での発言・投票を行います。</li></ul><p class="muted">AIとプレイヤーは、キル・役職能力・移動の基本速度・タスク端末の使用制限を共通ルールで処理します。AIは暗号入力の代わりに、端末で解読作業を行う時間を取ります。</p></section><section id="helpRolesPanel" hidden><div class="roleGroup"><h3>⚪ 白陣営</h3><article class="roleCard"><b>クルー</b><p>固有能力はありません。タスクを進め、会議で情報を共有し、黒陣営を見つける役職です。</p></article><article class="roleCard"><b>サイエンティスト</b><p>能力ボタンから生存者一覧を確認できます。現在生きているプレイヤーを確認する能力で、使用回数の制限やクールタイムはありません。</p></article><article class="roleCard"><b>恋人（2人1組）</b><p>恋人は必ず2人で登場します。お互いの現在位置をマップ上で確認できます。固有の攻撃能力はありません。</p></article><article class="roleCard"><b>占い師</b><p>近く（約100ワールド単位）の生存者1人を一度だけ占えます。結果は相手の役職ではなく、白・黒・第三のどの陣営かです。</p></article><article class="roleCard"><b>狩人</b><p>近く（約100ワールド単位）の生存者1人を一度だけ攻撃できます。能力を使うと使用済みになり、再使用できません。</p></article><article class="roleCard"><b>保安官</b><p>狩人と同様に、近くの生存者1人を一度だけ攻撃できます。ただし白陣営を誤って倒すと、自分も死亡します。</p></article><article class="roleCard"><b>僧侶</b><p>生存者1人を選んで一度だけ加護を与えます。対象は次に受ける攻撃を1回防ぎます。加護は攻撃を防ぐと消えます。</p></article><article class="roleCard"><b>ライトキーパー</b><p>暗闇による視界制限を受けない常時能力を持ちます。攻撃能力はありません。</p></article></div><div class="roleGroup"><h3>⚫ 黒陣営</h3><article class="roleCard"><b>インポスター</b><p>近くの相手をキルできます。キルの初回待機は試合開始から30秒、その後のクールタイムは30秒です。停電サボタージュを使うと、黒陣営以外の視界を10秒間狭めます。サボタージュの初回待機は35秒、その後も35秒ごとに使用できます。</p></article><article class="roleCard"><b>イノシシ</b><p>向いている方向へ突進し、進路上の相手に接触すると攻撃します。壁にぶつかると突進が終了し、次の突進まで20秒の待機が発生します。</p></article><article class="roleCard"><b>百面相</b><p>生存者1人を選び、その姿に10秒間変身できます。変身終了後のクールタイムは35秒です。</p></article></div><div class="roleGroup"><h3>🟣 第三陣営</h3><article class="roleCard"><b>放浪者</b><p>近く（約90ワールド単位）の相手1人に気づかれず匂いを移します。次の使用まで15秒待つ必要があります。生存者全員に匂いを移すと単独勝利します。</p></article><article class="roleCard"><b>暗殺者</b><p>試合開始時に白陣営から手配対象が3人選ばれます。手配書で対象を確認し、対象3人全員を倒すと単独勝利します。キル後の待機は20秒です。手配対象以外を倒すと、自分も死亡します。</p></article><article class="roleCard"><b>てるてる</b><p>会議で投票により追放されると、その時点で単独勝利します。通常のキル能力はありません。</p></article><article class="roleCard"><b>狂人</b><p>キルボタンから近くの相手を攻撃できます。攻撃後のクールタイムは30秒です。生存中の白陣営と他の第三陣営の合計人数が、黒陣営と狂人の合計人数を下回ると単独勝利します。</p></article></div></section><button class="primary" style="width:100%;margin-top:12px" onclick="closeHelp()">閉じる</button></div></div>
 
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
+const SUPABASE_URL="https://tzkukbybggqfuzlevged.supabase.co";
+const SUPABASE_PUBLISHABLE_KEY="sb_publishable_79x6YIEy9SYlaoiiDFoDQA_eP37cFfQ";
+let supabaseClient=null,aiProfilePool=[],aiProfilesLoaded=false;
+async function loadAIProfiles(){
+ if(aiProfilesLoaded)return;
+ try{
+  if(!window.supabase?.createClient)throw new Error("Supabase SDK unavailable");
+  supabaseClient=supabaseClient||window.supabase.createClient(SUPABASE_URL,SUPABASE_PUBLISHABLE_KEY);
+  const {data,error}=await supabaseClient.from("ai_profiles").select("id,display_name,personality,skill_level,task_skill,deduction_skill,caution,sociability,aggression,task_priority,memory").order("id");
+  if(error)throw error;
+  aiProfilePool=Array.isArray(data)?data:[];
+  aiProfilesLoaded=true;
+ }catch(error){console.warn("AI profile load failed; using local fallback.",error);aiProfilePool=[];aiProfilesLoaded=true;}
+}
+
 const $=id=>document.getElementById(id);
 const maps={
  lab:{name:"研究施設",width:2000,height:1320,rooms:[
@@ -216,7 +232,7 @@ function makeRoles(team,count,whiteCount=0){
   if(count>pool.length)return null;
   return shuffle(pool).slice(0,count);
 }
-function startGame(){
+async function startGame(){
   let ai=Math.max(3,Math.min(29,Math.floor(Number($("aiCount").value)||9)));
   let black=Math.max(1,Math.min(3,Math.floor(Number($("blackCount").value)||1)));
   let third=Math.max(0,Math.min(4,Math.floor(Number($("thirdCount").value)||0)));
@@ -229,11 +245,12 @@ function startGame(){
     state.map=maps.lab;state.worldWidth=state.map.width;state.worldHeight=state.map.height;state.players=[];state.dead=[];state.seconds=0;state.done=0;state.total=Math.floor(rand(53,58));state.log=[];state.camera={x:0,y:0};state.bountyIds=[];state.scentedIds=new Set();state.sabotageUntil=0;state.targetAction=null;state.lastDirection={x:1,y:0};state.meetingPhase="";state.selectedVote=null;state.lastBallots=[];state.meetingClaims=[];state.meetingEvents=[];state.aiTurnCount=0;state.aiTurnTimer=null;state.sightTick=0;state.killEvents=[];
   const roleAssignments={white:makeRoles("white",white),black:makeRoles("black",black),third:makeRoles("third",third,white)};
  if(!roleAssignments.white||!roleAssignments.black||(third>0&&!roleAssignments.third)){alert("この人数では重複なしの役職を割り当てられません。陣営人数を減らしてください。");return}
+  await loadAIProfiles();
   startAudio();
  let teams=shuffle(Array(black).fill("black").concat(Array(third).fill("third"),Array(white).fill("white")));
  const roleQueues={white:[...roleAssignments.white],black:[...roleAssignments.black],third:[...(roleAssignments.third||[])]};
-  const startedAt=Date.now();
-     for(let i=0;i<ai+1;i++){let spawn=i===0?[250,250]:randomSpawn();let team=teams[i];let p={id:i,name:i===0?"あなた":"プレイヤー"+(i+1),team,role:roleQueues[team].pop(),alive:true,ghost:false,x:spawn[0],y:spawn[1],color:colors[i%colors.length],shape:i%4,taskCount:0,partnerId:null,protected:false,abilityUsed:false,roleReadyAt:startedAt,killReadyAt:startedAt+(team==="black"?30000:0),sabotageReadyAt:startedAt+(team==="black"?35000:0),emergencyReadyAt:startedAt+rand(30000,65000),aiNextGoalAt:startedAt+rand(2500,8000),aiNextTaskAt:startedAt+rand(3500,6500),aiTaskIndex:null,aiGoal:null,aiPath:[],disguiseId:null,disguiseUntil:0,charging:false,charge:{x:0,y:0},scented:false,aiMemory:{suspicion:{},trust:{},sightings:{}}};state.players.push(p)}
+  const startedAt=Date.now(),profileDeck=shuffle([...aiProfilePool]);
+     for(let i=0;i<ai+1;i++){let spawn=i===0?[250,250]:randomSpawn();let team=teams[i],profile=i===0?null:(profileDeck[i-1]||null);let p={id:i,name:i===0?"あなた":(profile?.display_name||"プレイヤー"+(i+1)),team,role:roleQueues[team].pop(),aiProfile:profile,alive:true,ghost:false,x:spawn[0],y:spawn[1],color:colors[i%colors.length],shape:i%4,taskCount:0,partnerId:null,protected:false,abilityUsed:false,roleReadyAt:startedAt,killReadyAt:startedAt+(team==="black"?30000:0),sabotageReadyAt:startedAt+(team==="black"?35000:0),emergencyReadyAt:startedAt+rand(30000,65000),aiNextGoalAt:startedAt+rand(2500,8000),aiNextTaskAt:startedAt+rand(3500,6500),aiTaskIndex:null,aiGoal:null,aiPath:[],disguiseId:null,disguiseUntil:0,charging:false,charge:{x:0,y:0},scented:false,aiMemory:{suspicion:{},trust:{},sightings:{}}};state.players.push(p)}
  state.me=state.players[0];
   const lovers=state.players.filter(p=>p.role==="恋人");
   if(lovers.length===2){lovers[0].partnerId=lovers[1].id;lovers[1].partnerId=lovers[0].id}
@@ -698,6 +715,7 @@ function chooseAICombatSuspect(ai,candidates){
   for(const event of state.killEvents||[]){
    if(event.killerId===target.id&&event.witnessIds?.includes(ai.id))score+=5;
   }
+  const deduction=Number(voter.aiProfile?.deduction_skill||5);score*=.75+deduction*.05;
   return {target,score};
  }).sort((a,b)=>b.score-a.score);
  return scores.length&&scores[0].score>=1.2?scores[0].target:null;
@@ -783,11 +801,11 @@ function chooseAISuspect(ai,exclude=[]){
  return candidates.sort((a,b)=>(ai.aiMemory.suspicion[b.id]||0)-(ai.aiMemory.suspicion[a.id]||0))[0];
 }
 function aiLieChance(ai){
- if(ai.role==="てるてる")return .68;
- if(ai.role==="狂人")return .55;
- if(ai.team==="black")return .74;
- if(ai.team==="third")return .34;
- return .12;
+ const profile=ai.aiProfile;
+ const base=ai.role==="てるてる"?.68:ai.role==="狂人"?.55:ai.team==="black"?.74:ai.team==="third"?.34:.12;
+ const social=profile?((profile.sociability||5)-5)*.012:0;
+ const caution=profile?((profile.caution||5)-5)*.009:0;
+ return Math.max(.05,Math.min(.9,base+social-caution));
 }
 function pickDialogue(lines){return lines[Math.floor(Math.random()*lines.length)]}
 function buildAIStatement(ai){
