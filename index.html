@@ -1814,7 +1814,9 @@ async function ensureOnlineUserChannel(userId){
 async function ensureOnlineInputChannel(){
  if(onlineInputChannel)return onlineInputChannel;
  const ch=supabaseClient.channel("room:"+activeRoomId+":input:"+authUser.id,{config:{private:true}});
- await waitForRealtimeChannel(ch,"操作送信チャンネル");onlineInputChannel=ch;return ch;
+ const record={userId:authUser.id,channel:ch};onlineInputChannels.push(record);
+ try{await waitForRealtimeChannel(ch,"操作送信チャンネル");onlineInputChannel=ch;return ch}
+ catch(e){onlineInputChannels=onlineInputChannels.filter(x=>x!==record);try{await supabaseClient.removeChannel(ch)}catch(_){}throw e}
 }
 async function ensureOnlineHostInputChannel(userId){
  if(onlineInputChannels.some(x=>x.userId===userId))return;
@@ -1868,7 +1870,7 @@ async function sendOnlinePrivateStates(){
 async function broadcastOnlineToUsers(event,payload){
  if(!isOnlineHost())return;
  const sends=onlineUserChannels.map(x=>x.channel.send({type:"broadcast",event,payload}));
- const results=await Promise.allSettled(sends);results.forEach(r=>{if(r.status==="rejected")console.warn("online broadcast",r.reason)});
+ const results=await Promise.allSettled(sends);results.forEach(r=>{if(r.status==="rejected")console.warn("online broadcast",r.reason);else if(r.value?.status&&r.value.status!=="ok")console.warn("online broadcast status",r.value.status)});
 }
 async function broadcastOnlineSnapshot(){
  if(!isOnlineHost()||onlineSnapshotBusy||!onlineUserChannels.length)return;onlineSnapshotBusy=true;
@@ -1883,7 +1885,11 @@ async function startOnlineHostSync(){
  try{
   await Promise.all(humans.map(p=>ensureOnlineUserChannel(p.userId)));
   await Promise.all(humans.filter(p=>p.userId!==authUser.id).map(p=>ensureOnlineHostInputChannel(p.userId)));
- }catch(e){socialMessage("オンライン同期チャンネルを準備できません："+(e.message||e),true);return}
+ }catch(e){
+  if(onlineSnapshotTimer){clearInterval(onlineSnapshotTimer);onlineSnapshotTimer=null}
+  state.running=false;clearInterval(loop);clearInterval(clock);stopMatchAutosave();onlineGame=null;show("roomLobby");
+  socialMessage("オンライン同期チャンネルを準備できませんでした。部屋を作り直して再試行してください："+(e.message||e),true);throw e;
+ }
  if(onlineSnapshotTimer)clearInterval(onlineSnapshotTimer);
  onlineSnapshotTimer=setInterval(()=>{broadcastOnlineSnapshot();if(onlineGameRevision%6===0)sendOnlinePrivateStates()},250);
  await broadcastOnlineToUsers("match_start",{host:authUser.id});
