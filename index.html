@@ -1299,7 +1299,7 @@ function resolveGamblerRoll(actor,now=Date.now()){
  else{announce("💀 大凶！賭けに負けた…自分が脱落！");playSfx("death");markPlayerDead(actor,"ギャンブル失敗",actor);checkWin()}
  updateNearbyActions();draw();
 }
-function useAbility(){if(isOnlineClient()){if(state.me?.role==="サイエンティスト"){showAliveList();return}if(state.me?.role==="暗殺者"){openBounty();sendOnlineInput({kind:"action",action:"ability"});return}if(!["占い師","狩人","保安官","僧侶","百面相","放浪者"].includes(state.me?.role)){sendOnlineInput({kind:"action",action:"ability"});return}}
+function useAbility(){if(isOnlineClient()){if(state.me?.role==="サイエンティスト"){showAliveList();return}if(state.me?.role==="暗殺者"){openBounty();sendOnlineInput({kind:"action",action:"ability"});return}if(state.me?.role==="ギャンブラー"&&state.me.gamblerKillReady){openTargetSelection("JACKPOTキル","近くの相手1人をキルできます。",targetCandidates(state.me,100,false,p=>p.team!==state.me.team),"gamblerKill");return}if(!["占い師","狩人","保安官","僧侶","百面相","放浪者"].includes(state.me?.role)){sendOnlineInput({kind:"action",action:"ability"});return}}
  const actor=state.me;if(!state.running||!actor.alive)return;
  const role=actor.role,now=Date.now();
  if(role==="サイエンティスト"){playSfx("ability");showAliveList();return}
