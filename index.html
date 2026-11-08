@@ -1304,7 +1304,7 @@ function chooseGamblerPrediction(actor,onlineClient=false){
  if(modal){$("gamblerPredictionStatus").textContent="的中 "+(actor.gamblerPredictionHits||0)+"/2 回";modal.classList.add("show")}
 }
 function selectGamblerPrediction(choice){
- const actor=gamblerPredictionPendingActor||state.me;
+ const actor=state.me?.role==="ギャンブラー"?state.me:gamblerPredictionPendingActor;
  if(!actor||actor.role!=="ギャンブラー"||(choice!=="low"&&choice!=="high"))return;
  actor.gamblerPrediction=choice;actor.gamblerPredictionAsked=true;actor.gamblerPredictionPending=false;
  actor.gamblerNotice="予想："+(choice==="low"?"1〜3が多い":"4〜6が多い");
