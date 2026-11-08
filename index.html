@@ -540,7 +540,7 @@ const ROLE_POOLS={
  black:["インポスター","イノシシ","百面相"],
  third:["放浪者","暗殺者","てるてる","狂人"]
 };
-let state={players:[],me:null,map:null,tasks:[],done:0,total:0,seconds:0,move:{x:0,y:0},lastDirection:{x:1,y:0},running:false,meeting:false,meetingPhase:"",selectedVote:null,lastBallots:[],meetingClaims:[],meetingEvents:[],aiTurnCount:0,aiTurnTimer:null,meetingTimer:null,meetingSecondsLeft:90,meetingDuration:90,sightTick:0,killEvents:[],dead:[],log:[],camera:{x:0,y:0},worldWidth:2000,worldHeight:1320,nearTask:null,nearBody:null,nearEmergency:false,bountyIds:[],scentedIds:new Set(),sabotageUntil:0,targetAction:null};
+let state={players:[],me:null,map:null,tasks:[],done:0,total:0,seconds:0,move:{x:0,y:0},lastDirection:{x:1,y:0},running:false,meeting:false,meetingPhase:"",selectedVote:null,lastBallots:[],meetingClaims:[],meetingEvents:[],aiTurnCount:0,aiTurnTimer:null,meetingTimer:null,meetingSecondsLeft:90,meetingDuration:90,sightTick:0,killEvents:[],dead:[],log:[],camera:{x:0,y:0},worldWidth:2000,worldHeight:1320,nearTask:null,nearBody:null,nearEmergency:false,emergencyMeetingReadyAt:0,bountyIds:[],scentedIds:new Set(),sabotageUntil:0,targetAction:null};
 let loop=null,clock=null,autosaveTimer=null;
 const MATCH_SAVE_KEY="triad_active_match_v1";
 const colorNames=["赤","青","黄色","紫","緑","オレンジ","ピンク","水色","黄緑","茶色","紺","マゼンタ","青緑","金","サーモン","ライム","群青","ラベンダー","朱色","ターコイズ","黄土","ローズ","エメラルド","コバルト","レモン","ワイン","ミント","藤色","銅色","白"];
@@ -690,7 +690,7 @@ async function startGame(){
  if(white<1){alert("白陣営が1人以上必要です。");return}
  if(white>9&&!activeRoomSnapshot?.special_mode){alert("通常モードの白陣営は最大9人です。人数を調整してください。");return}
  if(state.aiTurnTimer)clearTimeout(state.aiTurnTimer);
- state.map=maps.lab;state.worldWidth=state.map.width;state.worldHeight=state.map.height;state.players=[];state.dead=[];state.seconds=0;state.done=0;state.total=Math.floor(rand(53,58));state.log=[];state.camera={x:0,y:0};state.bountyIds=[];state.scentedIds=new Set();state.sabotageUntil=0;state.targetAction=null;state.lastDirection={x:1,y:0};state.meetingPhase="";state.selectedVote=null;state.lastBallots=[];state.meetingClaims=[];state.meetingEvents=[];state.aiTurnCount=0;state.aiTurnTimer=null;state.sightTick=0;state.killEvents=[];
+ state.map=maps.lab;state.worldWidth=state.map.width;state.worldHeight=state.map.height;state.players=[];state.dead=[];state.seconds=0;state.done=0;state.total=Math.floor(rand(53,58));state.log=[];state.camera={x:0,y:0};state.bountyIds=[];state.scentedIds=new Set();state.sabotageUntil=0;state.targetAction=null;state.lastDirection={x:1,y:0};state.meetingPhase="";state.selectedVote=null;state.lastBallots=[];state.emergencyMeetingReadyAt=startedAt+25000;state.meetingClaims=[];state.meetingEvents=[];state.aiTurnCount=0;state.aiTurnTimer=null;state.sightTick=0;state.killEvents=[];
  const roleSettings=onlineHost?activeRoomSnapshot.settings||{}:{},roleCounts=roleSettings.role_counts||null,special=onlineHost&&!!activeRoomSnapshot.special_mode;let roleQueues;
  try{
   if(onlineHost||special||(roleCounts&&Object.values(roleCounts).some(v=>Number(v)>0)))roleQueues=configuredRoleQueues(roleCounts||{},{white,black,third},special,roleSettings);
@@ -703,7 +703,7 @@ async function startGame(){
  for(let i=0;i<totalPlayers;i++){
   const member=i<members.length?members[i]:null,aiIndex=i-members.length,isHuman=!!(onlineHost&&member);
   const spawn=isHuman&&member.user_id===authUser.id?[250,250]:randomSpawn(),team=teams[i],profile=member?null:(profileDeck[aiIndex]||null);
-  const p={id:i,userId:member?.user_id||null,isHuman,name:member?.display_name||fallbackAIName(aiIndex+1),number:i+1,team,role:roleQueues[team].pop(),aiProfile:profile,alive:true,ghost:false,x:spawn[0],y:spawn[1],color:colors[i%colors.length],colorName:colorNames[i%colorNames.length],shape:i%4,taskCount:0,partnerId:null,protected:false,abilityUsed:false,roleReadyAt:startedAt,killReadyAt:startedAt+(team==="black"?30000:0),sabotageReadyAt:startedAt+(team==="black"?35000:0),emergencyReadyAt:startedAt+rand(30000,65000),aiNextGoalAt:startedAt+rand(2500,8000),aiNextTaskAt:startedAt+rand(3500,6500),aiTaskIndex:null,aiGoal:null,aiPath:[],disguiseId:null,disguiseUntil:0,charging:false,charge:{x:0,y:0},scented:false,aiMemory:{suspicion:{},trust:{},sightings:{}}};
+  const p={id:i,userId:member?.user_id||null,isHuman,name:member?.display_name||fallbackAIName(aiIndex+1),number:i+1,team,role:roleQueues[team].pop(),aiProfile:profile,alive:true,ghost:false,x:spawn[0],y:spawn[1],color:colors[i%colors.length],colorName:colorNames[i%colorNames.length],shape:i%4,taskCount:0,partnerId:null,protected:false,abilityUsed:false,roleReadyAt:startedAt,killReadyAt:startedAt+(team==="black"?30000:0),sabotageReadyAt:startedAt+(team==="black"?35000:0),emergencyReadyAt:startedAt+rand(30000,65000),aiNextGoalAt:startedAt+rand(2500,8000),aiNextTaskAt:startedAt+rand(3500,6500),aiTaskIndex:null,aiGoal:null,aiPath:[],disguiseId:null,disguiseUntil:0,charging:false,charge:{x:0,y:0},scented:false,emergencyMeetingUsed:false,aiMemory:{suspicion:{},trust:{},sightings:{}}};
   state.players.push(p);
  }
  state.me=onlineHost?state.players.find(p=>p.userId===authUser.id):state.players[0];if(!state.me){alert("自分の参加情報が見つかりません。");return}
@@ -967,11 +967,11 @@ function updateNearbyActions(){
  const me=state.me,alive=me.alive,ghost=!alive&&me.ghost,now=Date.now();
  state.nearTask=(alive||ghost)&&me.team==="white"?state.tasks.find(t=>!t.done&&!t.completedBy?.includes(me.id)&&Math.hypot(t.x-me.x,t.y-me.y)<72)||null:null;
  state.nearBody=alive?state.dead.find(d=>Math.hypot(d.x-me.x,d.y-me.y)<82)||null:null;
- state.nearEmergency=alive&&Math.hypot(900-me.x,520-me.y)<82;
+ state.nearEmergency=alive&&Math.hypot(900-me.x,520-me.y)<82;const emergencyWait=Math.max(0,Math.ceil(((state.emergencyMeetingReadyAt||0)-now)/1000));const emergencyAvailable=state.nearEmergency&&!me.emergencyMeetingUsed&&emergencyWait===0;
   $("taskAction").textContent=ghost?"👻 タスクを解読":state.nearTask?`🔧 ${state.nearTask.label}を解析（残り${state.nearTask.remaining}件）`:"🔧 タスクを行う";
  $("taskAction").hidden=!state.nearTask;
  $("reportAction").hidden=!alive||!state.nearBody;
- $("emergencyAction").hidden=!alive||!state.nearEmergency;
+ $("emergencyAction").hidden=!emergencyAvailable;$("emergencyAction").textContent=emergencyWait>0?`🆘 緊急会議（${emergencyWait}秒）`:me.emergencyMeetingUsed?"🆘 使用済み":"🆘 緊急会議";
  $("mapAction").disabled=ghost;
  const canKill=me.team==="black"||["暗殺者","狂人"].includes(me.role);
  if(canKill){const rem=remainingText(me.killReadyAt);setButton("killAction",rem?`🔪 キル（${rem}秒）`:"🔪 キル",!alive||rem>0,!alive)}
@@ -1305,7 +1305,7 @@ function aiAction(){
  updateNearbyActions();draw();
 }
 function report(){if(isOnlineClient()){if(state.me.alive&&state.nearBody)sendOnlineInput({kind:"action",action:"report"});return}if(!state.running||!state.me.alive||!state.nearBody)return;callMeeting("近くの死体を発見しました。");}
-function callEmergency(){if(isOnlineClient()){if(state.me.alive&&state.nearEmergency)sendOnlineInput({kind:"action",action:"emergency"});return}if(!state.running||!state.me.alive||!state.nearEmergency)return;callMeeting("研究所中央の緊急会議ボタンが押されました。");}
+function callEmergency(){if(isOnlineClient()){if(state.me.alive&&state.nearEmergency&&!state.me.emergencyMeetingUsed&&Date.now()>=(state.emergencyMeetingReadyAt||0))sendOnlineInput({kind:"action",action:"emergency"});return}if(!state.running||!state.me.alive||!state.nearEmergency||state.me.emergencyMeetingUsed||Date.now()<(state.emergencyMeetingReadyAt||0))return;callMeeting("研究所中央の緊急会議ボタンが押されました。");}
 function appendMeetingMessage(name,text,kind="ai",player=null){if(onlineGame?.isHost)onlineMeetingLog.push({name,text,kind,player:player?{id:player.id,team:player.team}:null});
  const box=$("meetingChat"),message=document.createElement("div"),speaker=document.createElement("span"),body=document.createElement("span");
  message.className="chatMessage "+kind;speaker.className="chatName";speaker.textContent=name;
@@ -1561,7 +1561,7 @@ function sendMeetingMessage(){if(isOnlineClient()){const text=$("meetingChatInpu
  scheduleAITurn(500);
 }
 function callMeeting(message="会議が招集されました。",caller=state.me){
- if(onlineGame?.isHost){onlineMeetingLog=[];onlineLastChatCount=0;onlineVotes.clear()}
+ if(onlineGame?.isHost){onlineMeetingLog=[];onlineLastChatSignature="";onlineVotes.clear()}
  if(!state.running||state.meeting||!caller?.alive)return;
  playSfx("meeting");
  if(state.aiTurnTimer)clearTimeout(state.aiTurnTimer);
@@ -1792,7 +1792,7 @@ const ROLE_CONFIG_GROUPS=[
  {team:"black",label:"⚫ 黒陣営",roles:["インポスター","イノシシ","百面相"]},
  {team:"third",label:"🟣 第三陣営",roles:["放浪者","暗殺者","てるてる","狂人"]}
 ];
-let onlineGame=null,onlineMoveTimer=null,onlineSnapshotTimer=null,onlineInputChannels=[],onlineUserChannels=[],onlineInputs=new Map(),onlineVotes=new Map(),onlineMeetingLog=[],onlineGameRevision=0,onlineSnapshotBusy=false,onlinePrivateChannel=null,onlinePrivatePlayer=null,onlineInputChannel=null,onlinePendingInputs=[],onlineVoteListSignature="";
+let onlineGame=null,onlineMoveTimer=null,onlineSnapshotTimer=null,onlineInputChannels=[],onlineUserChannels=[],onlineInputs=new Map(),onlineVotes=new Map(),onlineMeetingLog=[],onlineLastChatSignature="",onlineGameRevision=0,onlineSnapshotBusy=false,onlinePrivateChannel=null,onlinePrivatePlayer=null,onlineInputChannel=null,onlinePendingInputs=[],onlineVoteListSignature="";
 
 
 
@@ -1965,7 +1965,7 @@ function renderOnlineMeeting(){
  $("beginVoteAction").hidden=state.meetingPhase!=="discussion"||!state.me.alive;
  $("meetingVotePanel").hidden=state.meetingPhase!=="voting";
  $("closeMeetingAction").disabled=!(state.lastBallots||[]).length;
- if(onlineLastChatCount!==onlineMeetingLog.length){$("meetingChat").textContent="";onlineMeetingLog.forEach(m=>appendMeetingMessage(m.name,m.text,m.kind,m.player||null));onlineLastChatCount=onlineMeetingLog.length}
+ const chatSignature=JSON.stringify(onlineMeetingLog||[]);if(onlineLastChatSignature!==chatSignature){$("meetingChat").textContent="";onlineMeetingLog.forEach(m=>appendMeetingMessage(m.name,m.text,m.kind,m.player||null));onlineLastChatSignature=chatSignature}
  if(state.meetingPhase==="voting"){
   const alive=state.players.filter(p=>p.alive),signature=alive.map(p=>p.id).join(",")+"|"+state.meetingPhase;
   if(signature!==onlineVoteListSignature){$("voteList").innerHTML=alive.map(p=>'<button data-vote-id="'+p.id+'" onclick="castVote('+p.id+')"><span class="dot" style="background:'+p.color+'"></span>'+playerTag(p)+'</button>').join("");onlineVoteListSignature=signature}
@@ -1988,7 +1988,7 @@ async function handleOnlineAction(payload){
  const previous=state.me;state.me=actor;updateNearbyActions();
  try{switch(payload.action){
   case "report":if(state.nearBody)callMeeting("近くの死体を発見しました。",actor);break;
-  case "emergency":if(state.nearEmergency)callMeeting("研究所中央の緊急会議ボタンが押されました。",actor);break;
+  case "emergency":if(state.nearEmergency&&!actor.emergencyMeetingUsed&&Date.now()>=(state.emergencyMeetingReadyAt||0))callMeeting("研究所中央の緊急会議ボタンが押されました。",actor);break;
   case "sabotage":useSabotage();break;
   case "ability":useAbility();break;
   case "target":{const target=state.players.find(p=>p.id===Number(payload.targetId)),kind=String(payload.actionKind||"");const rules={seer:{roles:["占い師"],range:100,once:true},roleKill:{roles:["狩人","保安官"],range:100,once:true},protect:{roles:["僧侶"],range:Infinity,once:true},disguise:{roles:["百面相"],range:Infinity,cooldown:true},scent:{roles:["放浪者"],range:90,cooldown:true},kill:{roles:["インポスター","暗殺者"],range:88,cooldown:true}};const rule=rules[kind],distance=target?Math.hypot(target.x-actor.x,target.y-actor.y):Infinity;const roleAllowed=kind==="kill"?(actor.team==="black"||actor.role==="暗殺者"):!!rule?.roles.includes(actor.role);const ready=kind==="kill"?remainingText(actor.killReadyAt)===0:rule?.once?!actor.abilityUsed:rule?.cooldown?remainingText(actor.roleReadyAt)===0:true;if(rule&&roleAllowed&&ready&&target&&target.alive&&target.id!==actor.id&&distance<=rule.range&&!(kind==="kill"&&actor.team==="black"&&target.team==="black")&&(kind==="protect"||kind==="disguise"||hasLineOfSight(actor,target))){state.targetAction={kind};selectTarget(target.id)}break}
