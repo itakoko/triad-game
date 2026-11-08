@@ -1563,7 +1563,8 @@ function sendMeetingMessage(){if(isOnlineClient()){const text=$("meetingChatInpu
 function callMeeting(message="会議が招集されました。",caller=state.me){
  if(onlineGame?.isHost){onlineMeetingLog=[];onlineLastChatSignature="";onlineVotes.clear()}
  if(!state.running||state.meeting||!caller?.alive)return;
- if(String(message).includes("緊急会議ボタン"))caller.emergencyMeetingUsed=true;\n state.meetingId=Date.now()+Math.random();
+ if(String(message).includes("緊急会議ボタン"))caller.emergencyMeetingUsed=true;
+ state.meetingId=Date.now()+Math.random();
  playSfx("meeting");
  if(state.aiTurnTimer)clearTimeout(state.aiTurnTimer);
  state.meeting=true;state.meetingPhase="discussion";state.selectedVote=null;state.lastBallots=[];state.meetingClaims=[];state.aiTurnCount=0;state.aiSpokenIds=[];state.meetingDuration=onlineGame?.isHost?Math.max(30,Math.min(300,state.meetingDuration||90)):Math.max(30,Math.min(300,Number($("meetingDuration")?.value)||90));
@@ -1606,13 +1607,13 @@ function drawOverview(canvasId="overviewCanvas",meetingMode=false){
 function toggleMeetingMap(force){const panel=$("meetingMapPanel"),button=$("meetingMapToggle");const open=typeof force==="boolean"?force:panel.hidden;panel.hidden=!open;if(open){drawOverview("meetingOverviewCanvas",true);button.textContent="🗺 マップを閉じる"}else button.textContent="🗺 マップを表示"}
 function renderMeetingAliveList(){const alive=state.players.filter(p=>p.alive),dead=state.players.filter(p=>!p.alive);$("meetingAliveSummary").textContent=`生存：${alive.length}人　／　死亡：${dead.length}人　／　合計：${state.players.length}人`;$("meetingAliveList").innerHTML=[...alive.map(p=>`<div class="meetingAliveItem"><span class="dot" style="background:${p.color}"></span><span style="color:${meetingNameColor(p)||"inherit"}">${playerTag(p)}</span><small style="color:#8de2c5">生存</small></div>`),...dead.map(p=>`<div class="meetingAliveItem" style="opacity:.78"><span class="dot" style="background:${p.color}"></span><span style="text-decoration:line-through;color:${meetingNameColor(p)||"inherit"}">${playerTag(p)}</span><small style="color:#ff9299">死亡</small></div>`)].join("")}
 function castVote(id){
- if(!state.meeting||state.meetingPhase!=="voting"||!state.me.alive)return;
+ if(!state.meeting||state.meetingPhase!=="voting"||!state.me.alive||state.onlineVoteSubmitted||(state.onlineVotedUserIds||[]).includes(authUser?.id))return;
  const target=state.players.find(p=>p.id===Number(id)&&p.alive);if(!target)return;
  state.selectedVote=target.id;$("selectedVoteText").textContent="投票先："+playerTag(target);$("submitVoteAction").disabled=false;
  $("voteList").querySelectorAll("button").forEach(b=>b.classList.toggle("selected",Number(b.dataset.voteId)===target.id));
 }
 function skipVote(){
- if(!state.meeting||state.meetingPhase!=="voting"||!state.me.alive)return;
+ if(!state.meeting||state.meetingPhase!=="voting"||!state.me.alive||state.onlineVoteSubmitted||(state.onlineVotedUserIds||[]).includes(authUser?.id))return;
  state.selectedVote="skip";$("selectedVoteText").textContent="投票先：スキップ";$("submitVoteAction").disabled=false;
  $("voteList").querySelectorAll("button").forEach(b=>b.classList.remove("selected"));
 }
