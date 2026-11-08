@@ -292,7 +292,7 @@ canvas#mapCanvas{aspect-ratio:16/10;background:#0b1522}
 </section>
 
 </main>
-<footer>TRIAD v0.44 · オンライン同期・役職設定強化</footer>
+<footer>TRIAD v0.45 · オンライン同期・入力検証強化</footer>
 
   <div class="modal" id="mapModal"><div class="modalbox"><h2>研究施設マップ</h2><canvas id="overviewCanvas" width="900" height="600"></canvas><div class="mapLegend"><span>● あなた　♥ 恋人の相手（恋人のみ）</span><span>● タスク端末</span><span>■ 緊急会議ボタン</span><span>！ 手配書端末</span><span>■ 遮蔽物・チェイスカバー</span><span>× 死体</span></div><button class="primary" style="width:100%" onclick="closeMap()">閉じる</button></div></div>
  <div class="modal" id="targetModal"><div class="modalbox"><h2 id="targetTitle">対象を選択</h2><p id="targetInfo" class="muted"></p><div id="targetList" class="targetList"></div><button style="width:100%" onclick="closeTargetModal()">キャンセル</button></div></div>
@@ -1783,7 +1783,7 @@ const ROLE_CONFIG_GROUPS=[
  {team:"black",label:"⚫ 黒陣営",roles:["インポスター","イノシシ","百面相"]},
  {team:"third",label:"🟣 第三陣営",roles:["放浪者","暗殺者","てるてる","狂人"]}
 ];
-let onlineGame=null,onlineMoveTimer=null,onlineSnapshotTimer=null,onlineInputChannels=[],onlineUserChannels=[],onlineInputs=new Map(),onlineVotes=new Map(),onlineMeetingLog=[],onlineGameRevision=0,onlineSnapshotBusy=false,onlinePrivateChannel=null,onlinePrivatePlayer=null,onlineInputChannel=null;
+let onlineGame=null,onlineMoveTimer=null,onlineSnapshotTimer=null,onlineInputChannels=[],onlineUserChannels=[],onlineInputs=new Map(),onlineVotes=new Map(),onlineMeetingLog=[],onlineGameRevision=0,onlineSnapshotBusy=false,onlinePrivateChannel=null,onlinePrivatePlayer=null,onlineInputChannel=null,onlinePendingInputs=[];
 
 
 
@@ -1815,7 +1815,7 @@ async function ensureOnlineInputChannel(){
  if(onlineInputChannel)return onlineInputChannel;
  const ch=supabaseClient.channel("room:"+activeRoomId+":input:"+authUser.id,{config:{private:true}});
  const record={userId:authUser.id,channel:ch};onlineInputChannels.push(record);
- try{await waitForRealtimeChannel(ch,"操作送信チャンネル");onlineInputChannel=ch;return ch}
+ try{await waitForRealtimeChannel(ch,"操作送信チャンネル");onlineInputChannel=ch;const pending=onlinePendingInputs.splice(0,40);for(const payload of pending){await ch.send({type:"broadcast",event:"game_input",payload})}return ch}
  catch(e){onlineInputChannels=onlineInputChannels.filter(x=>x!==record);try{await supabaseClient.removeChannel(ch)}catch(_){}throw e}
 }
 async function ensureOnlineHostInputChannel(userId){
@@ -1827,7 +1827,8 @@ async function ensureOnlineHostInputChannel(userId){
  catch(e){onlineInputChannels=onlineInputChannels.filter(x=>x!==record);try{await supabaseClient.removeChannel(ch)}catch(_){}throw e}
 }
 function sendOnlineInput(payload){
- if(!isOnlineClient()||!onlineInputChannel)return;
+ if(!isOnlineClient()||!payload)return;
+ if(!onlineInputChannel){if(onlinePendingInputs.length<40)onlinePendingInputs.push(payload);ensureOnlineInputChannel().catch(e=>socialMessage(e.message||String(e),true));return}
  onlineInputChannel.send({type:"broadcast",event:"game_input",payload}).catch(e=>console.warn("online input",e));
 }
 function handleOnlineInputForUser(userId,payload){
@@ -1848,7 +1849,10 @@ function startOnlineClient(){
 }
 function applyOnlinePrivatePlayer(){
  if(!onlinePrivatePlayer||!state.players?.length)return;const p=state.players.find(x=>x.userId===authUser.id);if(!p)return;
- Object.assign(p,onlinePrivatePlayer);state.me=p;state.bountyIds=onlinePrivatePlayer.bountyIds||state.bountyIds||[];
+ // Public snapshots own live position/alive state. Merge only private role data so a delayed
+ // private packet can never rewind this player to an older position or revive a dead player.
+ const privateKeys=["role","team","abilityUsed","roleReadyAt","killReadyAt","sabotageReadyAt","emergencyReadyAt","partnerId","bountyIds","scented","disguiseId","disguiseUntil","protected"];
+ privateKeys.forEach(k=>{if(Object.prototype.hasOwnProperty.call(onlinePrivatePlayer,k))p[k]=onlinePrivatePlayer[k]});state.me=p;state.bountyIds=onlinePrivatePlayer.bountyIds||state.bountyIds||[];
  $("roleLabel").textContent="役職："+(p.role||"確認中");$("myRoleText").textContent="陣営："+teamName(p.team)+" ／ 役職："+p.role+"。"+roleDescription(p);
  $("myStatus").textContent=p.alive?"生存":"死亡";$("ghostBanner").hidden=!!p.alive;updateNearbyActions();
 }
@@ -1930,7 +1934,7 @@ async function handleOnlineAction(payload){
   case "emergency":if(state.nearEmergency)callMeeting("研究所中央の緊急会議ボタンが押されました。",actor);break;
   case "sabotage":useSabotage();break;
   case "ability":useAbility();break;
-  case "target":{const target=state.players.find(p=>p.id===Number(payload.targetId));if(target&&target.alive&&Math.hypot(target.x-actor.x,target.y-actor.y)<=115&&hasLineOfSight(actor,target)){state.targetAction={kind:payload.actionKind};selectTarget(target.id)}break}
+  case "target":{const target=state.players.find(p=>p.id===Number(payload.targetId)),kind=String(payload.actionKind||"");const rules={seer:{roles:["占い師"],range:100,once:true},roleKill:{roles:["狩人","保安官"],range:100,once:true},protect:{roles:["僧侶"],range:Infinity,once:true},disguise:{roles:["百面相"],range:Infinity,cooldown:true},scent:{roles:["放浪者"],range:90,cooldown:true},kill:{roles:["インポスター","暗殺者"],range:88,cooldown:true}};const rule=rules[kind],distance=target?Math.hypot(target.x-actor.x,target.y-actor.y):Infinity;const roleAllowed=kind==="kill"?(actor.team==="black"||actor.role==="暗殺者"):!!rule?.roles.includes(actor.role);const ready=rule?.once?!actor.abilityUsed:rule?.cooldown?remainingText(actor.role==="インポスター"||actor.team==="black"?actor.killReadyAt:actor.roleReadyAt)===0:true;if(rule&&roleAllowed&&ready&&target&&target.alive&&target.id!==actor.id&&distance<=rule.range&&!(kind==="kill"&&actor.team==="black"&&target.team==="black")&&(kind==="protect"||kind==="disguise"||hasLineOfSight(actor,target))){state.targetAction={kind};selectTarget(target.id)}break}
   case "task":{const task=state.tasks.find(t=>t.id===Number(payload.taskId));if(task&&actor.team==="white"&&Math.hypot(task.x-actor.x,task.y-actor.y)<90)completeSharedTask(task,actor);break}
   case "chat":if(state.meeting&&state.meetingPhase==="discussion"&&actor.alive&&String(payload.text||"").length<=180){const msg=String(payload.text).trim();if(msg){appendMeetingMessage(playerTag(actor),msg,"ai",actor);recordMeetingClaim(actor.id,msg);scheduleAITurn(500)}}break;
   case "begin_vote":if(state.meeting&&state.meetingPhase==="discussion")beginVoting();break;
@@ -2157,8 +2161,9 @@ async function leaveOnlineRoom(){
  activeRoomId=null;activeRoomSnapshot=null;await disconnectRoomChannel();show("socialHub");await loadSocialHub();
 }
 
-function renderUpdateLog(version="0.44"){
+function renderUpdateLog(version="0.45"){
  const logs={
+  "0.45":{date:"2026年11月8日",items:["オンライン参加者の初期接続中に送られた移動・能力・会議・投票入力を一時キューに保存し、接続後に順番に送信。","公開状態スナップショットと個人用役職情報を分離し、古い個人情報パケットで自分の位置や生死状態が巻き戻る問題を修正。","オンライン参加者から届く対象指定をホスト側で役職・能力回数・クールダウン・距離に基づいて検証。"]},
   "0.44":{date:"2026年11月8日",items:["オンライン試合の操作入力をプレイヤー別の認証チャンネルへ分離。送信元のアカウントをチャンネル権限で確認し、他人になりすました操作を防止。","試合状態・役職情報・試合結果を参加者ごとの専用チャンネルへ配信。","オンライン同期チャンネルの初期化漏れを修正し、試合開始時の役職情報と状態配信を安定化。","役職人数の入力に陣営別内訳と自動補充人数のプレビューを追加。"]},
   "0.43":{date:"2026年11月8日",items:["部屋ごとに役職の登場人数を指定できる役職構成エディターを追加。","通常モードでは役職重複を制限し、特別モードでは複数人への割り当てを許可。","部屋の全員が準備完了後、ホストがオンライン試合を開始できるように変更。"]},
   "0.42":{date:"2026年11月8日",items:["オンライン用のフレンド申請・承認・解除機能とプレイヤー検索を追加。","プライベート／パブリック部屋の作成、コード参加、公開部屋一覧を追加。","部屋の最大人数・AI人数・会議時間・陣営人数・特別モード設定、準備状態を追加。","部屋ロビーにRealtimeの参加状態と更新通知を追加。"]},
