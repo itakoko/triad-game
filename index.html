@@ -143,7 +143,7 @@ canvas#mapCanvas{aspect-ratio:16/10;background:#0b1522}
 </style>
 </head>
 <body>
-<header><div class="logo">TRI<span>AD</span></div><div class="row" style="align-items:center;gap:8px;flex:0 0 auto"><div class="tag">オンラインアカウント対応 · 連携限定報酬 · v0.42</div><button class="headerAccountButton" type="button" onclick="openAccountsScreen()">アカウント</button></div></header>
+<header><div class="logo">TRI<span>AD</span></div><div class="row" style="align-items:center;gap:8px;flex:0 0 auto"><div class="tag">オンラインアカウント対応 · 連携限定報酬 · v0.44</div><button class="headerAccountButton" type="button" onclick="openAccountsScreen()">アカウント</button></div></header>
 <main>
 <section id="home" class="screen active">
  <div class="hero"><div class="pill">研究施設マップ・探索型推理ゲーム</div><h1>閉鎖された研究所。<br>見えない場所に誰かがいる。</h1><p>部屋と通路を自分で探索し、タスクを進めながら状況を判断します。視界はプレイヤーの周囲に限られます。</p></div>
@@ -153,7 +153,7 @@ canvas#mapCanvas{aspect-ratio:16/10;background:#0b1522}
   <div class="card"><h3>🌐 オンライン対戦</h3><p class="muted">フレンドと遊ぶ・公開ルームを探す・AI人数や特別ルールを設定。</p><button class="primary" style="width:100%" onclick="openSocialHub()">オンラインロビーへ</button></div>
   <div class="card"><h3>📘 遊び方</h3><p class="muted">試作版のルールと操作方法を確認します。</p><button style="width:100%" onclick="openHelp()">ルールを見る</button></div>
   <div class="card"><h3>👥 アカウント図鑑</h3><p class="muted">プレイヤーとAIアカウント全員の能力・成績・得意な役職を確認できます。</p><button style="width:100%" onclick="openAccountsScreen()">アカウントを見る</button></div>
-  <div class="card"><h3>📋 アップデートログ</h3><p class="muted">見たいバージョンを選択してください。</p><div class="field"><label for="updateVersionSelect">バージョン</label><select id="updateVersionSelect" onchange="renderUpdateLog(this.value)"><option value="0.43">v0.43（最新）</option><option value="0.42">v0.42</option><option value="0.41">v0.41</option><option value="0.40">v0.40</option><option value="0.39">v0.39</option><option value="0.38">v0.38</option><option value="0.37">v0.37</option><option value="0.36">v0.36</option><option value="0.35">v0.35</option><option value="0.34">v0.34</option><option value="0.33">v0.33</option><option value="0.32">v0.32</option><option value="0.31">v0.31</option><option value="0.29">v0.29</option><option value="0.28">v0.28</option><option value="0.27">v0.27</option><option value="0.26">v0.26</option><option value="0.25">v0.25</option><option value="0.23">v0.23</option></select></div><div id="updateLogContent" class="updateLogContent" aria-live="polite"></div></div>
+  <div class="card"><h3>📋 アップデートログ</h3><p class="muted">見たいバージョンを選択してください。</p><div class="field"><label for="updateVersionSelect">バージョン</label><select id="updateVersionSelect" onchange="renderUpdateLog(this.value)"><option value="0.44">v0.44（最新）</option><option value="0.43">v0.43</option><option value="0.42">v0.42</option><option value="0.41">v0.41</option><option value="0.40">v0.40</option><option value="0.39">v0.39</option><option value="0.38">v0.38</option><option value="0.37">v0.37</option><option value="0.36">v0.36</option><option value="0.35">v0.35</option><option value="0.34">v0.34</option><option value="0.33">v0.33</option><option value="0.32">v0.32</option><option value="0.31">v0.31</option><option value="0.29">v0.29</option><option value="0.28">v0.28</option><option value="0.27">v0.27</option><option value="0.26">v0.26</option><option value="0.25">v0.25</option><option value="0.23">v0.23</option></select></div><div id="updateLogContent" class="updateLogContent" aria-live="polite"></div></div>
  </div>
 </section>
 
@@ -256,7 +256,7 @@ canvas#mapCanvas{aspect-ratio:16/10;background:#0b1522}
     <div class="field"><label>第三陣営</label><select id="editRoomThird"><option>0</option><option>1</option><option>2</option><option>3</option><option>4</option></select></div>
    </div>
    <label><input id="editRoomSpecial" type="checkbox" style="width:auto;margin-right:8px" onchange="renderRoleConfigEditor(activeRoomSnapshot?.settings)">特別モード：役職重複を許可</label>
-   <p class="muted">各役職の人数を指定。0は登場なし。指定人数の合計が陣営人数に満たない場合、残りは自動補充します。</p><div id="roleConfigEditor"></div>
+   <p class="muted">各役職の人数を指定します。0はその役職を登場させません。指定人数が陣営人数に満たない場合、残りは自動補充します。通常モードは同じ特殊役職1人まで、特別モードは複数人にできます。</p><div id="roleConfigEditor"></div><div id="roleConfigSummary" class="muted" aria-live="polite" style="padding:10px;background:#101a2a;border-radius:10px;margin-top:10px">役職構成を入力すると、ここに人数の内訳が表示されます。</div>
    <button style="width:100%;margin-top:10px" onclick="saveRoomSettings()">設定を保存</button>
   </div>
   <div class="row" style="margin-top:14px"><button id="roomReadyButton" class="primary" onclick="toggleRoomReady()">準備完了</button><button id="roomStartButton" class="primary" hidden onclick="startOnlineMatch()">試合開始</button><button class="warn" onclick="leaveOnlineRoom()">退出する</button></div>
@@ -292,7 +292,7 @@ canvas#mapCanvas{aspect-ratio:16/10;background:#0b1522}
 </section>
 
 </main>
-<footer>TRIAD v0.42 · オンラインロビー準備</footer>
+<footer>TRIAD v0.44 · オンライン同期・役職設定強化</footer>
 
   <div class="modal" id="mapModal"><div class="modalbox"><h2>研究施設マップ</h2><canvas id="overviewCanvas" width="900" height="600"></canvas><div class="mapLegend"><span>● あなた　♥ 恋人の相手（恋人のみ）</span><span>● タスク端末</span><span>■ 緊急会議ボタン</span><span>！ 手配書端末</span><span>■ 遮蔽物・チェイスカバー</span><span>× 死体</span></div><button class="primary" style="width:100%" onclick="closeMap()">閉じる</button></div></div>
  <div class="modal" id="targetModal"><div class="modalbox"><h2 id="targetTitle">対象を選択</h2><p id="targetInfo" class="muted"></p><div id="targetList" class="targetList"></div><button style="width:100%" onclick="closeTargetModal()">キャンセル</button></div></div>
@@ -710,7 +710,7 @@ async function startGame(){
  show("game");state.running=true;updateNearbyActions();draw();clearInterval(loop);clearInterval(clock);loop=setInterval(tick,70);
  clock=setInterval(()=>{if(!state.running)return;state.seconds++;$("timer").textContent=String(Math.floor(state.seconds/60)).padStart(2,"0")+":"+String(state.seconds%60).padStart(2,"0");aiAction();checkWin()},1000);
  startMatchAutosave();
- if(onlineHost)startOnlineHostSync();else onlineGame=null;
+ if(onlineHost)await startOnlineHostSync();else onlineGame=null;
 }
 function randomSpawn(){
  const areas=[[250,250],[600,250],[1180,250],[1540,260],[250,800],[670,800],[1160,800],[1540,800],[900,520]];
@@ -1685,7 +1685,7 @@ function loadHumanStats(){try{return JSON.parse(localStorage.getItem("triad_huma
 function saveHumanStats(won,interrupted=false){if(interrupted||!state.me)return;const old=loadHumanStats(),role=state.me.role,roleStats={...(old.roleStats||{})},rs={...(roleStats[role]||{})};rs.matches=(rs.matches||0)+1;rs.wins=(rs.wins||0)+(won?1:0);rs.survived=(rs.survived||0)+(state.me.alive?1:0);roleStats[role]=rs;const next={...old,matchesPlayed:(old.matchesPlayed||0)+1,wins:(old.wins||0)+(won?1:0),losses:(old.losses||0)+(won?0:1),survived:(old.survived||0)+(state.me.alive?1:0),roleStats,lastRole:role,lastFaction:state.me.team,lastResult:won?"勝利":"敗北",lastPlayedAt:Date.now()};try{localStorage.setItem("triad_human_stats_v1",JSON.stringify(next))}catch(e){console.warn("Player stats save failed",e)}if(authUser)syncOnlinePlayerStats(next)}
 
 function endGame(msg,winners={teams:[]}){
- if(onlineGame?.isHost&&activeRoomChannel){const players=state.players.map(p=>({...p,aiProfile:null,aiMemory:null,aiPath:[],aiGoal:null}));activeRoomChannel.send({type:"broadcast",event:"match_end",payload:{message:msg,winners,players}}).catch(()=>{})}
+ if(onlineGame?.isHost){const players=state.players.map(p=>({...p,aiProfile:null,aiMemory:null,aiPath:[],aiGoal:null}));broadcastOnlineToUsers("match_end",{message:msg,winners,players}).catch(e=>console.warn("match end broadcast",e))}
  if(onlineSnapshotTimer){clearInterval(onlineSnapshotTimer);onlineSnapshotTimer=null}stopMatchAutosave();discardSavedGame();
  saveAILongTermMemories(winners);
  const humanWon=(winners.roles||[]).includes(state.me.role)||(winners.teams||[]).includes(state.me.team);saveHumanStats(humanWon);
@@ -1783,21 +1783,62 @@ const ROLE_CONFIG_GROUPS=[
  {team:"black",label:"⚫ 黒陣営",roles:["インポスター","イノシシ","百面相"]},
  {team:"third",label:"🟣 第三陣営",roles:["放浪者","暗殺者","てるてる","狂人"]}
 ];
-let onlineGame=null,onlineMoveTimer=null,onlineSnapshotTimer=null,onlineInputChannels=[],onlineUserChannels=[],onlineInputs=new Map(),onlineVotes=new Map(),onlineMeetingLog=[],onlineGameRevision=0;
+let onlineGame=null,onlineMoveTimer=null,onlineSnapshotTimer=null,onlineInputChannels=[],onlineUserChannels=[],onlineInputs=new Map(),onlineVotes=new Map(),onlineMeetingLog=[],onlineGameRevision=0,onlineSnapshotBusy=false,onlinePrivateChannel=null,onlinePrivatePlayer=null,onlineInputChannel=null;
 
 
 
 function isOnlineHost(){return !!(onlineGame?.isHost&&activeRoomChannel&&state.running)}
 function isOnlineClient(){return !!(onlineGame&&!onlineGame.isHost&&state.running)}
-function sendOnlineInput(payload){if(!isOnlineClient()||!activeRoomChannel)return;activeRoomChannel.send({type:"broadcast",event:"game_input",payload:{userId:authUser.id,...payload}}).catch(e=>console.warn("online input",e))}
+function waitForRealtimeChannel(channel,label){
+ return new Promise((resolve,reject)=>{
+  let settled=false;const timeout=setTimeout(()=>{if(!settled){settled=true;reject(new Error(label+"の接続がタイムアウトしました"))}},10000);
+  channel.subscribe(status=>{
+   if(status==="SUBSCRIBED"&&!settled){settled=true;clearTimeout(timeout);resolve(channel)}
+   else if((status==="CHANNEL_ERROR"||status==="TIMED_OUT"||status==="CLOSED")&&!settled){settled=true;clearTimeout(timeout);reject(new Error(label+"に接続できません："+status))}
+  });
+ });
+}
+async function ensureOnlineUserChannel(userId){
+ const old=onlineUserChannels.find(x=>x.userId===userId);if(old)return old.channel;
+ const topic="room-player:"+activeRoomId+":"+userId;
+ const ch=supabaseClient.channel(topic,{config:{private:true}})
+  .on("broadcast",{event:"match_start"},()=>{if(userId===authUser.id&&(!onlineGame||!onlineGame.isHost))startOnlineClient()})
+  .on("broadcast",{event:"game_snapshot"},({payload})=>{if(userId===authUser.id)receiveOnlineSnapshot(payload)})
+  .on("broadcast",{event:"player_secret"},({payload})=>{if(userId===authUser.id){onlinePrivatePlayer=payload?.player||null;applyOnlinePrivatePlayer()}})
+  .on("broadcast",{event:"ability_notice"},({payload})=>{if(userId===authUser.id&&payload?.text)alert(payload.text)})
+  .on("broadcast",{event:"match_end"},({payload})=>{if(userId===authUser.id&&isOnlineClient()&&payload?.players){state.players=payload.players;state.me=state.players.find(p=>p.userId===authUser.id)||state.me;endGame(payload.message,payload.winners||{teams:[]})}});
+ const record={userId,channel:ch};onlineUserChannels.push(record);
+ try{await waitForRealtimeChannel(ch,"プレイヤー情報チャンネル");if(userId===authUser.id)onlinePrivateChannel=ch;return ch}
+ catch(e){onlineUserChannels=onlineUserChannels.filter(x=>x!==record);try{await supabaseClient.removeChannel(ch)}catch(_){}throw e}
+}
+async function ensureOnlineInputChannel(){
+ if(onlineInputChannel)return onlineInputChannel;
+ const ch=supabaseClient.channel("room:"+activeRoomId+":input:"+authUser.id,{config:{private:true}});
+ await waitForRealtimeChannel(ch,"操作送信チャンネル");onlineInputChannel=ch;return ch;
+}
+async function ensureOnlineHostInputChannel(userId){
+ if(onlineInputChannels.some(x=>x.userId===userId))return;
+ const ch=supabaseClient.channel("room:"+activeRoomId+":input:"+userId,{config:{private:true}})
+  .on("broadcast",{event:"game_input"},({payload})=>handleOnlineInputForUser(userId,payload));
+ const record={userId,channel:ch};onlineInputChannels.push(record);
+ try{await waitForRealtimeChannel(ch,"プレイヤー操作受信チャンネル")}
+ catch(e){onlineInputChannels=onlineInputChannels.filter(x=>x!==record);try{await supabaseClient.removeChannel(ch)}catch(_){}throw e}
+}
+function sendOnlineInput(payload){
+ if(!isOnlineClient()||!onlineInputChannel)return;
+ onlineInputChannel.send({type:"broadcast",event:"game_input",payload}).catch(e=>console.warn("online input",e));
+}
+function handleOnlineInputForUser(userId,payload){
+ if(!isOnlineHost()||!payload)return;
+ if(payload.kind==="move"){
+  const p=state.players.find(x=>x.userId===userId&&x.isHuman);
+  if(p)p.remoteMove={x:Math.max(-1,Math.min(1,Number(payload.x)||0)),y:Math.max(-1,Math.min(1,Number(payload.y)||0))};
+ }else if(payload.kind==="action")handleOnlineAction({...payload,userId});
+}
 function startOnlineClient(){
- if(!activeRoomId||!authUser)return;onlineGame={roomId:activeRoomId,isHost:false,userId:authUser.id};onlinePrivatePlayer=null;state.running=true;
- if(onlinePrivateChannel){supabaseClient.removeChannel(onlinePrivateChannel).catch(()=>{});onlinePrivateChannel=null}
- const topic="room-player:"+activeRoomId+":"+authUser.id;
- onlinePrivateChannel=supabaseClient.channel(topic,{config:{private:true}})
-  .on("broadcast",{event:"player_secret"},({payload})=>{onlinePrivatePlayer=payload?.player||null;applyOnlinePrivatePlayer()})
-  .on("broadcast",{event:"ability_notice"},({payload})=>{if(payload?.text)alert(payload.text)})
-  .subscribe(status=>{if(status==="CHANNEL_ERROR"||status==="TIMED_OUT")console.warn("private player channel",status)});
+ if(!activeRoomId||!authUser)return;
+ onlineGame={roomId:activeRoomId,isHost:false,userId:authUser.id};state.running=true;
+ ensureOnlineInputChannel().catch(e=>socialMessage(e.message||String(e),true));
  if(onlineMoveTimer)clearInterval(onlineMoveTimer);let last="";
  onlineMoveTimer=setInterval(()=>{if(!isOnlineClient())return;const m=state.move||{x:0,y:0},key=m.x.toFixed(2)+","+m.y.toFixed(2);if(key!==last||Math.abs(m.x)+Math.abs(m.y)>.02){last=key;sendOnlineInput({kind:"move",x:m.x,y:m.y})}},80);
  if(loop)clearInterval(loop);loop=setInterval(()=>{if(!isOnlineClient())return;updateNearbyActions();draw()},100);
@@ -1819,23 +1860,34 @@ function serializeOnlinePublicState(){
 async function sendOnlinePrivateStates(){
  if(!isOnlineHost())return;
  for(const p of state.players.filter(x=>x.isHuman&&x.userId)){
-  const ch=supabaseClient.channel("room-player:"+activeRoomId+":"+p.userId,{config:{private:true}});
+  const entry=onlineUserChannels.find(x=>x.userId===p.userId);if(!entry)continue;
   const secret={...p,aiProfile:null,aiMemory:null,aiPath:[],aiGoal:null,bountyIds:p.userId===state.me.userId?state.bountyIds:[]};
-  try{await ch.send({type:"broadcast",event:"player_secret",payload:{player:secret}})}catch(e){console.warn("private state send",e)}
-  try{await supabaseClient.removeChannel(ch)}catch(e){}
+  try{await entry.channel.send({type:"broadcast",event:"player_secret",payload:{player:secret}})}catch(e){console.warn("private state send",e)}
  }
 }
-async function broadcastOnlineSnapshot(){
- if(!isOnlineHost()||onlineSnapshotBusy||!activeRoomChannel)return;onlineSnapshotBusy=true;
- try{await activeRoomChannel.send({type:"broadcast",event:"game_snapshot",payload:{revision:++onlineGameRevision,state:serializeOnlinePublicState(),chat:onlineMeetingLog.slice(-80)}})}
- catch(e){console.warn("snapshot send",e)}finally{onlineSnapshotBusy=false}
+async function broadcastOnlineToUsers(event,payload){
+ if(!isOnlineHost())return;
+ const sends=onlineUserChannels.map(x=>x.channel.send({type:"broadcast",event,payload}));
+ const results=await Promise.allSettled(sends);results.forEach(r=>{if(r.status==="rejected")console.warn("online broadcast",r.reason)});
 }
-function startOnlineHostSync(){
+async function broadcastOnlineSnapshot(){
+ if(!isOnlineHost()||onlineSnapshotBusy||!onlineUserChannels.length)return;onlineSnapshotBusy=true;
+ try{
+  const payload={revision:++onlineGameRevision,state:serializeOnlinePublicState(),chat:onlineMeetingLog.slice(-80)};
+  await broadcastOnlineToUsers("game_snapshot",payload);
+ }catch(e){console.warn("snapshot send",e)}finally{onlineSnapshotBusy=false}
+}
+async function startOnlineHostSync(){
  onlineGame={roomId:activeRoomId,isHost:true,userId:authUser.id};onlineVotes.clear();onlineMeetingLog=[];onlineGameRevision=0;
+ const humans=state.players.filter(p=>p.isHuman&&p.userId);
+ try{
+  await Promise.all(humans.map(p=>ensureOnlineUserChannel(p.userId)));
+  await Promise.all(humans.filter(p=>p.userId!==authUser.id).map(p=>ensureOnlineHostInputChannel(p.userId)));
+ }catch(e){socialMessage("オンライン同期チャンネルを準備できません："+(e.message||e),true);return}
  if(onlineSnapshotTimer)clearInterval(onlineSnapshotTimer);
- onlineSnapshotTimer=setInterval(()=>{broadcastOnlineSnapshot();if(onlineGameRevision%6===0)sendOnlinePrivateStates()},180);
- activeRoomChannel?.send({type:"broadcast",event:"match_start",payload:{host:authUser.id}}).catch(()=>{});
- sendOnlinePrivateStates();broadcastOnlineSnapshot();
+ onlineSnapshotTimer=setInterval(()=>{broadcastOnlineSnapshot();if(onlineGameRevision%6===0)sendOnlinePrivateStates()},250);
+ await broadcastOnlineToUsers("match_start",{host:authUser.id});
+ await sendOnlinePrivateStates();await broadcastOnlineSnapshot();
 }
 function receiveOnlineSnapshot(payload){
  if(!onlineGame||onlineGame.isHost||!payload?.state||payload.revision<onlineGameRevision)return;onlineGameRevision=payload.revision;
@@ -1897,11 +1949,33 @@ function resolveOnlineVotes(){
 }
 function renderRoleConfigEditor(settings={}){
  const root=$("roleConfigEditor");if(!root)return;const counts=settings?.role_counts||{};
- root.innerHTML=ROLE_CONFIG_GROUPS.map(g=>'<div class="accountSection"><b>'+g.label+'</b><div class="grid">'+g.roles.map(role=>'<div class="field"><label>'+escapeAccountText(role)+'</label><input type="number" min="0" max="30" step="1" data-role-count="'+escapeAccountText(role)+'" value="'+Number(counts[role]||0)+'" inputmode="numeric"></div>').join("")+'</div></div>').join("");
+ root.innerHTML=ROLE_CONFIG_GROUPS.map(g=>'<div class="accountSection"><b>'+g.label+'</b><div class="grid">'+g.roles.map(role=>'<div class="field"><label>'+escapeAccountText(role)+'</label><input type="number" min="0" max="30" step="1" data-role-count="'+escapeAccountText(role)+'" value="'+Number(counts[role]||0)+'" inputmode="numeric" oninput="updateRoleConfigSummary()"></div>').join("")+'</div></div>').join("");
+ updateRoleConfigSummary();
 }
 function readRoleConfigEditor(){
  const out={};document.querySelectorAll("#roleConfigEditor [data-role-count]").forEach(el=>out[el.dataset.roleCount]=Math.max(0,Math.min(30,Math.floor(Number(el.value)||0))));
  return Object.values(out).some(v=>v>0)?out:null;
+}
+function updateRoleConfigSummary(){
+ const root=$("roleConfigSummary");if(!root)return;
+ const counts={};document.querySelectorAll("#roleConfigEditor [data-role-count]").forEach(el=>counts[el.dataset.roleCount]=Math.max(0,Math.min(30,Math.floor(Number(el.value)||0))));
+ const humans=Number($("editRoomMaxHumans")?.value||activeRoomSnapshot?.max_humans||6);
+ const ai=Number($("editRoomAICount")?.value||activeRoomSnapshot?.ai_count||6);
+ const total=humans+ai,black=Number($("editRoomBlack")?.value||activeRoomSnapshot?.settings?.black_count||2),third=Number($("editRoomThird")?.value||activeRoomSnapshot?.settings?.third_count||0),white=total-black-third;
+ const special=!!$("editRoomSpecial")?.checked;
+ const parts=ROLE_CONFIG_GROUPS.map(g=>{
+  const chosen=g.roles.reduce((sum,r)=>sum+(counts[r]||0),0),available=g.team==="white"?white:g.team==="black"?black:third;
+  return {label:g.label,chosen,available,fill:Math.max(0,available-chosen),over:chosen>available};
+ });
+ const duplicates=ROLE_CONFIG_GROUPS.flatMap(g=>g.roles.filter(r=>r!=="クルー"&&r!=="恋人"&&(counts[r]||0)>1));
+ const errors=[];
+ if(white<1)errors.push("白陣営が1人以上必要です");
+ if(total>30)errors.push("人間＋AIは30人以下にしてください");
+ parts.filter(p=>p.over).forEach(p=>errors.push(p.label+"の指定人数が陣営人数を超えています"));
+ if(!special&&duplicates.length)errors.push("通常モードでは同じ特殊役職を複数指定できません："+duplicates.join("、"));
+ if(counts["恋人"]!==undefined&&counts["恋人"]!==0&&counts["恋人"]!==2)errors.push("恋人は0人または2人にしてください");
+ root.innerHTML=parts.map(p=>'<div style="margin:4px 0">'+p.label+'：指定 '+p.chosen+'人 ／ 陣営 '+p.available+'人 ／ 自動補充 '+p.fill+'人</div>').join("")+
+  '<div style="margin-top:8px;font-weight:700;color:'+(errors.length?"#ff9aa2":"#9ee5e1")+'">'+(errors.length?errors.join(" ／ "):"人数の整合性：OK")+'</div>';
 }
 function configuredRoleQueues(counts,teamCounts,special){
  const queues={white:[],black:[],third:[]};
@@ -2005,22 +2079,23 @@ async function enterOnlineRoom(id){
   await supabaseClient.realtime.setAuth();
   activeRoomChannel=supabaseClient.channel("room:"+id,{config:{private:true,presence:{key:authUser.id}}})
    .on("broadcast",{event:"lobby_refresh"},()=>loadActiveRoom())
-   .on("broadcast",{event:"match_start"},()=>{if(!onlineGame||!onlineGame.isHost)startOnlineClient()})
-   .on("broadcast",{event:"game_snapshot"},({payload})=>receiveOnlineSnapshot(payload))
-   .on("broadcast",{event:"game_input"},({payload})=>{if(!isOnlineHost())return;if(payload?.kind==="move"){const p=state.players.find(x=>x.userId===payload.userId&&x.isHuman);if(p)p.remoteMove={x:Math.max(-1,Math.min(1,Number(payload.x)||0)),y:Math.max(-1,Math.min(1,Number(payload.y)||0))}}else if(payload?.kind==="action")handleOnlineAction(payload)})
-   .on("broadcast",{event:"game_action"},({payload})=>handleOnlineAction(payload))
-   .on("broadcast",{event:"match_end"},({payload})=>{if(isOnlineClient()&&payload?.players){state.players=payload.players;state.me=state.players.find(p=>p.userId===authUser.id)||state.me;endGame(payload.message,payload.winners||{teams:[]})}})
    .on("presence",{event:"sync"},()=>loadActiveRoom());
   activeRoomChannel.subscribe(async status=>{
    if(status==="SUBSCRIBED"){
     try{await activeRoomChannel.track({user_id:authUser.id,display_name:authUser.user_metadata?.display_name||"プレイヤー",online:true})}catch(e){console.warn("Presence tracking failed",e)}
-    await loadActiveRoom();if(activeRoomSnapshot?.status==="playing"&&!onlineGame)startOnlineClient();
    }else if(status==="CHANNEL_ERROR"||status==="TIMED_OUT"){socialMessage("リアルタイム接続に失敗しました。通信状態を確認してください。",true)}
   });
   await loadActiveRoom();
+  await ensureOnlineUserChannel(authUser.id);
+  if(activeRoomSnapshot?.status==="playing"&&!onlineGame)startOnlineClient();
  }catch(e){socialMessage("部屋を開けません："+(e.message||e),true)}
 }
 async function disconnectRoomChannel(){
+ if(onlineSnapshotTimer){clearInterval(onlineSnapshotTimer);onlineSnapshotTimer=null}
+ if(onlineMoveTimer){clearInterval(onlineMoveTimer);onlineMoveTimer=null}
+ const channels=[...(onlineInputChannels||[]),...(onlineUserChannels||[])];
+ for(const entry of channels){try{await supabaseClient.removeChannel(entry.channel)}catch(e){}}
+ onlineInputChannels=[];onlineUserChannels=[];onlineInputChannel=null;onlinePrivateChannel=null;onlinePrivatePlayer=null;
  if(activeRoomChannel&&supabaseClient){try{await supabaseClient.removeChannel(activeRoomChannel)}catch(e){}}
  activeRoomChannel=null;
 }
@@ -2068,15 +2143,16 @@ async function saveRoomSettings(){
 }
 async function copyActiveRoomCode(){if(activeRoomSnapshot?.join_code){await navigator.clipboard?.writeText(activeRoomSnapshot.join_code);socialMessage("部屋コードをコピーしました。")}}
 async function leaveOnlineRoom(){
- if(onlineSnapshotTimer){clearInterval(onlineSnapshotTimer);onlineSnapshotTimer=null}if(onlineMoveTimer){clearInterval(onlineMoveTimer);onlineMoveTimer=null}if(onlinePrivateChannel&&supabaseClient){supabaseClient.removeChannel(onlinePrivateChannel).catch(()=>{});onlinePrivateChannel=null}onlineGame=null;
+ onlineGame=null;onlineVotes.clear();onlineMeetingLog=[];
  if(!activeRoomId)return;
  const id=activeRoomId;
- try{await supabaseClient.rpc("leave_game_room",{p_room:id});await broadcastRoomRefresh()}catch(e){console.warn(e)}
+ try{await supabaseClient.rpc("leave_game_room",{p_room:id})}catch(e){console.warn(e)}
  activeRoomId=null;activeRoomSnapshot=null;await disconnectRoomChannel();show("socialHub");await loadSocialHub();
 }
 
-function renderUpdateLog(version="0.43"){
+function renderUpdateLog(version="0.44"){
  const logs={
+  "0.44":{date:"2026年11月8日",items:["オンライン試合の操作入力をプレイヤー別の認証チャンネルへ分離。送信元のアカウントをチャンネル権限で確認し、他人になりすました操作を防止。","試合状態・役職情報・試合結果を参加者ごとの専用チャンネルへ配信。","オンライン同期チャンネルの初期化漏れを修正し、試合開始時の役職情報と状態配信を安定化。","役職人数の入力に陣営別内訳と自動補充人数のプレビューを追加。"]},
   "0.43":{date:"2026年11月8日",items:["部屋ごとに役職の登場人数を指定できる役職構成エディターを追加。","通常モードでは役職重複を制限し、特別モードでは複数人への割り当てを許可。","部屋の全員が準備完了後、ホストがオンライン試合を開始できるように変更。"]},
   "0.42":{date:"2026年11月8日",items:["オンライン用のフレンド申請・承認・解除機能とプレイヤー検索を追加。","プライベート／パブリック部屋の作成、コード参加、公開部屋一覧を追加。","部屋の最大人数・AI人数・会議時間・陣営人数・特別モード設定、準備状態を追加。","部屋ロビーにRealtimeの参加状態と更新通知を追加。"]},
   "0.41":{date:"2026年11月8日",items:["サイトを開いた直後に保存済み試合を確認し、ホーム画面へ再開ボタンを表示するよう修正。","保存データからマップや一時的な対象参照を除き、再開時に研究施設マップを復元するよう改善。"]},
@@ -2097,7 +2173,7 @@ function renderUpdateLog(version="0.43"){
   "0.24":{date:"2026年11月8日",items:["会議マップは自分の位置だけを表示。","会議画面に生存者・死亡者の一覧を追加。","AIの役職発言・推理・会話パターンを拡充。","AIプロフィール通信が止まっても4.5秒でローカル設定に切替。"]},
   "0.23":{date:"2026年11月8日",items:["試合開始後に移動とタイマーが進む安定版を復元。","タスクを暗号解読方式に整理。","AIプロフィール取得に失敗した場合もローカル設定で試合を進行。"]}
  };
- const entry=logs[version]||logs["0.42"],root=$("updateLogContent");
+ const entry=logs[version]||logs["0.44"],root=$("updateLogContent");
  if(root)root.innerHTML='<strong>'+("v"+version)+' · '+entry.date+'</strong><ul>'+entry.items.map(item=>'<li>'+item+'</li>').join('')+'</ul>';
 }
 function setHelpTab(tab){const roles=tab==="roles";$("helpRulesPanel").hidden=roles;$("helpRolesPanel").hidden=!roles;$("helpRulesTab").classList.toggle("primary",!roles);$("helpRolesTab").classList.toggle("primary",roles)}
