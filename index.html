@@ -555,7 +555,7 @@ function resumeSavedGame(){
   }
   startMatchAutosave();
   updateResumeGameUI();
- }catch(error){console.error("Match restore failed",error);alert("試合データを復元できませんでした。");}
+ }catch(error){console.error("Match restore failed",error);alert("試合データを復元できませんでした。\n原因："+(error&&error.message?error.message:String(error)));}
 }
 window.addEventListener("pagehide",saveActiveMatch);
 window.addEventListener("beforeunload",saveActiveMatch);
