@@ -661,6 +661,17 @@ function makeRoles(team,count,whiteCount=0){
   if(count>pool.length)return null;
   return shuffle(pool).slice(0,count);
 }
+
+async function startOnlineMatch(){
+ if(!authUser||!activeRoomId||!activeRoomSnapshot||activeRoomSnapshot.host_user_id!==authUser.id){alert("ホストのみ開始できます。");return}
+ const members=activeRoomSnapshot.members||[],total=members.length+Number(activeRoomSnapshot.ai_count||0);
+ const black=Math.max(1,Number(activeRoomSnapshot.settings?.black_count)||1),third=Math.max(0,Number(activeRoomSnapshot.settings?.third_count)||0),white=total-black-third;
+ if(white<1){alert("白陣営が1人以上必要です。");return}
+ try{const counts=activeRoomSnapshot.settings?.role_counts;if(counts&&Object.values(counts).some(v=>Number(v)>0))configuredRoleQueues(counts,{white,black,third},!!activeRoomSnapshot.special_mode);else if(!makeRoles("white",white)||!makeRoles("black",black)||(third>0&&!makeRoles("third",third,white)))throw new Error("この人数では役職を割り当てられません。役職人数を調整してください。")}
+ catch(e){alert(e.message||"役職設定を確認してください。");return}
+ try{const {error}=await supabaseClient.rpc("start_game_room",{p_room:activeRoomId});if(error)throw error;await loadActiveRoom();await startGame()}
+ catch(e){alert("試合を開始できません："+(e.message||e))}
+}
 async function startGame(){
  const onlineHost=!!(activeRoomId&&activeRoomSnapshot&&authUser&&activeRoomSnapshot.host_user_id===authUser.id&&activeRoomSnapshot.status==="playing");
  const members=onlineHost?[...(activeRoomSnapshot.members||[])].sort((a,b)=>(b.is_host?1:0)-(a.is_host?1:0)):[{user_id:null,display_name:"あなた",is_host:true}];
@@ -698,6 +709,7 @@ async function startGame(){
  show("game");state.running=true;updateNearbyActions();draw();clearInterval(loop);clearInterval(clock);loop=setInterval(tick,70);
  clock=setInterval(()=>{if(!state.running)return;state.seconds++;$("timer").textContent=String(Math.floor(state.seconds/60)).padStart(2,"0")+":"+String(state.seconds%60).padStart(2,"0");aiAction();checkWin()},1000);
  startMatchAutosave();
+ if(onlineHost)startOnlineHostSync();else onlineGame=null;
 }
 function randomSpawn(){
  const areas=[[250,250],[600,250],[1180,250],[1540,260],[250,800],[670,800],[1160,800],[1540,800],[900,520]];
@@ -863,7 +875,7 @@ function tick(){
    const hit=state.players.find(v=>v.alive&&v.id!==a.id&&Math.hypot(v.x-a.x,v.y-a.y)<20&&!(a.team==="black"&&v.team==="black"));
    if(hit){killPlayer(hit,a,"突進");if(!a.alive){a.charging=false;return}}
   });
-   if((p.alive||p.ghost)&&!p.charging){let mag=Math.hypot(state.move.x,state.move.y)||1,speed=3.5,nx=p.x+(state.move.x/mag)*speed,ny=p.y+(state.move.y/mag)*speed;if(isWalkable(nx,p.y))p.x=nx;if(isWalkable(p.x,ny))p.y=ny}
+   if(onlineGame?.isHost){state.players.filter(h=>h.isHuman&&(h.alive||h.ghost)&&!h.charging).forEach(h=>{const mv=h.id===state.me.id?state.move:(h.remoteMove||{x:0,y:0}),mag=Math.hypot(mv.x,mv.y)||1,speed=3.5,nx=h.x+(mv.x/mag)*speed,ny=h.y+(mv.y/mag)*speed;if(isWalkable(nx,h.y))h.x=nx;if(isWalkable(h.x,ny))h.y=ny})}else if((p.alive||p.ghost)&&!p.charging){let mag=Math.hypot(state.move.x,state.move.y)||1,speed=3.5,nx=p.x+(state.move.x/mag)*speed,ny=p.y+(state.move.y/mag)*speed;if(isWalkable(nx,p.y))p.x=nx;if(isWalkable(p.x,ny))p.y=ny}
    state.players.filter(p=>p.id!==0&&!p.isHuman&&!p.isHuman).forEach(a=>{
     if(!a.alive||!a.aiGoal)return;
     while(a.aiPath.length&&Math.hypot(a.aiPath[0][0]-a.x,a.aiPath[0][1]-a.y)<12)a.aiPath.shift();
@@ -1085,7 +1097,7 @@ function submitTaskPuzzle(){
  const task=activeTaskPuzzle;closeTaskPuzzle();
  if(completeSharedTask(task,state.me)){updateNearbyActions();draw()}
 }
-function completeSharedTask(task,actor){
+function completeSharedTask(task,actor){if(isOnlineClient()){sendOnlineInput({kind:"action",action:"task",taskId:task?.id});return true}
  if(!state.running||!task||task.done||task.remaining<=0||actor?.team!=="white")return false;
  task.completedBy=task.completedBy||[];
  if(task.completedBy.includes(actor.id))return false;
@@ -1155,7 +1167,7 @@ function useKill(){
  const targets=targetCandidates(actor,88,false,p=>!(actor.team==="black"&&p.team==="black"));
  openTargetSelection("キルする相手を選択","近くにいる相手だけ選べます。",targets,"kill");
 }
-function useSabotage(){
+function useSabotage(){if(isOnlineClient()){sendOnlineInput({kind:"action",action:"sabotage"});return}
  const actor=state.me;if(!state.running||!actor.alive||actor.team!=="black"||remainingText(actor.sabotageReadyAt)>0)return;
  state.sabotageUntil=Date.now()+10000;actor.sabotageReadyAt=Date.now()+35000;playSfx("sabotage");
  alert("停電サボタージュ！ 10秒間、黒陣営以外の視界が狭くなります。");updateNearbyActions();draw();
@@ -1173,7 +1185,7 @@ function showAliveList(){
  $("aliveModal").classList.add("show");
 }
 function closeAliveList(){$("aliveModal").classList.remove("show")}
-function useAbility(){
+function useAbility(){if(isOnlineClient()&&!["占い師","狩人","保安官","僧侶","百面相","放浪者"].includes(state.me?.role)){sendOnlineInput({kind:"action",action:"ability"});return}
  const actor=state.me;if(!state.running||!actor.alive)return;
  const role=actor.role,now=Date.now();
  if(role==="サイエンティスト"){playSfx("ability");showAliveList();return}
@@ -1186,7 +1198,7 @@ function useAbility(){
  if(role==="百面相"){playSfx("ability");openTargetSelection("変身する相手を選択","選んだ相手の姿に10秒間変身します。",targetCandidates(actor,Infinity),"disguise");return}
  if(role==="放浪者"){playSfx("ability");openTargetSelection("匂いを移す相手を選択","匂いを移された相手には通知されません。",targetCandidates(actor,90),"scent");return}
 }
-function selectTarget(id){
+function selectTarget(id){if(isOnlineClient()){const kind=state.targetAction?.kind;if(kind){closeTargetModal();sendOnlineInput({kind:"action",action:"target",actionKind:kind,targetId:Number(id)})}return}
  const action=state.targetAction,actor=state.me,target=state.players.find(p=>p.id===Number(id));closeTargetModal();
  if(!action||!target||!target.alive||!actor?.alive)return;
  const now=Date.now();
@@ -1243,7 +1255,7 @@ function chooseAICombatSuspect(ai,candidates){
 function aiAction(){
  if(!state.running||state.meeting)return;
  const now=Date.now();
- const activeAI=state.players.slice(1).filter(p=>p.alive);
+ const activeAI=state.players.filter(p=>!p.isHuman&&p.alive);
  for(const actor of activeAI){
   const body=state.dead.filter(d=>Math.hypot(actor.x-d.x,actor.y-d.y)<82).sort((a,b)=>Math.hypot(actor.x-a.x,actor.y-a.y)-Math.hypot(actor.x-b.x,actor.y-b.y))[0];
   if(body&&Math.random()<(actor.team==="black" ? .58 : .68+aiStat(actor,"caution")*.02)){
@@ -1260,7 +1272,7 @@ function aiAction(){
   }
  }
   updateAIWhiteTasks(now);if(!state.running)return;
- state.players.filter(p=>p.id!==0&&p.alive).forEach(actor=>{
+ state.players.filter(p=>!p.isHuman&&p.alive).forEach(actor=>{
   const nearby=targetCandidates(actor,88,false,p=>!(actor.team==="black"&&p.team==="black"));
   const roleNearby=targetCandidates(actor,100,false,p=>!(actor.team==="black"&&p.team==="black"));
   const wanderNearby=targetCandidates(actor,90,false,p=>!(actor.team==="black"&&p.team==="black"));
@@ -1282,9 +1294,9 @@ function aiAction(){
  });
  updateNearbyActions();draw();
 }
-function report(){if(!state.running||!state.me.alive||!state.nearBody)return;callMeeting("近くの死体を発見しました。");}
-function callEmergency(){if(!state.running||!state.me.alive||!state.nearEmergency)return;callMeeting("研究所中央の緊急会議ボタンが押されました。");}
-function appendMeetingMessage(name,text,kind="ai",player=null){
+function report(){if(isOnlineClient()){if(state.me.alive&&state.nearBody)sendOnlineInput({kind:"action",action:"report"});return}if(!state.running||!state.me.alive||!state.nearBody)return;callMeeting("近くの死体を発見しました。");}
+function callEmergency(){if(isOnlineClient()){if(state.me.alive&&state.nearEmergency)sendOnlineInput({kind:"action",action:"emergency"});return}if(!state.running||!state.me.alive||!state.nearEmergency)return;callMeeting("研究所中央の緊急会議ボタンが押されました。");}
+function appendMeetingMessage(name,text,kind="ai",player=null){if(onlineGame?.isHost)onlineMeetingLog.push({name,text,kind,player:player?{id:player.id,team:player.team}:null});
  const box=$("meetingChat"),message=document.createElement("div"),speaker=document.createElement("span"),body=document.createElement("span");
  message.className="chatMessage "+kind;speaker.className="chatName";speaker.textContent=name;
  const allyColor=meetingNameColor(player);if(allyColor)speaker.style.color=allyColor;
@@ -1532,7 +1544,7 @@ function scheduleAITurn(delay=2200){
   scheduleAITurn(2600+Math.floor(Math.random()*1900));
  },delay);
 }
-function sendMeetingMessage(){
+function sendMeetingMessage(){if(isOnlineClient()){const text=$("meetingChatInput").value.trim();if(text){sendOnlineInput({kind:"action",action:"chat",text});$("meetingChatInput").value=""}return}
  if(!state.meeting||state.meetingPhase!=="discussion"||!state.me.alive)return;
  const input=$("meetingChatInput"),text=input.value.trim();if(!text)return;
  appendMeetingMessage(playerTag(state.me),text,"self",state.me);recordMeetingClaim(state.me.id,text);input.value="";
@@ -1542,7 +1554,7 @@ function callMeeting(message="会議が招集されました。",caller=state.me
  if(!state.running||state.meeting||!caller?.alive)return;
  playSfx("meeting");
  if(state.aiTurnTimer)clearTimeout(state.aiTurnTimer);
- state.meeting=true;state.meetingPhase="discussion";state.selectedVote=null;state.lastBallots=[];state.meetingClaims=[];state.aiTurnCount=0;state.aiSpokenIds=[];state.meetingDuration=Math.max(30,Math.min(300,Number($("meetingDuration")?.value)||90));
+ state.meeting=true;state.meetingPhase="discussion";state.selectedVote=null;state.lastBallots=[];state.meetingClaims=[];state.aiTurnCount=0;state.aiSpokenIds=[];state.meetingDuration=onlineGame?.isHost?Math.max(30,Math.min(300,state.meetingDuration||90)):Math.max(30,Math.min(300,Number($("meetingDuration")?.value)||90));
  state.meetingEvents=state.killEvents.filter(e=>state.dead.some(d=>d.id===e.victimId));
  const emergencyHold=Date.now()+45000;state.players.filter(p=>p.id!==0&&p.alive).forEach(p=>p.emergencyReadyAt=Math.max(p.emergencyReadyAt||0,emergencyHold));
  state.players.forEach(p=>p.charging=false);stopMove();
@@ -1556,7 +1568,7 @@ function callMeeting(message="会議が招集されました。",caller=state.me
   const first=caller.id!==state.me?.id?caller:shuffle(state.players.filter(p=>p.alive&&p.id!==state.me.id))[0];if(first)makeAITakeTurn(first);
  scheduleAITurn(2400);
 }
-function beginVoting(auto=false){
+function beginVoting(auto=false){if(isOnlineClient()){sendOnlineInput({kind:"action",action:"begin_vote"});return}
  if(!state.meeting||state.meetingPhase!=="discussion")return;
  if(state.aiTurnTimer)clearTimeout(state.aiTurnTimer);state.aiTurnTimer=null;stopMeetingTimer();
  state.meetingPhase="voting";$("meetingPhaseLabel").textContent="投票フェーズ";$("meetingTimeLeft").textContent=auto?"時間終了":"議論終了";
@@ -1621,7 +1633,7 @@ function chooseAIVote(voter,alive){
  for(let i=0;i<shortlist.length;i++){roll-=weights[i];if(roll<=0)return shortlist[i].target.id}
  return shortlist[0].target.id;
 }
-function submitVote(){
+function submitVote(){if(isOnlineClient()){if(state.selectedVote!==null){sendOnlineInput({kind:"action",action:"vote",target:state.selectedVote});$("submitVoteAction").disabled=true;$("meetingInfo").textContent="投票を送信しました。他の参加者の投票を待っています。"}return}if(onlineGame?.isHost){if(state.selectedVote!==null){onlineVotes.set(state.me.id,state.selectedVote);resolveOnlineVotes()}return}
  if(!state.meeting||state.meetingPhase!=="voting"||(state.me.alive&&state.selectedVote===null)||(!state.me.alive&&state.selectedVote!=="ghost"))return;
  const alive=state.players.filter(p=>p.alive),ballots=state.me.alive?[{voter:state.me.id,target:state.selectedVote}]:[];
  playSfx("vote");
@@ -1642,7 +1654,7 @@ function submitVote(){
  }
  updateNearbyActions();draw();
 }
-function closeMeeting(){stopMeetingTimer();
+function closeMeeting(){if(isOnlineClient()){sendOnlineInput({kind:"action",action:"close_meeting"});return}stopMeetingTimer();
  if(!state.meeting||!state.lastBallots.length)return;
  $("meetingModal").classList.remove("show");
  if(state.running)respawnLivingPlayers();
@@ -1671,7 +1683,8 @@ function loadHumanStats(){try{return JSON.parse(localStorage.getItem("triad_huma
 function saveHumanStats(won,interrupted=false){if(interrupted||!state.me)return;const old=loadHumanStats(),role=state.me.role,roleStats={...(old.roleStats||{})},rs={...(roleStats[role]||{})};rs.matches=(rs.matches||0)+1;rs.wins=(rs.wins||0)+(won?1:0);rs.survived=(rs.survived||0)+(state.me.alive?1:0);roleStats[role]=rs;const next={...old,matchesPlayed:(old.matchesPlayed||0)+1,wins:(old.wins||0)+(won?1:0),losses:(old.losses||0)+(won?0:1),survived:(old.survived||0)+(state.me.alive?1:0),roleStats,lastRole:role,lastFaction:state.me.team,lastResult:won?"勝利":"敗北",lastPlayedAt:Date.now()};try{localStorage.setItem("triad_human_stats_v1",JSON.stringify(next))}catch(e){console.warn("Player stats save failed",e)}if(authUser)syncOnlinePlayerStats(next)}
 
 function endGame(msg,winners={teams:[]}){
- stopMatchAutosave();discardSavedGame();
+ if(onlineGame?.isHost&&activeRoomChannel){const players=state.players.map(p=>({...p,aiProfile:null,aiMemory:null,aiPath:[],aiGoal:null}));activeRoomChannel.send({type:"broadcast",event:"match_end",payload:{message:msg,winners,players}}).catch(()=>{})}
+ if(onlineSnapshotTimer){clearInterval(onlineSnapshotTimer);onlineSnapshotTimer=null}stopMatchAutosave();discardSavedGame();
  saveAILongTermMemories(winners);
  const humanWon=(winners.roles||[]).includes(state.me.role)||(winners.teams||[]).includes(state.me.team);saveHumanStats(humanWon);
  state.running=false;clearInterval(loop);clearInterval(clock);$("abilityAction").disabled=true;$("killAction").disabled=true;$("sabotageAction").disabled=true;
@@ -1771,6 +1784,115 @@ const ROLE_CONFIG_GROUPS=[
 let onlineGame=null,onlineMoveTimer=null,onlineSnapshotTimer=null,onlineInputChannels=[],onlineUserChannels=[],onlineInputs=new Map(),onlineVotes=new Map(),onlineMeetingLog=[],onlineGameRevision=0;
 
 
+
+function isOnlineHost(){return !!(onlineGame?.isHost&&activeRoomChannel&&state.running)}
+function isOnlineClient(){return !!(onlineGame&&!onlineGame.isHost&&state.running)}
+function sendOnlineInput(payload){if(!isOnlineClient()||!activeRoomChannel)return;activeRoomChannel.send({type:"broadcast",event:"game_input",payload:{userId:authUser.id,...payload}}).catch(e=>console.warn("online input",e))}
+function startOnlineClient(){
+ if(!activeRoomId||!authUser)return;onlineGame={roomId:activeRoomId,isHost:false,userId:authUser.id};onlinePrivatePlayer=null;state.running=true;
+ if(onlinePrivateChannel){supabaseClient.removeChannel(onlinePrivateChannel).catch(()=>{});onlinePrivateChannel=null}
+ const topic="room-player:"+activeRoomId+":"+authUser.id;
+ onlinePrivateChannel=supabaseClient.channel(topic,{config:{private:true}})
+  .on("broadcast",{event:"player_secret"},({payload})=>{onlinePrivatePlayer=payload?.player||null;applyOnlinePrivatePlayer()})
+  .on("broadcast",{event:"ability_notice"},({payload})=>{if(payload?.text)alert(payload.text)})
+  .subscribe(status=>{if(status==="CHANNEL_ERROR"||status==="TIMED_OUT")console.warn("private player channel",status)});
+ if(onlineMoveTimer)clearInterval(onlineMoveTimer);let last="";
+ onlineMoveTimer=setInterval(()=>{if(!isOnlineClient())return;const m=state.move||{x:0,y:0},key=m.x.toFixed(2)+","+m.y.toFixed(2);if(key!==last||Math.abs(m.x)+Math.abs(m.y)>.02){last=key;sendOnlineInput({kind:"move",x:m.x,y:m.y})}},80);
+ if(loop)clearInterval(loop);loop=setInterval(()=>{if(!isOnlineClient())return;updateNearbyActions();draw()},100);
+ if(clock)clearInterval(clock);show("game");startAudio();
+}
+function applyOnlinePrivatePlayer(){
+ if(!onlinePrivatePlayer||!state.players?.length)return;const p=state.players.find(x=>x.userId===authUser.id);if(!p)return;
+ Object.assign(p,onlinePrivatePlayer);state.me=p;state.bountyIds=onlinePrivatePlayer.bountyIds||state.bountyIds||[];
+ $("roleLabel").textContent="役職："+(p.role||"確認中");$("myRoleText").textContent="陣営："+teamName(p.team)+" ／ 役職："+p.role+"。"+roleDescription(p);
+ $("myStatus").textContent=p.alive?"生存":"死亡";$("ghostBanner").hidden=!!p.alive;updateNearbyActions();
+}
+function serializeOnlinePublicState(){
+ const raw=JSON.parse(JSON.stringify(state,(k,v)=>v instanceof Set?{__triadSet:[...v]}:v));
+ raw.map=null;raw.me=null;raw.aiTurnTimer=null;raw.meetingTimer=null;raw.nearTask=null;raw.nearBody=null;raw.targetAction=null;
+ raw.players=(raw.players||[]).map(p=>({...p,role:null,team:null,aiProfile:null,aiMemory:null,aiPath:[],aiGoal:null,disguiseId:null,scented:false,partnerId:null,remoteMove:undefined}));
+ raw.dead=(raw.dead||[]).map(p=>({...p,role:null,team:null,aiProfile:null,aiMemory:null}));
+ raw.bountyIds=[];raw.scentedIds={__triadSet:[]};return raw;
+}
+async function sendOnlinePrivateStates(){
+ if(!isOnlineHost())return;
+ for(const p of state.players.filter(x=>x.isHuman&&x.userId)){
+  const ch=supabaseClient.channel("room-player:"+activeRoomId+":"+p.userId,{config:{private:true}});
+  const secret={...p,aiProfile:null,aiMemory:null,aiPath:[],aiGoal:null,bountyIds:p.userId===state.me.userId?state.bountyIds:[]};
+  try{await ch.send({type:"broadcast",event:"player_secret",payload:{player:secret}})}catch(e){console.warn("private state send",e)}
+  try{await supabaseClient.removeChannel(ch)}catch(e){}
+ }
+}
+async function broadcastOnlineSnapshot(){
+ if(!isOnlineHost()||onlineSnapshotBusy||!activeRoomChannel)return;onlineSnapshotBusy=true;
+ try{await activeRoomChannel.send({type:"broadcast",event:"game_snapshot",payload:{revision:++onlineGameRevision,state:serializeOnlinePublicState(),chat:onlineMeetingLog.slice(-80)}})}
+ catch(e){console.warn("snapshot send",e)}finally{onlineSnapshotBusy=false}
+}
+function startOnlineHostSync(){
+ onlineGame={roomId:activeRoomId,isHost:true,userId:authUser.id};onlineVotes.clear();onlineMeetingLog=[];onlineGameRevision=0;
+ if(onlineSnapshotTimer)clearInterval(onlineSnapshotTimer);
+ onlineSnapshotTimer=setInterval(()=>{broadcastOnlineSnapshot();if(onlineGameRevision%6===0)sendOnlinePrivateStates()},180);
+ activeRoomChannel?.send({type:"broadcast",event:"match_start",payload:{host:authUser.id}}).catch(()=>{});
+ sendOnlinePrivateStates();broadcastOnlineSnapshot();
+}
+function receiveOnlineSnapshot(payload){
+ if(!onlineGame||onlineGame.isHost||!payload?.state||payload.revision<onlineGameRevision)return;onlineGameRevision=payload.revision;
+ const restored=JSON.parse(JSON.stringify(payload.state),(k,v)=>v&&typeof v==="object"&&Array.isArray(v.__triadSet)?new Set(v.__triadSet):v);
+ state={...restored,map:maps.lab,me:null,aiTurnTimer:null,meetingTimer:null};state.worldWidth=maps.lab.width;state.worldHeight=maps.lab.height;state.running=true;
+ state.scentedIds=state.scentedIds instanceof Set?state.scentedIds:new Set();state.me=state.players.find(p=>p.userId===authUser.id)||null;
+ if(state.me&&onlinePrivatePlayer)Object.assign(state.me,onlinePrivatePlayer);if(!state.me)return;
+ $("mapLabel").textContent="マップ：研究施設";$("roleLabel").textContent="役職："+(state.me.role||"確認中");
+ $("myRoleText").textContent=state.me.role?"陣営："+teamName(state.me.team)+" ／ 役職："+state.me.role+"。"+roleDescription(state.me):"役職情報を受信しています…";
+ $("myStatus").textContent=state.me.alive?"生存":"死亡";$("ghostBanner").hidden=!!state.me.alive;
+ $("taskCount").textContent=state.done+" / "+state.total;$("taskProgress").style.width=(state.total?Math.min(100,state.done/state.total*100):0)+"%";
+ $("timer").textContent=String(Math.floor(state.seconds/60)).padStart(2,"0")+":"+String(state.seconds%60).padStart(2,"0");
+ onlineMeetingLog=payload.chat||[];if(!$("game").classList.contains("active"))show("game");renderOnlineMeeting();updateNearbyActions();draw();
+}
+function renderOnlineMeeting(){
+ if(!isOnlineClient())return;if(!state.meeting){$("meetingModal").classList.remove("show");return}
+ $("meetingModal").classList.add("show");$("meetingTitle").textContent="会議";
+ $("meetingPhaseLabel").textContent=state.meetingPhase==="voting"?"投票フェーズ":"議論フェーズ";
+ $("meetingTimeLeft").textContent=state.meetingSecondsLeft+"秒";
+ $("meetingInfo").textContent=state.meetingPhase==="voting"?"投票先を選んで投票を確定してください。":"全員で話し合ってください。";
+ $("meetingComposer").hidden=state.meetingPhase!=="discussion"||!state.me.alive;
+ $("beginVoteAction").hidden=state.meetingPhase!=="discussion"||!state.me.alive;
+ $("meetingVotePanel").hidden=state.meetingPhase!=="voting";
+ $("closeMeetingAction").disabled=!(state.lastBallots||[]).length;
+ if(onlineLastChatCount!==onlineMeetingLog.length){$("meetingChat").textContent="";onlineMeetingLog.forEach(m=>appendMeetingMessage(m.name,m.text,m.kind,m.player||null));onlineLastChatCount=onlineMeetingLog.length}
+ if(state.meetingPhase==="voting"){$("voteList").innerHTML=state.players.filter(p=>p.alive).map(p=>'<button data-vote-id="'+p.id+'" onclick="castVote('+p.id+')"><span class="dot" style="background:'+p.color+'"></span>'+playerTag(p)+'</button>').join("");$("submitVoteAction").disabled=state.selectedVote===null}
+}
+async function handleOnlineAction(payload){
+ if(!isOnlineHost()||!payload)return;const actor=state.players.find(p=>p.userId===payload.userId&&p.isHuman);
+ if(!actor||(!actor.alive&&!["vote","chat","close_meeting"].includes(payload.action)))return;
+ const previous=state.me;state.me=actor;updateNearbyActions();
+ try{switch(payload.action){
+  case "report":if(state.nearBody)callMeeting("近くの死体を発見しました。",actor);break;
+  case "emergency":if(state.nearEmergency)callMeeting("研究所中央の緊急会議ボタンが押されました。",actor);break;
+  case "sabotage":useSabotage();break;
+  case "ability":useAbility();break;
+  case "target":{const target=state.players.find(p=>p.id===Number(payload.targetId));if(target&&target.alive&&Math.hypot(target.x-actor.x,target.y-actor.y)<=115&&hasLineOfSight(actor,target)){state.targetAction={kind:payload.actionKind};selectTarget(target.id)}break}
+  case "task":{const task=state.tasks.find(t=>t.id===Number(payload.taskId));if(task&&actor.team==="white"&&Math.hypot(task.x-actor.x,task.y-actor.y)<90)completeSharedTask(task,actor);break}
+  case "chat":if(state.meeting&&state.meetingPhase==="discussion"&&actor.alive&&String(payload.text||"").length<=180){const msg=String(payload.text).trim();if(msg){appendMeetingMessage(playerTag(actor),msg,"ai",actor);recordMeetingClaim(actor.id,msg);scheduleAITurn(500)}}break;
+  case "begin_vote":if(state.meeting&&state.meetingPhase==="discussion")beginVoting();break;
+  case "vote":onlineVotes.set(actor.id,payload.target);resolveOnlineVotes();break;
+  case "close_meeting":if(state.meeting&&state.lastBallots.length)closeMeeting();break;
+ }}catch(e){console.warn("online action failed",e)}
+ state.me=previous;updateNearbyActions();await broadcastOnlineSnapshot();
+}
+function resolveOnlineVotes(){
+ if(!isOnlineHost()||!state.meeting||state.meetingPhase!=="voting")return;const alive=state.players.filter(p=>p.alive),humans=alive.filter(p=>p.isHuman);
+ if(humans.some(p=>!onlineVotes.has(p.id)))return;
+ const ballots=humans.map(p=>({voter:p.id,target:onlineVotes.get(p.id)}));alive.filter(p=>!p.isHuman).forEach(p=>ballots.push({voter:p.id,target:chooseAIVote(p,alive)}));
+ state.lastBallots=ballots;const counts={skip:0};alive.forEach(p=>counts[p.id]=0);ballots.forEach(b=>counts[b.target]=(counts[b.target]||0)+1);
+ $("voteBreakdown").innerHTML=alive.map(p=>'<div class="voteTally">'+escapeAccountText(p.name)+'<br><strong>'+(counts[p.id]||0)+' 票</strong></div>').join("")+'<div class="voteTally">スキップ<br><strong>'+(counts.skip||0)+' 票</strong></div>';
+ $("ballotBreakdown").innerHTML=ballots.map(b=>{const v=state.players.find(p=>p.id===b.voter),t=b.target==="skip"?"スキップ":state.players.find(p=>p.id===b.target)?.name||"不明";return '<div class="pill">'+escapeAccountText(v?.name||"不明")+' → '+escapeAccountText(t)+'</div>'}).join("");
+ $("voteList").querySelectorAll("button").forEach(b=>b.disabled=true);$("submitVoteAction").disabled=true;$("closeMeetingAction").disabled=false;
+ const max=Math.max(...Object.values(counts)),winners=Object.keys(counts).filter(k=>counts[k]===max);
+ if(winners.length!==1)$("voteResult").textContent="最多票が同数のため、今回は誰も追放されません。";
+ else if(winners[0]==="skip")$("voteResult").textContent="スキップが最多の"+max+"票。誰も追放されません。";
+ else{const out=state.players.find(p=>p.id===Number(winners[0]));if(out&&markPlayerDead(out,"投票で追放")){$("voteResult").textContent=out.name+" が "+max+" 票で追放されました。陣営："+teamName(out.team);if(out.role==="てるてる")endGame("てるてるが会議で追放されたため、てるてるの単独勝利",{roles:["てるてる"]});else checkWin()}}
+ onlineVotes.clear();updateNearbyActions();draw();
+}
 function renderRoleConfigEditor(settings={}){
  const root=$("roleConfigEditor");if(!root)return;const counts=settings?.role_counts||{};
  root.innerHTML=ROLE_CONFIG_GROUPS.map(g=>'<div class="accountSection"><b>'+g.label+'</b><div class="grid">'+g.roles.map(role=>'<div class="field"><label>'+escapeAccountText(role)+'</label><input type="number" min="0" max="30" step="1" data-role-count="'+escapeAccountText(role)+'" value="'+Number(counts[role]||0)+'" inputmode="numeric"></div>').join("")+'</div></div>').join("");
@@ -1881,11 +2003,16 @@ async function enterOnlineRoom(id){
   await supabaseClient.realtime.setAuth();
   activeRoomChannel=supabaseClient.channel("room:"+id,{config:{private:true,presence:{key:authUser.id}}})
    .on("broadcast",{event:"lobby_refresh"},()=>loadActiveRoom())
+   .on("broadcast",{event:"match_start"},()=>{if(!onlineGame||!onlineGame.isHost)startOnlineClient()})
+   .on("broadcast",{event:"game_snapshot"},({payload})=>receiveOnlineSnapshot(payload))
+   .on("broadcast",{event:"game_input"},({payload})=>{if(isOnlineHost()&&payload?.kind==="move"){const p=state.players.find(x=>x.userId===payload.userId&&x.isHuman);if(p)p.remoteMove={x:Math.max(-1,Math.min(1,Number(payload.x)||0)),y:Math.max(-1,Math.min(1,Number(payload.y)||0))}}})
+   .on("broadcast",{event:"game_action"},({payload})=>handleOnlineAction(payload))
+   .on("broadcast",{event:"match_end"},({payload})=>{if(isOnlineClient()&&payload?.players){state.players=payload.players;state.me=state.players.find(p=>p.userId===authUser.id)||state.me;endGame(payload.message,payload.winners||{teams:[]})}})
    .on("presence",{event:"sync"},()=>loadActiveRoom());
   activeRoomChannel.subscribe(async status=>{
    if(status==="SUBSCRIBED"){
     try{await activeRoomChannel.track({user_id:authUser.id,display_name:authUser.user_metadata?.display_name||"プレイヤー",online:true})}catch(e){console.warn("Presence tracking failed",e)}
-    await loadActiveRoom();
+    await loadActiveRoom();if(activeRoomSnapshot?.status==="playing"&&!onlineGame)startOnlineClient();
    }else if(status==="CHANNEL_ERROR"||status==="TIMED_OUT"){socialMessage("リアルタイム接続に失敗しました。通信状態を確認してください。",true)}
   });
   await loadActiveRoom();
@@ -1939,6 +2066,7 @@ async function saveRoomSettings(){
 }
 async function copyActiveRoomCode(){if(activeRoomSnapshot?.join_code){await navigator.clipboard?.writeText(activeRoomSnapshot.join_code);socialMessage("部屋コードをコピーしました。")}}
 async function leaveOnlineRoom(){
+ if(onlineSnapshotTimer){clearInterval(onlineSnapshotTimer);onlineSnapshotTimer=null}if(onlineMoveTimer){clearInterval(onlineMoveTimer);onlineMoveTimer=null}if(onlinePrivateChannel&&supabaseClient){supabaseClient.removeChannel(onlinePrivateChannel).catch(()=>{});onlinePrivateChannel=null}onlineGame=null;
  if(!activeRoomId)return;
  const id=activeRoomId;
  try{await supabaseClient.rpc("leave_game_room",{p_room:id});await broadcastRoomRefresh()}catch(e){console.warn(e)}
