@@ -1376,9 +1376,9 @@ function renderAccountDetail(id){
  const params=[["総合能力","skill_level"],["タスク能力","task_skill"],["推理能力","deduction_skill"],["慎重さ","caution"],["社交性","sociability"],["積極性","aggression"],["タスク優先度","task_priority"]];
  const values=params.map(([label,key])=>({label,value:Math.max(1,Math.min(10,Number(p[key])||5))}));
  const strengths=values.filter(v=>v.value>=7).sort((a,b)=>b.value-a.value).slice(0,3),weaknesses=values.filter(v=>v.value<=4).sort((a,b)=>a.value-b.value).slice(0,3);
- const roleStats=m.roleStats||{},roles=Object.entries(roleStats).sort((a,b)=>(b[1].wins||0)-(a[1].wins||0)||(b[1].matches||0)-(a[1].matches||0));
+ const roleStats=m.roleStats||{},practiceRoleStats=m.practiceRoleStats||{},roleKeys=[...new Set([...Object.keys(roleStats),...Object.keys(practiceRoleStats)])],roles=roleKeys.map(role=>[role,{matches:Number(roleStats[role]?.matches||0)+Number(practiceRoleStats[role]?.matches||0),wins:Number(roleStats[role]?.wins||0)+Number(practiceRoleStats[role]?.wins||0),actualMatches:Number(roleStats[role]?.matches||0),practiceMatches:Number(practiceRoleStats[role]?.matches||0)}]).sort((a,b)=>(b[1].wins||0)-(a[1].wins||0)||(b[1].matches||0)-(a[1].matches||0));
  const best=roles.filter(([r,v])=>(v.matches||0)>=2).sort((a,b)=>((b[1].wins||0)/b[1].matches)-((a[1].wins||0)/a[1].matches))[0];
- const roleRows=roles.map(([r,v])=>'<div class="roleStatRow"><span>'+escapeAccountText(r)+'</span><span>'+(v.wins||0)+'勝 / '+(v.matches||0)+'試合</span><span>'+(v.matches?Math.round(100*v.wins/v.matches):0)+'%</span></div>').join("");
+ const roleRows=roles.map(([r,v])=>'<div class="roleStatRow"><span>'+escapeAccountText(r)+'<small style="display:block;color:var(--muted)">実戦 '+v.actualMatches+' / 練習 '+v.practiceMatches+'</small></span><span>'+(v.wins||0)+'勝 / '+(v.matches||0)+'試合</span><span>'+(v.matches?Math.round(100*v.wins/v.matches):0)+'%</span></div>').join("");
  const parameterRows=values.map(v=>'<div class="parameter"><span>'+v.label+'</span><div class="parameterTrack"><div class="parameterFill" style="width:'+(v.value*10)+'%"></div></div><b>'+v.value+'/10</b></div>').join("");
  const strengthsHtml=strengths.length?strengths.map(v=>'<div class="accountTrait">得意：'+v.label+'（'+v.value+'/10）</div>').join(""):'<div class="muted">特に高い能力はありません。バランス型です。</div>';
  const weaknessesHtml=weaknesses.length?weaknesses.map(v=>'<div class="accountTrait weak">苦手：'+v.label+'（'+v.value+'/10）</div>').join(""):'<div class="muted">目立った苦手分野はありません。</div>';
@@ -1387,7 +1387,7 @@ function renderAccountDetail(id){
  '<div class="accountSection"><h3>能力パラメーター</h3>'+parameterRows+'</div>'+
  '<div class="accountSection"><h3>得意なこと</h3>'+strengthsHtml+'<h3 style="margin-top:12px">苦手なこと</h3>'+weaknessesHtml+'</div>'+
  '<div class="accountSection"><h3>得意な役職（キャラクター枠）</h3><div class="accountTrait">'+(best?escapeAccountText(best[0])+'（'+best[1].wins+'勝 / '+best[1].matches+'試合）':'まだ役職別データを蓄積中です。')+'</div></div>'+
- '<div class="accountSection"><h3>役職別の成績</h3>'+(roleRows||'<div class="muted">試合を重ねると役職ごとの成績が表示されます。</div>')+'</div>'+
+ '<div class="accountSection"><h3>役職別の成績</h3><div class="muted">実戦と自動練習の合算。実戦・練習の内訳も表示します。</div>'+(roleRows||'<div class="muted">試合を重ねると役職ごとの成績が表示されます。</div>')+'</div>'+
  '<div class="accountSection"><h3>経験・プロフィール</h3><div class="muted">性格：'+escapeAccountText(p.personality||"未設定")+'</div><div class="muted" style="margin-top:6px">自動練習試合：'+Number(m.practiceMatches||0)+'回 ／ 練習勝利：'+Number(m.practiceWins||0)+'回</div><div class="muted" style="margin-top:6px">最終役職：'+escapeAccountText(m.lastRole||"まだ記録なし")+' ／ 最終結果：'+escapeAccountText(m.lastResult||"まだ記録なし")+'</div><div class="muted" style="margin-top:6px">最終試合：'+(m.lastPlayedAt?new Date(m.lastPlayedAt).toLocaleString("ja-JP"):"まだ記録なし")+'</div></div>';
  renderAccountList();
 }
