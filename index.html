@@ -67,7 +67,7 @@ canvas#mapCanvas{aspect-ratio:16/10;background:#0b1522}
 #mapModal .modalbox{width:min(900px,100%)}#overviewCanvas,#meetingOverviewCanvas{width:100%;height:auto;aspect-ratio:3/2;background:#0b1522;border:1px solid #536a82;border-radius:10px}.meetingMapPanel,.meetingAlivePanel{margin:10px 0;padding:10px;border:1px solid #40566d;border-radius:10px;background:#101e2c}.meetingMapPanel strong,.meetingAlivePanel strong{display:block;margin-bottom:7px}.meetingAliveList{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:5px;max-height:150px;overflow:auto}.meetingAliveItem{display:flex;align-items:center;gap:6px;min-width:0;font-size:12px;padding:4px;background:#1a2a3b;border-radius:6px}.meetingAliveItem span:nth-child(2){overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.meetingAliveItem small{white-space:nowrap}
 .mapLegend{display:flex;gap:12px;flex-wrap:wrap;font-size:12px;color:var(--muted);margin:8px 0}
 @media(max-width:760px){#gameLayout{grid-template-columns:1fr}.side{display:grid;grid-template-columns:1fr 1fr}.side .wide{grid-column:1/-1}.actionPanel{grid-template-columns:1fr 1fr}.gamebox{width:100%}}
-\n.meetingMapToggle{width:100%;margin:8px 0;background:#294b70;border:2px solid #82b9e8;font-weight:800}.meetingMapPanel[hidden]{display:none!important}\n@media (orientation:landscape) and (min-width:600px){main{max-width:1500px;padding:10px 16px}#gameLayout{grid-template-columns:minmax(0,1fr) 250px;gap:14px}.gamebox{max-width:none;width:100%}.side{display:flex;flex-direction:column}.side .wide{grid-column:auto}.actionPanel{grid-template-columns:1fr 1fr}#meetingModal .modalbox{width:min(1120px,96vw);max-height:94vh}.meetingChat{max-height:28vh}.meetingAliveList{grid-template-columns:repeat(3,minmax(0,1fr));max-height:110px}}\n</style>
+\n.meetingMapToggle{width:100%;margin:8px 0;background:#294b70;border:2px solid #82b9e8;font-weight:800}.meetingMapPanel[hidden]{display:none!important}\n@media (orientation:landscape) and (min-width:600px){main{max-width:1500px;padding:10px 16px}#gameLayout{grid-template-columns:minmax(0,1fr) 250px;gap:14px}.gamebox{max-width:none;width:100%}.side{display:flex;flex-direction:column}.side .wide{grid-column:auto}.actionPanel{grid-template-columns:1fr 1fr}#meetingModal .modalbox{width:min(1120px,96vw);max-height:94vh}.meetingChat{max-height:28vh}.meetingAliveList{grid-template-columns:repeat(3,minmax(0,1fr));max-height:110px}}\n.taskGameBox{width:min(680px,100%)}#taskMiniGame{margin:14px 0}.miniChoiceGrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin:12px 0}.miniChoice{min-height:62px;font-size:17px;font-weight:850;background:#14263b;border:2px solid #607d9a;border-radius:12px}.miniChoice:disabled{opacity:.5;border-color:#63d6bd;background:#1c514b}.taskPattern{font-size:28px;font-weight:900;letter-spacing:.16em;text-align:center;padding:18px;background:#101a2a;border:1px solid #526a84;border-radius:12px;margin:10px 0}@media (orientation:landscape) and (min-width:600px){.taskGameBox{width:min(760px,94vw)}.miniChoiceGrid{grid-template-columns:repeat(4,minmax(0,1fr))}}</style>
 </head>
 <body>
 <header><div class="logo">TRI<span>AD</span></div><div class="tag">オフライン試作 · v0.23</div></header>
@@ -549,31 +549,42 @@ function updateNearbyActions(){
  if(state.sabotageUntil>now)hints.push(`停電中 ${remainingText(state.sabotageUntil)}秒`);
  $("nearHint").textContent=hints.join(" ／ ")||"黄色い端末・赤い会議ボタン・死体に近づくと操作できます。";
 }
-let activeTaskPuzzle=null,activeTaskAnswer="";
+let activeTaskPuzzle=null,activeTaskAnswer="",taskMiniState=null;
 function openTaskPuzzle(task){
  if(!state.running||!task||task.done||task.remaining<=0||!state.me||task.completedBy?.includes(state.me.id))return;
- activeTaskPuzzle=task;
- const symbols=["◆","●","▲","■","★","☾"],digits=shuffle(["1","2","3","4","5","6"]),map={};
- symbols.forEach((symbol,i)=>map[symbol]=digits[i]);
- const cipher=Array.from({length:4},()=>symbols[Math.floor(Math.random()*symbols.length)]);
- activeTaskAnswer=cipher.map(symbol=>map[symbol]).join("");
- $("taskPuzzleLabel").textContent=task.label+"：記号を数字に変換してください。";
- $("taskCipherMap").innerHTML=symbols.map(symbol=>"<span>"+symbol+" ＝ "+map[symbol]+"</span>").join("");
- $("taskCipherCode").textContent=cipher.join("　");
- $("taskPuzzleInput").value="";$("taskPuzzleFeedback").textContent="";
- $("taskPuzzleModal").classList.add("show");
+ activeTaskPuzzle=task;taskMiniState={};$("taskGameTitle").textContent="🔧 "+task.label;$("taskPuzzleLabel").textContent=task.location+"の端末を操作してください。";$("taskPuzzleFeedback").textContent="";renderTaskMiniGame();$("taskPuzzleModal").classList.add("show");
 }
-function closeTaskPuzzle(){
- $("taskPuzzleModal").classList.remove("show");activeTaskPuzzle=null;activeTaskAnswer="";
+function closeTaskPuzzle(){$("taskPuzzleModal").classList.remove("show");activeTaskPuzzle=null;activeTaskAnswer="";taskMiniState=null}
+function renderTaskMiniGame(){
+ const root=$("taskMiniGame"),type=activeTaskPuzzle?.type;if(!activeTaskPuzzle)return;
+ if(type==="wires"){
+  if(!taskMiniState.done)taskMiniState.done=[];
+  root.innerHTML='<p class="muted">表示された4色の配線ボタンをすべて接続してください。</p><div class="miniChoiceGrid">'+["赤","青","黄","緑"].map((v,i)=>'<button class="miniChoice" style="border-color:'+["#e53935","#1e88e5","#fdd835","#43a047"][i]+'" '+(taskMiniState.done.includes(i)?'disabled':'')+' onclick="connectWire('+i+')">'+v+'の配線</button>').join("")+'</div><p class="muted">接続 '+taskMiniState.done.length+'/4</p>';
+ }else if(type==="sort"){
+  if(!taskMiniState.order){taskMiniState.order=shuffle([1,2,3,4]);taskMiniState.selected=[]}
+  root.innerHTML='<p class="muted">サンプルを番号の小さい順に選んで仕分けてください。</p><div class="miniChoiceGrid">'+taskMiniState.order.map(v=>'<button class="miniChoice" '+(taskMiniState.selected.includes(v)?'disabled':'')+' onclick="chooseSample('+v+')">🧪 試料 '+v+'</button>').join("")+'</div><p class="muted">選択：'+taskMiniState.selected.join(" → ")+'</p>';
+ }else if(type==="memory"){
+  if(!taskMiniState.pattern){taskMiniState.pattern=Array.from({length:4},()=>Math.floor(Math.random()*4));taskMiniState.selected=[]}
+  const symbols=["▲","●","■","◆"];
+  root.innerHTML='<p class="muted">記号の順番を覚えて、同じ順番で押してください。</p><div class="taskPattern">'+taskMiniState.pattern.map(v=>symbols[v]).join("　")+'</div><div class="miniChoiceGrid">'+symbols.map((v,i)=>'<button class="miniChoice" onclick="choosePattern('+i+')">'+v+'</button>').join("")+'</div><p class="muted">入力 '+taskMiniState.selected.length+'/4</p>';
+ }else if(type==="frequency"){
+  if(!taskMiniState.target){taskMiniState.target=180+Math.floor(Math.random()*7)*20;taskMiniState.options=shuffle([taskMiniState.target,taskMiniState.target-40,taskMiniState.target+40,taskMiniState.target+80])}
+  root.innerHTML='<p class="muted">目標周波数と同じ数値を選択してください。</p><div class="taskPattern">📡 '+taskMiniState.target+' Hz</div><div class="miniChoiceGrid">'+taskMiniState.options.map(v=>'<button class="miniChoice" onclick="chooseFrequency('+v+')">'+v+' Hz</button>').join("")+'</div>';
+ }else if(type==="sequence"){
+  if(!taskMiniState.selected)taskMiniState.selected=[];
+  root.innerHTML='<p class="muted">端子を1から4まで順番に押して回路を復旧してください。</p><div class="miniChoiceGrid">'+[1,2,3,4].map(v=>'<button class="miniChoice" '+(taskMiniState.selected.includes(v)?'disabled':'')+' onclick="chooseSequence('+v+')">端子 '+v+'</button>').join("")+'</div><p class="muted">復旧 '+taskMiniState.selected.length+'/4</p>';
+ }else{
+  if(!taskMiniState.map){const symbols=["◆","●","▲","■","★","☾"],digits=shuffle(["1","2","3","4","5","6"]),map={};symbols.forEach((v,i)=>map[v]=digits[i]);const code=Array.from({length:4},()=>symbols[Math.floor(Math.random()*symbols.length)]);taskMiniState.map=map;taskMiniState.code=code;taskMiniState.answer=code.map(v=>map[v]).join("")}
+  root.innerHTML='<p class="muted">対応表を使い、記号を4桁の数字に変換してください。</p><div class="taskCipher">'+Object.entries(taskMiniState.map).map(([k,v])=>'<span>'+k+' = '+v+'</span>').join("")+'</div><div class="taskPattern">'+taskMiniState.code.join("　")+'</div><input id="taskPuzzleInput" class="taskPuzzleInput" type="text" inputmode="numeric" maxlength="4" placeholder="4桁の数字"><button class="primary" style="width:100%;margin-top:8px" onclick="submitTaskPuzzle()">送信</button>';
+ }
 }
-function submitTaskPuzzle(){
- if(!activeTaskPuzzle||!state.running)return;
- const answer=$("taskPuzzleInput").value.trim();
- if(!/^\d{4}$/.test(answer)){$("taskPuzzleFeedback").textContent="4桁の数字を入力してください。";return}
- if(answer!==activeTaskAnswer){$("taskPuzzleFeedback").textContent="不正解です。対応表を確認してもう一度！";$("taskPuzzleInput").value="";return}
- const task=activeTaskPuzzle;closeTaskPuzzle();
- if(completeSharedTask(task,state.me)){updateNearbyActions();draw()}
-}
+function finishMiniTask(){const task=activeTaskPuzzle;if(!task||!state.running)return;closeTaskPuzzle();if(completeSharedTask(task,state.me)){updateNearbyActions();draw()}}
+function connectWire(v){if(!taskMiniState||taskMiniState.done.includes(v))return;taskMiniState.done.push(v);if(taskMiniState.done.length===4){finishMiniTask();return}renderTaskMiniGame()}
+function chooseSample(v){const a=taskMiniState.selected;if(v!==a.length+1){taskMiniState.selected=[];$("taskPuzzleFeedback").textContent="順番が違います。最初からやり直してください。";renderTaskMiniGame();return}a.push(v);if(a.length===4){finishMiniTask();return}renderTaskMiniGame()}
+function choosePattern(v){const i=taskMiniState.selected.length;if(taskMiniState.pattern[i]!==v){taskMiniState.selected=[];taskMiniState.pattern=Array.from({length:4},()=>Math.floor(Math.random()*4));$("taskPuzzleFeedback").textContent="順番が違います。もう一度挑戦してください。";renderTaskMiniGame();return}taskMiniState.selected.push(v);if(taskMiniState.selected.length===4){finishMiniTask();return}renderTaskMiniGame()}
+function chooseFrequency(v){if(v===taskMiniState.target)finishMiniTask();else $("taskPuzzleFeedback").textContent="周波数が一致しません。"}
+function chooseSequence(v){if(v!==taskMiniState.selected.length+1){taskMiniState.selected=[];$("taskPuzzleFeedback").textContent="順番が違います。最初からやり直してください。";renderTaskMiniGame();return}taskMiniState.selected.push(v);if(taskMiniState.selected.length===4){finishMiniTask();return}renderTaskMiniGame()}
+function submitTaskPuzzle(){if(!activeTaskPuzzle||!state.running||activeTaskPuzzle.type!=="cipher")return;const answer=$("taskPuzzleInput")?.value.trim()||"";if(!/^\d{4}$/.test(answer)){$("taskPuzzleFeedback").textContent="4桁の数字を入力してください。";return}if(answer!==taskMiniState.answer){$("taskPuzzleFeedback").textContent="不正解です。対応表を確認してください。";$("taskPuzzleInput").value="";return}finishMiniTask()}
 function completeSharedTask(task,actor){
  if(!state.running||!task||task.done||task.remaining<=0||actor?.team!=="white")return false;
  task.completedBy=task.completedBy||[];
