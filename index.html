@@ -1300,7 +1300,7 @@ function endGame(msg,winners={teams:[]}){
 function endToHome(){if(state.running)saveAILongTermMemories({teams:[]},true);state.running=false;clearInterval(loop);clearInterval(clock);stopMove();stopBGM();document.querySelectorAll(".modal").forEach(m=>m.classList.remove("show"));show("home")}
 function renderUpdateLog(version="0.31"){
  const logs={
-  "0.31":{date:"2026年11月8日",items:["「投票フェーズへ」押下時のエラーを修正。","AIの発言を長文化し、理由・時系列・追加質問を含む会話に改善。","AIが役職COするとき、実際に割り当てられた役職名を正確に表示。"]},
+  "0.31":{date:"2026年11月8日",items:["暗殺者を含む第三陣営・黒陣営のAIが役職COしないように修正。","役職COは白陣営のAIだけが状況に応じて行うよう変更。","会議中のAI発言を短くし、質問・反論・補足が自然に交わる会話に調整。"]},
   "0.29":{date:"2026年11月8日",items:["会議のリアルタイム要約に疑われている人の順位・疑いの強さ・理由を表示。","目撃証言と現場記録を疑い順位に反映。","10か所のタスクをすべて別々のミニゲームに変更。"]},
   "0.28":{date:"2026年11月8日",items:["会議の議論時間を設定できるように変更。","AIが会議中に継続して発言し、プレイヤーの発言に反応。","会議内容のリアルタイム要約を追加。"]},
   "0.26":{date:"2026年11月8日",items:["スマートフォン専用レイアウトを追加。縦長画面で操作パネルを画面下部に固定。","タブレットの従来レイアウトは維持。","小型スマートフォンと横向き画面にも表示を調整。"]},
