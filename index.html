@@ -430,7 +430,7 @@ function tick(){
     if(!a.alive||!a.aiGoal)return;
     while(a.aiPath.length&&Math.hypot(a.aiPath[0][0]-a.x,a.aiPath[0][1]-a.y)<12)a.aiPath.shift();
     if(!a.aiPath.length){a.aiGoal=null;return}
-    const [tx,ty]=a.aiPath[0],dx=tx-a.x,dy=ty-a.y,len=Math.hypot(dx,dy)||1,step=3.5,oldX=a.x,oldY=a.y;
+    const [tx,ty]=a.aiPath[0],dx=tx-a.x,dy=ty-a.y,len=Math.hypot(dx,dy)||1,step=3.15+aiStat(a,"skill_level")*.035,oldX=a.x,oldY=a.y;
     const nx=a.x+dx/len*Math.min(step,len),ny=a.y+dy/len*Math.min(step,len);
     if(isWalkable(nx,a.y))a.x=nx;if(isWalkable(a.x,ny))a.y=ny;
     if(a.x===oldX&&a.y===oldY){a.aiStuck=(a.aiStuck||0)+1;if(a.aiStuck>12){a.aiGoal=null;a.aiPath=[];a.aiNextGoalAt=Date.now()+500}}else a.aiStuck=0;
@@ -686,6 +686,7 @@ function selectTarget(id){
  }
  updateNearbyActions();draw();
 }
+function aiStat(actor,key,fallback=5){return Math.max(1,Math.min(10,Number(actor?.aiProfile?.[key]??fallback)||fallback))}
 function updateAIWhiteTasks(now=Date.now()){
  if(!state.running||state.meeting)return;
  for(const actor of state.players.slice(1)){
@@ -694,15 +695,17 @@ function updateAIWhiteTasks(now=Date.now()){
   if(!station||station.done||station.remaining<=0||station.completedBy?.includes(actor.id)){
    actor.aiTaskIndex=null;
    if(actor.aiGoal?.kind==="task"){actor.aiGoal=null;actor.aiPath=[]}
-   const choices=state.tasks.map((task,index)=>({task,index,distance:Math.hypot(actor.x-task.x,actor.y-task.y)})).filter(x=>!x.task.done&&x.task.remaining>0&&!x.task.completedBy?.includes(actor.id)).sort((a,b)=>a.distance-b.distance).slice(0,3);
+   const priority=aiStat(actor,"task_priority"),choices=state.tasks.map((task,index)=>({task,index,distance:Math.hypot(actor.x-task.x,actor.y-task.y)})).filter(x=>!x.task.done&&x.task.remaining>0&&!x.task.completedBy?.includes(actor.id)).sort((a,b)=>a.distance-b.distance).slice(0,Math.max(2,Math.min(5,Math.round(2+priority/3))));
    if(!choices.length)return;
-   const pick=choices[Math.floor(Math.random()*choices.length)];station=pick.task;actor.aiTaskIndex=pick.index;
-   actor.aiNextTaskAt=Math.max(actor.aiNextTaskAt||0,now+rand(3500,5000));setAIGoal(actor,station.x,station.y,"task");
+   const weights=choices.map(x=>1/Math.max(1,x.distance)*(0.65+priority*0.07));let roll=Math.random()*weights.reduce((a,b)=>a+b,0),pick=choices[0];
+   for(let j=0;j<choices.length;j++){roll-=weights[j];if(roll<=0){pick=choices[j];break}}
+   station=pick.task;actor.aiTaskIndex=pick.index;
+   actor.aiNextTaskAt=Math.max(actor.aiNextTaskAt||0,now+rand(4200,6200));setAIGoal(actor,station.x,station.y,"task");
   }
   if(Math.hypot(actor.x-station.x,actor.y-station.y)<=58){
    actor.aiGoal=null;actor.aiPath=[];
    if(now>=actor.aiNextTaskAt){
-    completeSharedTask(station,actor);actor.aiNextTaskAt=now+rand(4500,6500);
+    completeSharedTask(station,actor);const taskSkill=aiStat(actor,"task_skill");actor.aiNextTaskAt=now+rand(6800-taskSkill*240,8200-taskSkill*240);
     if(station.remaining<=0||station.completedBy?.includes(actor.id)){actor.aiTaskIndex=null;actor.aiGoal=null;actor.aiPath=[]}
     if(!state.running)return;
    }
@@ -715,7 +718,7 @@ function chooseAICombatSuspect(ai,candidates){
   for(const event of state.killEvents||[]){
    if(event.killerId===target.id&&event.witnessIds?.includes(ai.id))score+=5;
   }
-  const deduction=Number(voter.aiProfile?.deduction_skill||5);score*=.75+deduction*.05;
+  const deduction=aiStat(ai,"deduction_skill");score*=.65+deduction*.07;
   return {target,score};
  }).sort((a,b)=>b.score-a.score);
  return scores.length&&scores[0].score>=1.2?scores[0].target:null;
@@ -726,14 +729,14 @@ function aiAction(){
  const activeAI=state.players.slice(1).filter(p=>p.alive);
  for(const actor of activeAI){
   const body=state.dead.filter(d=>Math.hypot(actor.x-d.x,actor.y-d.y)<82).sort((a,b)=>Math.hypot(actor.x-a.x,actor.y-a.y)-Math.hypot(actor.x-b.x,actor.y-b.y))[0];
-  if(body&&Math.random()<(actor.team==="black" ? .58 : .88)){
+  if(body&&Math.random()<(actor.team==="black" ? .58 : .68+aiStat(actor,"caution")*.02)){
    actor.emergencyReadyAt=now+rand(90000,140000);actor.aiGoal=null;actor.aiPath=[];
    callMeeting(`${actor.name}が${body.name}の死体を発見して通報しました。`,actor);return;
   }
   if(now>=actor.emergencyReadyAt){
    if(Math.hypot(actor.x-900,actor.y-520)<82){
     actor.emergencyReadyAt=now+rand(90000,140000);actor.aiGoal=null;actor.aiPath=[];
-    if(Math.random()<(actor.team==="black" ? .3 : actor.role==="てるてる" ? .58 : .72)){callMeeting(`${actor.name}が緊急会議を招集しました。`,actor);return}
+    if(Math.random()<(actor.team==="black" ? .3 : actor.role==="てるてる" ? .58 : .48+aiStat(actor,"sociability")*.035)){callMeeting(`${actor.name}が緊急会議を招集しました。`,actor);return}
    }else if(actor.aiGoal?.kind!=="emergency")setAIGoal(actor,900,520,"emergency");
   }else if(!actor.aiGoal&&now>=actor.aiNextGoalAt){
    const next=randomSpawn();setAIGoal(actor,next[0],next[1],"wander");actor.aiNextGoalAt=now+rand(9000,16000);
@@ -746,7 +749,7 @@ function aiAction(){
   const wanderNearby=targetCandidates(actor,90,false,p=>!(actor.team==="black"&&p.team==="black"));
   if(actor.team==="black"){
    if(now>=actor.sabotageReadyAt&&state.sabotageUntil<now&&Math.random()<.035){state.sabotageUntil=now+10000;actor.sabotageReadyAt=now+35000}
-   if(now>=actor.killReadyAt&&nearby.length){const t=nearby[Math.floor(Math.random()*nearby.length)];actor.killReadyAt=now+30000;performKill(t,actor,"キル")}
+   if(now>=actor.killReadyAt&&nearby.length&&Math.random()<(.45+aiStat(actor,"aggression")*.055)){const t=nearby[Math.floor(Math.random()*nearby.length)];actor.killReadyAt=now+30000;performKill(t,actor,"キル")}
    if(actor.role==="百面相"&&now>=actor.roleReadyAt&&nearby.length&&Math.random()<.04){actor.disguiseId=nearby[0].id;actor.disguiseUntil=now+10000;actor.roleReadyAt=now+35000}
    if(actor.role==="イノシシ"&&!actor.charging&&now>=actor.roleReadyAt&&nearby.length&&Math.random()<.05){let t=nearby[0],dx=t.x-actor.x,dy=t.y-actor.y,m=Math.hypot(dx,dy)||1;actor.charge={x:dx/m,y:dy/m};actor.charging=true}
   }else if(actor.role==="暗殺者"&&now>=actor.killReadyAt){
@@ -770,8 +773,7 @@ function appendMeetingMessage(name,text,kind="ai"){
  message.appendChild(speaker);message.appendChild(body);box.appendChild(message);box.scrollTop=box.scrollHeight;
 }
 function mentionedPlayers(text){
- const tokens=text.match(/プレイヤー\d+|あなた/g)||[];
- return tokens.map(n=>state.players.find(p=>p.name===n)).filter((p,i,a)=>p&&a.findIndex(q=>q.id===p.id)===i);
+ return state.players.filter(p=>p.name&&text.includes(p.name));
 }
 function claimKind(text){
  if(/見た|見かけ|目撃|現場|キル|殺|倒し|一緒にいた|アリバイ|いた場所|通路で/.test(text))return "witness";
@@ -936,9 +938,11 @@ function chooseAIVote(voter,alive){
   });
   return {target,score};
  }).sort((a,b)=>b.score-a.score);
+ const deduction=aiStat(voter,"deduction_skill"),caution=aiStat(voter,"caution");
+ scores.forEach(item=>item.score*=.65+deduction*.07);
  const highest=scores[0].score;
- if(highest<1.1&&Math.random()<.38)return "skip";
- if(highest<2.2&&Math.random()<.18)return "skip";
+ if(highest<1.1&&Math.random()<(.22+caution*.025))return "skip";
+ if(highest<2.2&&Math.random()<(.08+caution*.012))return "skip";
  const shortlist=scores.filter(s=>s.score>=highest-1.7).slice(0,4);
  const weights=shortlist.map(s=>Math.exp(Math.max(-2,(s.score-highest)*.8)));
  let roll=Math.random()*weights.reduce((a,b)=>a+b,0);
