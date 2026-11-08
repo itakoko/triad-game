@@ -380,7 +380,7 @@ canvas#mapCanvas{aspect-ratio:16/10;background:#0b1522}
 </section>
 
 </main>
-<footer>TRIAD v0.65 · 能力効果・勝利処理調整</footer>
+<footer>TRIAD v0.66 · 能力のサーバー検証改善</footer>
 
   <div id="onlineConnectionBanner" role="status">オンライン接続が不安定です。<button type="button" onclick="retryOnlineConnection()">再接続</button></div>
   <div class="modal" id="offlineRoleSettingsModal"><div class="modalbox"><h2>通常対戦・役職詳細設定</h2><p class="muted">固定人数を指定した役職は必ず登場します。残りの枠はONになっている役職から出現重みに応じて抽選します。</p>
@@ -866,7 +866,7 @@ async function loadRankedProfile(){
 
 function show(id){
  if(!activateScreen(id))return;
- if(id==="home"){renderUpdateLog($("updateVersionSelect")?.value||"0.65");updateResumeGameUI()}
+ if(id==="home"){renderUpdateLog($("updateVersionSelect")?.value||"0.66");updateResumeGameUI()}
  if(id==="accounts")loadAccountDirectoryData();
  if(id==="socialHub")loadSocialHub();
 }
@@ -1238,6 +1238,7 @@ function updateNearbyActions(){
  else if(me.role==="狂人"){label="キル能力は「キル」ボタン"}
   else if(me.role==="ギャンブラー"){label=me.gamblerKillReady?"🎰 JACKPOTキル（1回）":rem?`🎰 運命のルーレット（${rem}秒）`:"🎰 運命のルーレット";disabled=!alive||(!me.gamblerKillReady&&rem>0)}
   if(!alive){label="👻 幽霊：能力使用不可";disabled=true}
+  if(rankedServerMode&&!["サイエンティスト","占い師","僧侶","放浪者","百面相"].includes(me.role)){label="この能力はランク戦未対応";disabled=true}
   setButton("abilityAction",label,disabled,false);
  let hints=[];
  if(state.nearTask)hints.push("タスク端末の近くです");
@@ -2836,8 +2837,9 @@ async function leaveOnlineRoom(){
  activeRoomId=null;activeRoomSnapshot=null;await disconnectRoomChannel();show("socialHub");await loadSocialHub();
 }
 
-function renderUpdateLog(version="0.65"){
+function renderUpdateLog(version="0.66"){
  const logs={
+  "0.66":{date:"2026年11月9日",items:["能力の使用済み状態・再使用待機を再接続時に復元。対象の遮蔽物チェックをサーバー側に追加し、未対応能力はランク戦画面で無効化。"],},
   "0.65":{date:"2026年11月9日",items:["百面相の変身表示をサーバー同期し、放浪者の匂い付与状況を本人の再接続時に復元。タスク完了による試合終了表示を追加。"],},
   "0.64":{date:"2026年11月9日",items:["ランク戦にサイエンティスト・占い師・僧侶・放浪者・百面相のサーバー能力操作を接続。勝利時の試合確定と終了表示を追加。"],},
   "0.63":{date:"2026年11月9日",items:["ランク戦の進捗説明を更新。会議チャット・キル・役職能力・勝敗判定・ランク確定の未対応範囲を明記。"],},
