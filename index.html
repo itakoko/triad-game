@@ -123,14 +123,14 @@ canvas#mapCanvas{aspect-ratio:16/10;background:#0b1522}
 </style>
 </head>
 <body>
-<header><div class="logo">TRI<span>AD</span></div><div class="tag">オフライン試作 · v0.26</div></header>
+<header><div class="logo">TRI<span>AD</span></div><div class="tag">オフライン試作 · v0.27</div></header>
 <main>
 <section id="home" class="screen active">
  <div class="hero"><div class="pill">研究施設マップ・探索型推理ゲーム</div><h1>閉鎖された研究所。<br>見えない場所に誰かがいる。</h1><p>部屋と通路を自分で探索し、タスクを進めながら状況を判断します。視界はプレイヤーの周囲に限られます。</p></div>
  <div class="grid">
   <div class="card"><h3>🎮 ゲームを始める</h3><p class="muted">AIと対戦するオフライン試合を開始します。</p><button class="primary" style="width:100%" onclick="show('setup')">試合設定へ</button></div>
   <div class="card"><h3>📘 遊び方</h3><p class="muted">試作版のルールと操作方法を確認します。</p><button style="width:100%" onclick="openHelp()">ルールを見る</button></div>
-  <div class="card"><h3>📋 アップデートログ</h3><p class="muted">見たいバージョンを選択してください。</p><div class="field"><label for="updateVersionSelect">バージョン</label><select id="updateVersionSelect" onchange="renderUpdateLog(this.value)"><option value="0.26">v0.26（最新）</option><option value="0.25">v0.25</option><option value="0.23">v0.23</option></select></div><div id="updateLogContent" class="updateLogContent" aria-live="polite"></div></div>
+  <div class="card"><h3>📋 アップデートログ</h3><p class="muted">見たいバージョンを選択してください。</p><div class="field"><label for="updateVersionSelect">バージョン</label><select id="updateVersionSelect" onchange="renderUpdateLog(this.value)"><option value="0.27">v0.27（最新）</option><option value="0.26">v0.26</option><option value="0.25">v0.25</option><option value="0.23">v0.23</option></select></div><div id="updateLogContent" class="updateLogContent" aria-live="polite"></div></div>
  </div>
 </section>
 
@@ -186,7 +186,7 @@ canvas#mapCanvas{aspect-ratio:16/10;background:#0b1522}
 </section>
 
 </main>
-<footer>TRIAD v0.26 · 研究施設 · オフライン版</footer>
+<footer>TRIAD v0.27 · 研究施設 · オフライン版</footer>
 
   <div class="modal" id="mapModal"><div class="modalbox"><h2>研究施設マップ</h2><canvas id="overviewCanvas" width="900" height="600"></canvas><div class="mapLegend"><span>● あなた　♥ 恋人の相手（恋人のみ）</span><span>● タスク端末</span><span>■ 緊急会議ボタン</span><span>！ 手配書端末</span><span>■ 遮蔽物・チェイスカバー</span><span>× 死体</span></div><button class="primary" style="width:100%" onclick="closeMap()">閉じる</button></div></div>
  <div class="modal" id="targetModal"><div class="modalbox"><h2 id="targetTitle">対象を選択</h2><p id="targetInfo" class="muted"></p><div id="targetList" class="targetList"></div><button style="width:100%" onclick="closeTargetModal()">キャンセル</button></div></div>
@@ -274,7 +274,7 @@ let loop=null,clock=null;
 const colorNames=["赤","青","黄色","紫","緑","オレンジ","ピンク","水色","黄緑","茶色","紺","マゼンタ","青緑","金","サーモン","ライム","群青","ラベンダー","朱色","ターコイズ","黄土","ローズ","エメラルド","コバルト","レモン","ワイン","ミント","藤色","銅色","白"];
 const colors=["#e53935","#1e88e5","#fdd835","#8e24aa","#43a047","#fb8c00","#ec407a","#00acc1","#7cb342","#8d6e63","#3949ab","#d81b60","#00897b","#c0a000","#ff7043","#c0ca33","#283593","#9575cd","#f4511e","#26a69a","#b08d00","#ad1457","#00a152","#1565c0","#f9a825","#6d1b3b","#66bb6a","#7e57c2","#a65e2e","#eeeeee"];
 const naturalAINames=["ねこもち","もちもち","しろくま","くろまめ","ぽてと","ぷりん","たこやき","しらす","ぺんぎん","からあげ","こむぎ","みたらし","ねむねむ","うさぎもち","わたあめ","めんだこ","ましゅまろ","こんぺいとう","ほっとけーき","おにぎり","きなこもち","すいか","りんごあめ","ぽんず","ふわり","もちぱん","しおこんぶ","だいふく","ちくわ","くりーむ"];let gameNameDeck=[];function fallbackAIName(index){return gameNameDeck[index-1]||naturalAINames[(index-1)%naturalAINames.length]}function playerTag(p){return `#${String(p.number||p.id+1).padStart(2,"0")} ${p.name}`}
-function show(id){document.querySelectorAll(".screen").forEach(s=>s.classList.remove("active"));$(id).classList.add("active");if(id==="home")renderUpdateLog($("updateVersionSelect")?.value||"0.25")}
+function show(id){document.querySelectorAll(".screen").forEach(s=>s.classList.remove("active"));$(id).classList.add("active");if(id==="home")renderUpdateLog($("updateVersionSelect")?.value||"0.27")}
 function log(t){}
 function rand(a,b){return Math.random()*(b-a)+a}
 function shuffle(items){let a=[...items];for(let i=a.length-1;i>0;i--){let j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a}
@@ -318,7 +318,7 @@ async function startGame(){
   if(lovers.length===2){lovers[0].partnerId=lovers[1].id;lovers[1].partnerId=lovers[0].id}
   if(state.players.some(p=>p.role==="暗殺者"))state.bountyIds=shuffle(state.players.filter(p=>p.team==="white").map(p=>p.id)).slice(0,3);
   state.players.filter(p=>p.role==="放浪者").forEach(p=>state.scentedIds.add(p.id));
-  state.tasks=state.map.tasks.map((p,i)=>{const quota=Math.floor(state.total/state.map.tasks.length)+(i<state.total%state.map.tasks.length?1:0);return {id:i,x:p[0],y:p[1],done:false,quota,remaining:quota,completedBy:[],label:["サンプル確認","端末同期","データ解析","電力調整"][i%4]}});
+  state.tasks=state.map.tasks.map((p,i)=>{const quota=Math.floor(state.total/state.map.tasks.length)+(i<state.total%state.map.tasks.length?1:0),spec=taskKinds[i%taskKinds.length];return {id:i,x:p[0],y:p[1],done:false,quota,remaining:quota,completedBy:[],label:spec.label,room:spec.room,kind:spec.kind}});
   $("mapLabel").textContent="マップ：研究施設";$("roleLabel").textContent="役職："+state.me.role;$("myRoleText").textContent="陣営："+teamName(state.me.team)+" ／ 役職："+state.me.role+"。"+roleDescription(state.me);
   $("myStatus").textContent="生存";$("ghostBanner").hidden=true;$("taskCount").textContent="0 / "+state.total;$("taskProgress").style.width="0%";log("研究施設に到着。");
   show("game");state.running=true;updateNearbyActions();draw();clearInterval(loop);clearInterval(clock);loop=setInterval(tick,70);clock=setInterval(()=>{if(!state.running)return;state.seconds++;$("timer").textContent=String(Math.floor(state.seconds/60)).padStart(2,"0")+":"+String(state.seconds%60).padStart(2,"0");aiAction();checkWin()},1000);
@@ -607,28 +607,78 @@ function updateNearbyActions(){
  if(state.sabotageUntil>now)hints.push(`停電中 ${remainingText(state.sabotageUntil)}秒`);
  $("nearHint").textContent=hints.join(" ／ ")||"黄色い端末・赤い会議ボタン・死体に近づくと操作できます。";
 }
-let activeTaskPuzzle=null,activeTaskAnswer="";
+let activeTaskPuzzle=null,activeTaskAnswer="",activeTaskData=null;
+const taskKinds=[
+ {kind:"sort",label:"サンプル仕分け",room:"入口"},
+ {kind:"wires",label:"配線接続",room:"受付"},
+ {kind:"memory",label:"データ照合",room:"生体研究室"},
+ {kind:"frequency",label:"周波数調整",room:"観測室"},
+ {kind:"sort",label:"物資分類",room:"保管庫"},
+ {kind:"memory",label:"医療データ照合",room:"医療室"},
+ {kind:"frequency",label:"冷却バルブ調整",room:"動力炉"},
+ {kind:"cipher",label:"回路暗号解読",room:"制御室"},
+ {kind:"wires",label:"通路配線修理",room:"中央通路"},
+ {kind:"cipher",label:"電源端末認証",room:"電源区画"}
+];
+function taskPuzzleShell(title,desc,content){
+ const box=$("taskPuzzleModal").querySelector(".modalbox");
+ box.innerHTML='<h2>'+title+'</h2><p id="taskPuzzleLabel" class="muted">'+desc+'</p><div id="taskPuzzleArea">'+content+'</div><p id="taskPuzzleFeedback" class="taskPuzzleFeedback"></p><div class="actions"><button onclick="closeTaskPuzzle()">中断</button><button class="primary" onclick="submitTaskPuzzle()">決定</button></div>';
+}
 function openTaskPuzzle(task){
  if(!state.running||!task||task.done||task.remaining<=0||!state.me||task.completedBy?.includes(state.me.id))return;
  activeTaskPuzzle=task;
- const symbols=["◆","●","▲","■","★","☾"],digits=shuffle(["1","2","3","4","5","6"]),map={};
- symbols.forEach((symbol,i)=>map[symbol]=digits[i]);
- const cipher=Array.from({length:4},()=>symbols[Math.floor(Math.random()*symbols.length)]);
- activeTaskAnswer=cipher.map(symbol=>map[symbol]).join("");
- $("taskPuzzleLabel").textContent=task.label+"：記号を数字に変換してください。";
- $("taskCipherMap").innerHTML=symbols.map(symbol=>"<span>"+symbol+" ＝ "+map[symbol]+"</span>").join("");
- $("taskCipherCode").textContent=cipher.join("　");
- $("taskPuzzleInput").value="";$("taskPuzzleFeedback").textContent="";
+ const data=taskKinds[task.id%taskKinds.length];activeTaskData={...data,progress:0,selected:[],matches:{},chosen:null};
+ if(data.kind==="sort"){
+  const samples=shuffle([{n:"赤い試料",ok:true},{n:"青い試料",ok:false},{n:"赤い試料",ok:true},{n:"緑の試料",ok:false},{n:"赤い試料",ok:true},{n:"黄色い試料",ok:false}]);
+  activeTaskData.samples=samples;
+  taskPuzzleShell("🧪 "+data.label,data.room+"：赤い試料をすべて選んでください。",'<div class="voteList">'+samples.map((x,i)=>'<button id="taskPick'+i+'" onclick="toggleTaskPick('+i+')" type="button">'+x.n+'</button>').join("")+'</div><p class="muted">赤い試料を3つ選択</p>');
+ }else if(data.kind==="wires"){
+  const colors=["🔴 赤","🔵 青","🟡 黄","🟢 緑"];activeTaskData.wireOrder=shuffle([0,1,2,3]);activeTaskData.wireStep=0;
+  taskPuzzleShell("🔌 "+data.label,data.room+"：左の色と同じ色を右から選び、4本の配線をつないでください。",'<div class="grid"><div class="card"><b>接続元</b>'+colors.map((c,i)=>'<button style="width:100%;margin-top:6px" onclick="chooseTaskWire('+i+')">'+c+'</button>').join("")+'</div><div class="card"><b>接続先</b>'+activeTaskData.wireOrder.map(i=>'<button style="width:100%;margin-top:6px" onclick="matchTaskWire('+i+')">'+colors[i]+'</button>').join("")+'</div></div><p id="wireProgress" class="muted">接続：0 / 4</p>');
+ }else if(data.kind==="frequency"){
+  activeTaskData.target=4+Math.floor(Math.random()*5);activeTaskData.value=1+Math.floor(Math.random()*9);
+  taskPuzzleShell("📡 "+data.label,data.room+"：周波数を目標値に合わせてください。",'<div class="taskPuzzleCode">目標：<span id="freqTarget">'+activeTaskData.target+'</span></div><div class="row"><button onclick="changeTaskFrequency(-1)">−</button><div id="freqValue" class="taskPuzzleCode">'+activeTaskData.value+'</div><button onclick="changeTaskFrequency(1)">＋</button></div><p class="muted">現在値を目標値と同じにして決定してください。</p>');
+ }else if(data.kind==="memory"){
+  const seq=Array.from({length:4},()=>1+Math.floor(Math.random()*4));activeTaskData.sequence=seq;activeTaskData.input=[];
+  taskPuzzleShell("🧠 "+data.label,data.room+"：表示された順番を覚えて、同じ順番でボタンを押してください。",'<div class="taskPuzzleCode" id="memorySequence">'+seq.join(" → ")+'</div><p class="muted">下のボタンを順番どおりに押してください。</p><div class="grid">'+[1,2,3,4].map(n=>'<button onclick="pressMemoryNumber('+n+')">'+n+'</button>').join("")+'</div><p id="memoryProgress" class="muted">入力：0 / 4</p>');
+ }else{
+  const symbols=["◆","●","▲","■","★","☾"],digits=shuffle(["1","2","3","4","5","6"]),map={};
+  symbols.forEach((symbol,i)=>map[symbol]=digits[i]);const cipher=Array.from({length:4},()=>symbols[Math.floor(Math.random()*symbols.length)]);
+  activeTaskAnswer=cipher.map(symbol=>map[symbol]).join("");
+  taskPuzzleShell("🔐 "+data.label,data.room+"：対応表を使って記号を4桁の数字に変換してください。",'<div class="taskCipher">'+symbols.map(symbol=>'<span>'+symbol+' ＝ '+map[symbol]+'</span>').join("")+'</div><div class="taskPuzzleCode">'+cipher.join("　")+'</div><input id="taskPuzzleInput" class="taskPuzzleInput" type="text" inputmode="numeric" maxlength="4" placeholder="4桁の数字">');
+ }
  $("taskPuzzleModal").classList.add("show");
 }
+function toggleTaskPick(i){
+ const d=activeTaskData;if(!d||d.kind!=="sort")return;
+ const idx=d.selected.indexOf(i);if(idx>=0)d.selected.splice(idx,1);else if(d.selected.length<3)d.selected.push(i);
+ const b=$("taskPick"+i);if(b)b.classList.toggle("selected",d.selected.includes(i));
+}
+function chooseTaskWire(i){if(activeTaskData?.kind==="wires")activeTaskData.chosen=i}
+function matchTaskWire(i){
+ const d=activeTaskData;if(!d||d.kind!=="wires"||d.chosen===null)return;
+ if(d.chosen===i){d.matches[i]=true;d.wireStep++;const p=$("wireProgress");if(p)p.textContent="接続："+d.wireStep+" / 4"}
+ else{$("taskPuzzleFeedback").textContent="色が違います。もう一度確認してください。"}
+ d.chosen=null;
+}
+function changeTaskFrequency(delta){const d=activeTaskData;if(!d||d.kind!=="frequency")return;d.value=Math.max(1,Math.min(9,d.value+delta));$("freqValue").textContent=d.value}
+function pressMemoryNumber(n){
+ const d=activeTaskData;if(!d||d.kind!=="memory")return;
+ d.input.push(n);$("memoryProgress").textContent="入力："+d.input.length+" / 4";
+ if(d.input.some((v,i)=>v!==d.sequence[i])){$("taskPuzzleFeedback").textContent="順番が違います。最初からやり直してください。";d.input=[];$("memoryProgress").textContent="入力：0 / 4"}
+}
 function closeTaskPuzzle(){
- $("taskPuzzleModal").classList.remove("show");activeTaskPuzzle=null;activeTaskAnswer="";
+ $("taskPuzzleModal").classList.remove("show");activeTaskPuzzle=null;activeTaskAnswer="";activeTaskData=null;
 }
 function submitTaskPuzzle(){
- if(!activeTaskPuzzle||!state.running)return;
- const answer=$("taskPuzzleInput").value.trim();
- if(!/^\d{4}$/.test(answer)){$("taskPuzzleFeedback").textContent="4桁の数字を入力してください。";return}
- if(answer!==activeTaskAnswer){$("taskPuzzleFeedback").textContent="不正解です。対応表を確認してもう一度！";$("taskPuzzleInput").value="";return}
+ if(!activeTaskPuzzle||!state.running||!activeTaskData)return;
+ const d=activeTaskData;let correct=false;
+ if(d.kind==="sort")correct=d.selected.length===3&&d.selected.every(i=>d.samples[i].ok);
+ else if(d.kind==="wires")correct=d.wireStep===4;
+ else if(d.kind==="frequency")correct=d.value===d.target;
+ else if(d.kind==="memory")correct=d.input.length===4&&d.input.every((v,i)=>v===d.sequence[i]);
+ else{const answer=$("taskPuzzleInput")?.value.trim()||"";correct=/^\d{4}$/.test(answer)&&answer===activeTaskAnswer}
+ if(!correct){$("taskPuzzleFeedback").textContent="まだ正しく完了していません。内容を確認してください。";return}
  const task=activeTaskPuzzle;closeTaskPuzzle();
  if(completeSharedTask(task,state.me)){updateNearbyActions();draw()}
 }
@@ -785,7 +835,7 @@ function chooseAICombatSuspect(ai,candidates){
   const deduction=aiStat(ai,"deduction_skill");score*=.65+deduction*.07;
   return {target,score};
  }).sort((a,b)=>b.score-a.score);
- return scores.length&&scores[0].score>=1.2?scores[0].target:null;
+ return scores.length&&scores[0].score>=1.0?scores[0].target:null;
 }
 function aiAction(){
  if(!state.running||state.meeting)return;
@@ -822,7 +872,7 @@ function aiAction(){
   }else if(actor.role==="狂人"&&now>=actor.killReadyAt&&nearby.length&&Math.random()<.25){actor.killReadyAt=now+30000;performKill(nearby[0],actor,"狂人の攻撃")}
   else if((actor.role==="狩人"||actor.role==="保安官")&&!actor.abilityUsed&&roleNearby.length){
    const suspect=chooseAICombatSuspect(actor,roleNearby);
-   if(suspect&&Math.random()<.22){actor.abilityUsed=true;performKill(suspect,actor,actor.role==="狩人"?"狩人の攻撃":"保安官の攻撃")}
+   if(suspect){const suspicion=actor.aiMemory?.suspicion?.[suspect.id]||0;const witnessed=(state.killEvents||[]).some(e=>e.killerId===suspect.id&&e.witnessIds?.includes(actor.id));const chance=witnessed?.92:Math.min(.78,.30+suspicion*.055);if(Math.random()<chance){actor.abilityUsed=true;performKill(suspect,actor,actor.role==="狩人"?"狩人の攻撃":"保安官の攻撃")}}
   }
   else if(actor.role==="僧侶"&&!actor.abilityUsed){const ally=targetCandidates(actor,Infinity,true).find(p=>p.id!==actor.id&&!p.protected);if(ally&&Math.random()<.18){actor.abilityUsed=true;ally.protected=true}}
   else if(actor.role==="放浪者"&&now>=actor.roleReadyAt&&wanderNearby.length){state.scentedIds.add(wanderNearby[0].id);wanderNearby[0].scented=true;actor.roleReadyAt=now+15000}
