@@ -1934,7 +1934,7 @@ async function handleOnlineAction(payload){
   case "emergency":if(state.nearEmergency)callMeeting("研究所中央の緊急会議ボタンが押されました。",actor);break;
   case "sabotage":useSabotage();break;
   case "ability":useAbility();break;
-  case "target":{const target=state.players.find(p=>p.id===Number(payload.targetId)),kind=String(payload.actionKind||"");const rules={seer:{roles:["占い師"],range:100,once:true},roleKill:{roles:["狩人","保安官"],range:100,once:true},protect:{roles:["僧侶"],range:Infinity,once:true},disguise:{roles:["百面相"],range:Infinity,cooldown:true},scent:{roles:["放浪者"],range:90,cooldown:true},kill:{roles:["インポスター","暗殺者"],range:88,cooldown:true}};const rule=rules[kind],distance=target?Math.hypot(target.x-actor.x,target.y-actor.y):Infinity;const roleAllowed=kind==="kill"?(actor.team==="black"||actor.role==="暗殺者"):!!rule?.roles.includes(actor.role);const ready=rule?.once?!actor.abilityUsed:rule?.cooldown?remainingText(actor.role==="インポスター"||actor.team==="black"?actor.killReadyAt:actor.roleReadyAt)===0:true;if(rule&&roleAllowed&&ready&&target&&target.alive&&target.id!==actor.id&&distance<=rule.range&&!(kind==="kill"&&actor.team==="black"&&target.team==="black")&&(kind==="protect"||kind==="disguise"||hasLineOfSight(actor,target))){state.targetAction={kind};selectTarget(target.id)}break}
+  case "target":{const target=state.players.find(p=>p.id===Number(payload.targetId)),kind=String(payload.actionKind||"");const rules={seer:{roles:["占い師"],range:100,once:true},roleKill:{roles:["狩人","保安官"],range:100,once:true},protect:{roles:["僧侶"],range:Infinity,once:true},disguise:{roles:["百面相"],range:Infinity,cooldown:true},scent:{roles:["放浪者"],range:90,cooldown:true},kill:{roles:["インポスター","暗殺者"],range:88,cooldown:true}};const rule=rules[kind],distance=target?Math.hypot(target.x-actor.x,target.y-actor.y):Infinity;const roleAllowed=kind==="kill"?(actor.team==="black"||actor.role==="暗殺者"):!!rule?.roles.includes(actor.role);const ready=kind==="kill"?remainingText(actor.killReadyAt)===0:rule?.once?!actor.abilityUsed:rule?.cooldown?remainingText(actor.roleReadyAt)===0:true;if(rule&&roleAllowed&&ready&&target&&target.alive&&target.id!==actor.id&&distance<=rule.range&&!(kind==="kill"&&actor.team==="black"&&target.team==="black")&&(kind==="protect"||kind==="disguise"||hasLineOfSight(actor,target))){state.targetAction={kind};selectTarget(target.id)}break}
   case "task":{const task=state.tasks.find(t=>t.id===Number(payload.taskId));if(task&&actor.team==="white"&&Math.hypot(task.x-actor.x,task.y-actor.y)<90)completeSharedTask(task,actor);break}
   case "chat":if(state.meeting&&state.meetingPhase==="discussion"&&actor.alive&&String(payload.text||"").length<=180){const msg=String(payload.text).trim();if(msg){appendMeetingMessage(playerTag(actor),msg,"ai",actor);recordMeetingClaim(actor.id,msg);scheduleAITurn(500)}}break;
   case "begin_vote":if(state.meeting&&state.meetingPhase==="discussion")beginVoting();break;
@@ -2102,6 +2102,7 @@ async function enterOnlineRoom(id){
  }catch(e){socialMessage("部屋を開けません："+(e.message||e),true)}
 }
 async function disconnectRoomChannel(){
+ onlinePendingInputs=[];
  if(onlineSnapshotTimer){clearInterval(onlineSnapshotTimer);onlineSnapshotTimer=null}
  if(onlineMoveTimer){clearInterval(onlineMoveTimer);onlineMoveTimer=null}
  const channels=[...(onlineInputChannels||[]),...(onlineUserChannels||[])];
