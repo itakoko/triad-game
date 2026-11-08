@@ -886,7 +886,7 @@ function tick(){
    const hit=state.players.find(v=>v.alive&&v.id!==a.id&&Math.hypot(v.x-a.x,v.y-a.y)<20&&!(a.team==="black"&&v.team==="black"));
    if(hit){killPlayer(hit,a,"突進");if(!a.alive){a.charging=false;return}}
   });
-   if(onlineGame?.isHost){state.players.filter(h=>h.isHuman&&h.alive&&!h.charging).forEach(h=>{const mv=h.id===state.me.id?state.move:(h.remoteMove||{x:0,y:0}),mag=Math.hypot(mv.x,mv.y)||1,speed=3.5,nx=h.x+(mv.x/mag)*speed,ny=h.y+(mv.y/mag)*speed;if(isWalkable(nx,h.y))h.x=nx;if(isWalkable(h.x,ny))h.y=ny})}else if((p.alive||p.ghost)&&!p.charging){let mag=Math.hypot(state.move.x,state.move.y)||1,speed=3.5,nx=p.x+(state.move.x/mag)*speed,ny=p.y+(state.move.y/mag)*speed;if(isWalkable(nx,p.y))p.x=nx;if(isWalkable(p.x,ny))p.y=ny}
+   if(onlineGame?.isHost){state.players.filter(h=>h.isHuman&&h.alive&&!h.charging).forEach(h=>{const mv=h.id===state.me.id?state.move:(h.remoteMove||{x:0,y:0}),mag=Math.hypot(mv.x,mv.y)||1,speed=3.5,nx=h.x+(mv.x/mag)*speed,ny=h.y+(mv.y/mag)*speed;if(isWalkable(nx,h.y))h.x=nx;if(isWalkable(h.x,ny))h.y=ny})}else if(p.alive&&!p.charging){let mag=Math.hypot(state.move.x,state.move.y)||1,speed=3.5,nx=p.x+(state.move.x/mag)*speed,ny=p.y+(state.move.y/mag)*speed;if(isWalkable(nx,p.y))p.x=nx;if(isWalkable(p.x,ny))p.y=ny}
    state.players.filter(p=>p.id!==state.me.id&&!p.isHuman).forEach(a=>{
     if(!a.alive||!a.aiGoal)return;
     while(a.aiPath.length&&Math.hypot(a.aiPath[0][0]-a.x,a.aiPath[0][1]-a.y)<12)a.aiPath.shift();
@@ -1873,7 +1873,7 @@ function handleOnlineInputForUser(userId,payload){
 }
 function startOnlineClient(){
  if(!activeRoomId||!authUser)return;
- setOnlineConnectionStatus(true);spectatorTargetId=null;
+ spectatorTargetId=null;
  onlineGame={roomId:activeRoomId,isHost:false,userId:authUser.id};state.running=true;
  ensureOnlineInputChannel().catch(e=>socialMessage(e.message||String(e),true));
  if(onlineMoveTimer)clearInterval(onlineMoveTimer);let last="";
@@ -1918,7 +1918,7 @@ async function broadcastOnlineSnapshot(){
  }catch(e){console.warn("snapshot send",e)}finally{onlineSnapshotBusy=false}
 }
 async function startOnlineHostSync(){
- setOnlineConnectionStatus(true);onlineGame={roomId:activeRoomId,isHost:true,userId:authUser.id};onlineVotes.clear();onlineMeetingLog=[];onlineGameRevision=0;
+ onlineGame={roomId:activeRoomId,isHost:true,userId:authUser.id};onlineVotes.clear();onlineMeetingLog=[];onlineGameRevision=0;
  const humans=state.players.filter(p=>p.isHuman&&p.userId);
  try{
   await Promise.all(humans.map(p=>ensureOnlineUserChannel(p.userId)));
@@ -1931,7 +1931,7 @@ async function startOnlineHostSync(){
  if(onlineSnapshotTimer)clearInterval(onlineSnapshotTimer);
  onlineSnapshotTimer=setInterval(()=>{broadcastOnlineSnapshot();if(onlineGameRevision%8===0)sendOnlinePrivateStates()},100);
  await broadcastOnlineToUsers("match_start",{host:authUser.id});
- await sendOnlinePrivateStates();await broadcastOnlineSnapshot();
+ await sendOnlinePrivateStates();await broadcastOnlineSnapshot();setOnlineConnectionStatus(true);
 }
 function applyOnlineRenderInterpolation(){
  if(!isOnlineClient())return;const now=performance.now();
@@ -2300,7 +2300,7 @@ async function leaveOnlineRoom(){
 
 function renderUpdateLog(version="0.49"){
  const logs={
-  "0.49":{date:"2026年11月9日",items:["通信が一時切断された場合に接続状態を案内し、復帰後にオンラインルームへ再接続する操作を追加。","脱落後は生存者を切り替えて観戦できるよう変更。観戦カメラと視界は選択中の生存者を基準にし、幽霊の移動・タスク操作を停止。","一度きりの役職能力に残り回数・使用済み状態を明示。オンライン退出時に確認を追加。","勝敗判定の重複実行を防止。"],
+  "0.49":{date:"2026年11月9日",items:["通信が一時切断された場合に接続状態を案内し、復帰後にオンラインルームへ再接続する操作を追加。","脱落後は生存者を切り替えて観戦できるよう変更。観戦カメラと視界は選択中の生存者を基準にし、幽霊の移動・タスク操作を停止。","一度きりの役職能力に残り回数・使用済み状態を明示。オンライン退出時に確認を追加。","勝敗判定の重複実行を防止。"]},
   "0.48":{date:"2026年11月8日",items:["待機室でホスト以外の参加者も部屋ルールと役職構成を確認できる表示欄を追加。","固定人数・自動補充の出現重み・重複可否を陣営別に表示し、ホスト専用の編集欄とは分離。"]},
   "0.47":{date:"2026年11月8日",items:["公開ルームは作成から10分以内に試合が開始されない場合、自動削除するよう変更。","サーバー側で毎分期限切れの公開待機ルームを削除し、公開ルーム一覧にも残らないように修正。"]},
   "0.46":{date:"2026年11月8日",items:["役職ごとの登場ON/OFFを追加。","固定人数とは別に、自動補充時の役職出現重みを追加。","全体の特別モードに加え、役職ごとの重複許可を追加。","オンライン同期の案内文を実装状況に合わせて更新。"]},
