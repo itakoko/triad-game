@@ -1850,7 +1850,7 @@ function startOnlineClient(){
  ensureOnlineInputChannel().catch(e=>socialMessage(e.message||String(e),true));
  if(onlineMoveTimer)clearInterval(onlineMoveTimer);let last="";
  onlineMoveTimer=setInterval(()=>{if(!isOnlineClient())return;const m=state.move||{x:0,y:0},key=m.x.toFixed(2)+","+m.y.toFixed(2);if(key!==last||Math.abs(m.x)+Math.abs(m.y)>.02){last=key;sendOnlineInput({kind:"move",x:m.x,y:m.y})}},80);
- if(loop)clearInterval(loop);loop=setInterval(()=>{if(!isOnlineClient())return;updateNearbyActions();draw()},100);
+ if(loop)clearInterval(loop);loop=setInterval(()=>{if(!isOnlineClient())return;applyOnlineRenderInterpolation();updateNearbyActions();draw()},33);
  if(clock)clearInterval(clock);show("game");startAudio();
 }
 function applyOnlinePrivatePlayer(){
@@ -1901,13 +1901,20 @@ async function startOnlineHostSync(){
   socialMessage("オンライン同期チャンネルを準備できませんでした。部屋を作り直して再試行してください："+(e.message||e),true);throw e;
  }
  if(onlineSnapshotTimer)clearInterval(onlineSnapshotTimer);
- onlineSnapshotTimer=setInterval(()=>{broadcastOnlineSnapshot();if(onlineGameRevision%6===0)sendOnlinePrivateStates()},250);
+ onlineSnapshotTimer=setInterval(()=>{broadcastOnlineSnapshot();if(onlineGameRevision%8===0)sendOnlinePrivateStates()},200);
  await broadcastOnlineToUsers("match_start",{host:authUser.id});
  await sendOnlinePrivateStates();await broadcastOnlineSnapshot();
 }
+function applyOnlineRenderInterpolation(){
+ if(!isOnlineClient())return;const now=performance.now();
+ for(const p of state.players||[]){if(!Number.isFinite(p._netStart))continue;const t=Math.min(1,(now-p._netStart)/Math.max(1,p._netDuration||200));p.x=p._netFromX+(p._netToX-p._netFromX)*t;p.y=p._netFromY+(p._netToY-p._netFromY)*t;if(t>=1){delete p._netStart;delete p._netFromX;delete p._netFromY;delete p._netToX;delete p._netToY;delete p._netDuration}}
+}
 function receiveOnlineSnapshot(payload){
  if(!onlineGame||onlineGame.isHost||!payload?.state||payload.revision<onlineGameRevision)return;onlineGameRevision=payload.revision;
+ const previousPlayers=new Map((state.players||[]).map(p=>[p.id,p]));
  const restored=JSON.parse(JSON.stringify(payload.state),(k,v)=>v&&typeof v==="object"&&Array.isArray(v.__triadSet)?new Set(v.__triadSet):v);
+ const now=performance.now();
+ restored.players=(restored.players||[]).map(p=>{const old=previousPlayers.get(p.id);if(old&&p.userId!==authUser.id&&Number.isFinite(old.x)&&Number.isFinite(old.y)&&Number.isFinite(p.x)&&Number.isFinite(p.y)){p._netFromX=old.x;p._netFromY=old.y;p._netToX=p.x;p._netToY=p.y;p._netStart=now;p._netDuration=200;p.x=old.x;p.y=old.y;}return p});
  state={...restored,map:maps.lab,me:null,aiTurnTimer:null,meetingTimer:null};state.worldWidth=maps.lab.width;state.worldHeight=maps.lab.height;state.running=true;
  state.scentedIds=state.scentedIds instanceof Set?state.scentedIds:new Set();state.me=state.players.find(p=>p.userId===authUser.id)||null;
  if(state.me&&onlinePrivatePlayer)Object.assign(state.me,onlinePrivatePlayer);if(!state.me)return;
