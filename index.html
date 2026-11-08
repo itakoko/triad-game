@@ -244,6 +244,7 @@ canvas#mapCanvas{aspect-ratio:16/10;background:#0b1522}
   <div id="activeRoomInfo" class="muted">部屋情報を読み込み中…</div>
   <p class="muted">※現在はフレンド・部屋作成・待機室・設定まで利用できます。試合中の移動・能力・タスク・会議・チャット・投票はホストを通じて同期します。オンライン役職はホストが割り当て、参加者ごとに非公開配信します。</p>
   <div class="accountSection"><h3>参加者</h3><div id="activeRoomMembers" class="targetList"></div></div>
+  <div class="accountSection" id="roomRulesViewer"><h3>この部屋のルール・役職構成</h3><div id="roomRulesView" class="targetList muted">設定を読み込み中…</div></div>
   <div class="accountSection" id="hostRoomSettings">
    <h3>ホスト設定</h3>
    <div class="row">
@@ -2147,11 +2148,26 @@ async function loadActiveRoom(){
   activeRoomSnapshot=data;renderActiveRoom(data);
  }catch(e){socialMessage("部屋情報を取得できません："+(e.message||e),true)}
 }
+function renderRoomRulesViewer(r){
+ const root=$("roomRulesView");if(!root)return;
+ const settings=r.settings||{},counts=settings.role_counts||{},enabled=settings.role_enabled||{},weights=settings.role_weights||{},duplicates=settings.role_duplicate_allowed||{};
+ const groups=ROLE_CONFIG_GROUPS.map(g=>{
+  const roles=g.roles.filter(role=>(enabled[role]===undefined||!!enabled[role])&&(Number(counts[role])>0||Number(weights[role]??1)>0));
+  const items=roles.map(role=>{
+   const fixed=Math.max(0,Math.floor(Number(counts[role])||0)),weight=Math.max(0,Math.min(100,Number(weights[role]??1)));
+   const duplicate=!!r.special_mode||!!duplicates[role];
+   return '<div class="socialItem"><span>'+escapeAccountText(role)+'</span><span class="pill">固定 '+fixed+'人 ／ 自動重み '+weight+(duplicate?' ／ 重複可':' ／ 重複なし')+'</span></div>';
+  }).join("");
+  return '<div style="margin:10px 0"><b>'+escapeAccountText(g.label)+'</b>'+ (items||'<div class="muted">登場する役職の指定なし（自動補充もOFF）</div>')+'</div>';
+ }).join("");
+ root.innerHTML='<div class="muted">会議時間：'+(Number(settings.meeting_duration)||90)+'秒 ／ 黒陣営：'+(Number(settings.black_count)||2)+'人 ／ 第三陣営：'+(Number(settings.third_count)||0)+'人 ／ AI：'+r.ai_count+'人</div>'+groups+'<div class="muted">固定人数が0人でも、自動補充の重みが1以上の役職は試合時に選ばれる場合があります。</div>';
+}
 function renderActiveRoom(r){
  $("activeRoomCode").textContent=r.join_code;
  const me=r.members.find(m=>m.user_id===authUser.id);
  $("activeRoomInfo").textContent=(r.visibility==="public"?"パブリック":"プライベート")+" ／ 人間 "+r.members.length+"/"+r.max_humans+" ／ AI "+r.ai_count+" ／ "+(r.special_mode?"特別モード（役職重複あり）":"通常モード（役職重複なし）")+" ／ 会議 "+(r.settings?.meeting_duration||90)+"秒";
  $("activeRoomMembers").innerHTML=r.members.map(m=>'<div class="socialItem"><span>'+escapeAccountText(m.display_name)+(m.is_host?' 👑 ホスト':'')+'</span><span class="pill">'+(m.is_ready?'準備完了':'準備中')+'</span></div>').join("");
+ renderRoomRulesViewer(r);
  const isHost=r.host_user_id===authUser.id;
  $("hostRoomSettings").hidden=!isHost;
  $("editRoomMaxHumans").value=String(r.max_humans);$("editRoomAICount").value=String(r.ai_count);
@@ -2188,8 +2204,9 @@ async function leaveOnlineRoom(){
  activeRoomId=null;activeRoomSnapshot=null;await disconnectRoomChannel();show("socialHub");await loadSocialHub();
 }
 
-function renderUpdateLog(version="0.47"){
+function renderUpdateLog(version="0.48"){
  const logs={
+  "0.48":{date:"2026年11月8日",items:["待機室でホスト以外の参加者も部屋ルールと役職構成を確認できる表示欄を追加。","固定人数・自動補充の出現重み・重複可否を陣営別に表示し、ホスト専用の編集欄とは分離。"]},
   "0.47":{date:"2026年11月8日",items:["公開ルームは作成から10分以内に試合が開始されない場合、自動削除するよう変更。","サーバー側で毎分期限切れの公開待機ルームを削除し、公開ルーム一覧にも残らないように修正。"]},
   "0.46":{date:"2026年11月8日",items:["役職ごとの登場ON/OFFを追加。","固定人数とは別に、自動補充時の役職出現重みを追加。","全体の特別モードに加え、役職ごとの重複許可を追加。","オンライン同期の案内文を実装状況に合わせて更新。"]},
   "0.45":{date:"2026年11月8日",items:["オンライン参加者の初期接続中に送られた移動・能力・会議・投票入力を一時キューに保存し、接続後に順番に送信。","公開状態スナップショットと個人用役職情報を分離し、古い個人情報パケットで自分の位置や生死状態が巻き戻る問題を修正。","オンライン参加者から届く対象指定をホスト側で役職・能力回数・クールダウン・距離に基づいて検証。"]},
