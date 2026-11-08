@@ -136,6 +136,34 @@ canvas#mapCanvas{aspect-ratio:16/10;background:#0b1522}
 
 
 
+
+#spectatorControls{position:absolute;left:50%;bottom:12px;transform:translateX(-50%);z-index:6;display:flex;gap:6px;align-items:center;flex-wrap:wrap;justify-content:center;background:#101827ef;border:1px solid #c69cff;border-radius:12px;padding:7px;max-width:96%}
+#spectatorControls[hidden],#deathChoice[hidden]{display:none!important}
+#spectatorTargetNav{display:flex;align-items:center;gap:5px}
+#spectatorTargetNav[hidden]{display:none!important}
+#spectatorTargetName{font-size:12px;white-space:nowrap}
+#deathChoice{position:absolute;inset:0;z-index:9;display:flex;align-items:center;justify-content:center;background:radial-gradient(circle,#251c45dd,#050a14ee);padding:14px}
+.deathChoiceCard{width:min(360px,94%);padding:22px;border:1px solid #d2b4ff;border-radius:20px;background:linear-gradient(155deg,#26314e,#121a2d);box-shadow:0 0 55px #9a6be655;text-align:center}
+.deathChoiceIcon{font-size:38px;color:#d8c4ff;text-shadow:0 0 24px #c69cff}
+.deathChoiceCard h2{margin:8px 0}.deathChoiceCard p{color:#c7d3e4;font-size:14px}
+.deathChoiceCard button{width:100%;margin-top:9px;padding:13px}
+#spectateModeButton.primary,#ghostModeButton.primary{border-color:#d4b7ff;box-shadow:0 0 14px #a77be866}
+
+
+#matchCinematic{position:fixed;inset:0;z-index:10060;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:12px;overflow:hidden;pointer-events:none;background:radial-gradient(ellipse at center,#263c60f5 0%,#10182bf7 48%,#030711fa 100%);animation:cinematicFade 3.1s ease both}
+#matchCinematic:before,#matchCinematic:after{content:"";position:absolute;left:-15%;width:130%;height:2px;background:linear-gradient(90deg,transparent,#a8e9ff,transparent);box-shadow:0 0 24px #8ce8ff;animation:cinematicSweep 1.6s ease both}
+#matchCinematic:before{top:28%}#matchCinematic:after{bottom:28%;animation-delay:.15s}
+#matchCinematic strong{z-index:1;font-size:clamp(38px,10vw,78px);letter-spacing:.24em;color:#fff;text-shadow:0 0 18px #8be5ff,0 0 50px #4b8fff;animation:cinematicPop 1s cubic-bezier(.16,.8,.2,1) both}
+#matchCinematic span{z-index:1;font-size:clamp(15px,3vw,22px);letter-spacing:.2em;color:#d6eaff;animation:cinematicSub 1s .25s both}
+#matchCinematic .cinematicRing{position:absolute;width:min(75vw,460px);aspect-ratio:1;border:1px solid #9ddfff77;border-radius:50%;box-shadow:0 0 45px #5aaaff33,inset 0 0 45px #5aaaff22;animation:cinematicRing 2.8s ease-out both}
+#matchCinematic.win{background:radial-gradient(ellipse at center,#416b73f5 0%,#182b3df7 50%,#030711fa 100%)}
+#matchCinematic.loss{background:radial-gradient(ellipse at center,#693747f5 0%,#2a1b2af7 50%,#030711fa 100%)}
+@keyframes cinematicFade{0%{opacity:0}12%,76%{opacity:1}100%{opacity:0}}
+@keyframes cinematicPop{0%{opacity:0;transform:scale(1.45);filter:blur(12px)}40%{opacity:1;transform:scale(1);filter:blur(0)}100%{opacity:1}}
+@keyframes cinematicSub{0%{opacity:0;transform:translateY(15px)}100%{opacity:1;transform:translateY(0)}}
+@keyframes cinematicRing{0%{transform:scale(.3);opacity:0}35%{opacity:.9}100%{transform:scale(1.5);opacity:0}}
+@keyframes cinematicSweep{0%{transform:scaleX(0);opacity:0}45%{transform:scaleX(1);opacity:1}100%{transform:scaleX(.4);opacity:0}}
+
 #meetingTransition{position:fixed;inset:0;z-index:10050;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:10px;background:radial-gradient(circle at center,#244968f2 0%,#081321f7 68%);pointer-events:none;animation:meetingCurtain 1.25s ease both}
 #meetingTransition strong{font-size:clamp(30px,7vw,58px);letter-spacing:.18em;color:#fff;text-shadow:0 0 22px #68d8ff;animation:meetingTitlePop .75s cubic-bezier(.2,.8,.2,1) both}
 #meetingTransition span{font-size:clamp(13px,2.5vw,18px);color:#ccecff;letter-spacing:.12em}
@@ -282,7 +310,13 @@ canvas#mapCanvas{aspect-ratio:16/10;background:#0b1522}
    <canvas id="mapCanvas" width="640" height="400"></canvas>
    <div class="stickHint">左スティックで移動</div><div class="stickZone" id="stickZone"><div class="stickBase" id="stickBase"><div class="stickKnob" id="stickKnob"></div></div></div>
    <div class="hud"><span id="mapLabel">マップ</span><span id="timer">00:00</span><span id="roleLabel">役職</span></div>
-    <div id="ghostBanner" hidden>👻 観戦モード：生存者を観戦できます</div><div id="spectatorControls" hidden><button type="button" onclick="cycleSpectatorTarget(-1)">◀ 前へ</button><span id="spectatorTargetName">観戦対象</span><button type="button" onclick="cycleSpectatorTarget(1)">次へ ▶</button></div>
+    <div id="ghostBanner" hidden>👻 観戦モード</div>
+   <div id="spectatorControls" hidden>
+    <button type="button" id="spectateModeButton" onclick="setDeathViewMode('spectate')">👁 観戦</button>
+    <button type="button" id="ghostModeButton" onclick="setDeathViewMode('ghost')">👻 幽霊で自由移動</button>
+    <div id="spectatorTargetNav"><button type="button" onclick="cycleSpectatorTarget(-1)">◀ 前へ</button><span id="spectatorTargetName">観戦対象</span><button type="button" onclick="cycleSpectatorTarget(1)">次へ ▶</button></div>
+   </div>
+   <div id="deathChoice" hidden><div class="deathChoiceCard"><div class="deathChoiceIcon">✦</div><h2>死亡しました</h2><p>ここからの行動を選んでください。</p><button class="primary" onclick="setDeathViewMode('spectate')">👁 生存者を観戦する</button><button onclick="setDeathViewMode('ghost')">👻 幽霊として自由に移動する</button></div></div>
   </div>
   <div class="side">
    <div class="card"><div class="muted">あなたの状態</div><div class="stat" id="myStatus">生存</div><div id="myRoleText" class="muted">役職</div></div>
@@ -703,7 +737,7 @@ async function startGame(){
  if(white<1){alert("白陣営が1人以上必要です。");return}
  if(white>9&&!(onlineHost?activeRoomSnapshot?.special_mode:loadOfflineRoleSettings().special_mode)){alert("通常モードの白陣営は最大9人です。特別モードを有効にするか人数を調整してください。");return}
  if(state.aiTurnTimer)clearTimeout(state.aiTurnTimer);
- state.map=maps.lab;state.worldWidth=state.map.width;state.worldHeight=state.map.height;state.players=[];state.dead=[];state.seconds=0;state.done=0;state.total=Math.floor(rand(53,58));state.log=[];state.camera={x:0,y:0};state.bountyIds=[];state.scentedIds=new Set();state.sabotageUntil=0;state.targetAction=null;state.lastDirection={x:1,y:0};state.meetingPhase="";state.selectedVote=null;state.lastBallots=[];state.emergencyMeetingReadyAt=Date.now()+25000;state.meetingClaims=[];state.meetingEvents=[];state.aiTurnCount=0;state.aiTurnTimer=null;state.sightTick=0;state.killEvents=[];
+ state.map=maps.lab;deathViewMode="spectate";deathChoicePending=false;state.worldWidth=state.map.width;state.worldHeight=state.map.height;state.players=[];state.dead=[];state.seconds=0;state.done=0;state.total=Math.floor(rand(53,58));state.log=[];state.camera={x:0,y:0};state.bountyIds=[];state.scentedIds=new Set();state.sabotageUntil=0;state.targetAction=null;state.lastDirection={x:1,y:0};state.meetingPhase="";state.selectedVote=null;state.lastBallots=[];state.emergencyMeetingReadyAt=Date.now()+25000;state.meetingClaims=[];state.meetingEvents=[];state.aiTurnCount=0;state.aiTurnTimer=null;state.sightTick=0;state.killEvents=[];
  const roleSettings=onlineHost?activeRoomSnapshot.settings||{}:loadOfflineRoleSettings(),roleCounts=roleSettings.role_counts||null,special=onlineHost?!!activeRoomSnapshot.special_mode:!!roleSettings.special_mode;let roleQueues;
  try{
   if(onlineHost||special||roleCounts)roleQueues=configuredRoleQueues(roleCounts||{},{white,black,third},special,roleSettings);
@@ -712,7 +746,7 @@ async function startGame(){
  if(!roleQueues.white||!roleQueues.black||(third>0&&!roleQueues.third)){alert("この人数では役職を割り当てられません。役職設定を調整してください。");return}
  await loadAIProfiles();startAudio();
  const teams=shuffle(Array(black).fill("black").concat(Array(third).fill("third"),Array(white).fill("white")));
- const startedAt=Date.now(),profileDeck=shuffle([...aiProfilePool]);gameNameDeck=shuffle([...naturalAINames]);profileDeck.forEach(profile=>{profile.memory={...loadAILongTermMemory(profile.id),...(profile.memory||{})}});
+ const startedAt=Date.now(),profileDeck=shuffle([...aiProfilePool]);state.matchStartedAt=startedAt;gameNameDeck=shuffle([...naturalAINames]);profileDeck.forEach(profile=>{profile.memory={...loadAILongTermMemory(profile.id),...(profile.memory||{})}});
  for(let i=0;i<totalPlayers;i++){
   const member=i<members.length?members[i]:null,aiIndex=i-members.length,isHuman=!!(onlineHost&&member);
   const spawn=isHuman&&member.user_id===authUser.id?[250,250]:randomSpawn(),team=teams[i],profile=member?null:(profileDeck[aiIndex]||null),guestNumber=member&&!member.is_host?members.slice(0,i).filter(m=>!m.is_host).length+1:0;
@@ -727,7 +761,7 @@ async function startGame(){
  state.meetingDuration=onlineHost?Math.max(30,Math.min(300,Number(activeRoomSnapshot.settings?.meeting_duration)||90)):Number($("meetingDuration")?.value)||90;
  $("mapLabel").textContent="マップ：研究施設";$("roleLabel").textContent="役職："+state.me.role;$("myRoleText").textContent="陣営："+teamName(state.me.team)+" ／ 役職："+state.me.role+"。"+roleDescription(state.me);
  $("myStatus").textContent="生存";$("ghostBanner").hidden=true;$("taskCount").textContent="0 / "+state.total;$("taskProgress").style.width="0%";log("研究施設に到着。");
- show("game");state.running=true;updateNearbyActions();draw();clearInterval(loop);clearInterval(clock);loop=setInterval(tick,70);
+ show("game");state.running=true;playMatchCinematic("TRIAD","試合開始","start");playSfx("meeting");updateNearbyActions();draw();clearInterval(loop);clearInterval(clock);loop=setInterval(tick,70);
  clock=setInterval(()=>{if(!state.running)return;state.seconds++;$("timer").textContent=String(Math.floor(state.seconds/60)).padStart(2,"0")+":"+String(state.seconds%60).padStart(2,"0");aiAction();checkWin()},1000);
  startMatchAutosave();
  if(onlineHost)await startOnlineHostSync();else onlineGame=null;
@@ -889,7 +923,7 @@ function recordAISightings(){
 }
 function tick(){
   // Online clients only render host snapshots; they never simulate movement or AI.
-  if(!state.running||state.meeting||(onlineGame&&!onlineGame.isHost))return;let p=state.me;
+  if(!state.running||state.meeting)return;let p=state.me;if(onlineGame&&!onlineGame.isHost){if(!p.alive&&deathViewMode==="ghost")moveGhostPlayer(p);updateNearbyActions();draw();return}
   state.players.filter(a=>a.alive&&a.charging).forEach(a=>{
    const step=11,nx=a.x+a.charge.x*step,ny=a.y+a.charge.y*step;
    if(!isWalkable(nx,ny)){a.charging=false;a.roleReadyAt=Date.now()+20000;return}
@@ -897,7 +931,7 @@ function tick(){
    const hit=state.players.find(v=>v.alive&&v.id!==a.id&&Math.hypot(v.x-a.x,v.y-a.y)<20&&!(a.team==="black"&&v.team==="black"));
    if(hit){killPlayer(hit,a,"突進");if(!a.alive){a.charging=false;return}}
   });
-   if(onlineGame?.isHost){state.players.filter(h=>h.isHuman&&h.alive&&!h.charging).forEach(h=>{const mv=h.id===state.me.id?state.move:(h.remoteMove||{x:0,y:0}),mag=Math.hypot(mv.x,mv.y)||1,speed=3.5,nx=h.x+(mv.x/mag)*speed,ny=h.y+(mv.y/mag)*speed;if(isWalkable(nx,h.y))h.x=nx;if(isWalkable(h.x,ny))h.y=ny})}else if(p.alive&&!p.charging){let mag=Math.hypot(state.move.x,state.move.y)||1,speed=3.5,nx=p.x+(state.move.x/mag)*speed,ny=p.y+(state.move.y/mag)*speed;if(isWalkable(nx,p.y))p.x=nx;if(isWalkable(p.x,ny))p.y=ny}
+   if(onlineGame?.isHost){state.players.filter(h=>h.isHuman&&(h.alive||(h.id===state.me.id&&deathViewMode==="ghost"))&&!h.charging).forEach(h=>{if(!h.alive&&h.id===state.me.id){moveGhostPlayer(h);return}const mv=h.id===state.me.id?state.move:(h.remoteMove||{x:0,y:0}),mag=Math.hypot(mv.x,mv.y)||1,speed=3.5,nx=h.x+(mv.x/mag)*speed,ny=h.y+(mv.y/mag)*speed;if(isWalkable(nx,h.y))h.x=nx;if(isWalkable(h.x,ny))h.y=ny})}else if(p.alive&&!p.charging){let mag=Math.hypot(state.move.x,state.move.y)||1,speed=3.5,nx=p.x+(state.move.x/mag)*speed,ny=p.y+(state.move.y/mag)*speed;if(isWalkable(nx,p.y))p.x=nx;if(isWalkable(p.x,ny))p.y=ny}else if(!p.alive&&deathViewMode==="ghost")moveGhostPlayer(p)
    state.players.filter(p=>p.id!==state.me.id&&!p.isHuman).forEach(a=>{
     if(!a.alive||!a.aiGoal)return;
     while(a.aiPath.length&&Math.hypot(a.aiPath[0][0]-a.x,a.aiPath[0][1]-a.y)<12)a.aiPath.shift();
@@ -915,7 +949,7 @@ function draw(){
  // 表示領域に合わせてカメラ位置を計算する。マップやキャラの実サイズは変更しない。
  const cameraZoom=1.65,viewW=W/cameraZoom,viewH=H/cameraZoom;
  const maxX=Math.max(0,state.worldWidth-viewW),maxY=Math.max(0,state.worldHeight-viewH);
- const spectating=!!(state.me&&!state.me.alive),watchTarget=spectating?(state.players.find(p=>p.id===spectatorTargetId&&p.alive)||state.players.find(p=>p.alive)||state.me):state.me;
+ const spectating=!!(state.me&&!state.me.alive&&deathViewMode==="spectate"),ghostView=!!(state.me&&!state.me.alive&&deathViewMode==="ghost"),watchTarget=spectating?(state.players.find(p=>p.id===spectatorTargetId&&p.alive)||state.players.find(p=>p.alive)||state.me):state.me;
  if(spectating&&watchTarget)spectatorTargetId=watchTarget.id;
  state.camera.x=Math.max(0,Math.min(maxX,watchTarget.x-viewW/2));state.camera.y=Math.max(0,Math.min(maxY,watchTarget.y-viewH/2));
  const spectatorLabel=$("spectatorTargetName");if(spectatorLabel)spectatorLabel.textContent=spectating&&watchTarget?"観戦中："+watchTarget.name:"";
@@ -945,6 +979,7 @@ function draw(){
   const allyView=!spectating&&state.me.team==="black"&&(p.team==="black"||p.role==="狂人");ctx.save();ctx.font="bold 12px system-ui";ctx.textAlign="center";ctx.lineWidth=3.5;ctx.strokeStyle="rgba(0,0,0,.95)";const label=playerTag(p),nw=ctx.measureText(label).width,ct=`(${p.colorName||"色"})`,cw=ctx.measureText(ct).width,sx=p.x-(nw+cw)/2;ctx.fillStyle=allyView?"#ff4545":"#fff";ctx.strokeText(label,sx+nw/2,p.y-19);ctx.fillText(label,sx+nw/2,p.y-19);ctx.fillStyle=p.color;ctx.strokeText(ct,sx+nw+cw/2,p.y-19);ctx.fillText(ct,sx+nw+cw/2,p.y-19);ctx.restore();});
    if(!spectating&&state.me.team==="black")state.players.filter(p=>p.alive&&p.role==="狂人"&&hasLineOfSight(state.me,p)).forEach(p=>{ctx.strokeStyle="#ffc857";ctx.lineWidth=3;ctx.beginPath();ctx.arc(p.x,p.y,16,0,Math.PI*2);ctx.stroke();ctx.fillStyle="#ffe7a8";ctx.font="bold 12px system-ui";ctx.fillText("味方",p.x-13,p.y-19)});
  ctx.restore();
+ if(ghostView)return;
  // v0.11: 暗闇はプレイヤーの視界の外側だけに描画する。
  // 重要：本体の描画キャンバスを destination-out で消さず、別キャンバス上で
  // 暗闇マスクを作ってから重ねる。これによりプレイヤー周辺の床・壁・キャラは
@@ -980,11 +1015,15 @@ function releaseStick(e){if(stickPointer===e.pointerId){stickPointer=null;stopMo
 stickZone.addEventListener("pointerup",releaseStick);stickZone.addEventListener("pointercancel",releaseStick);stickZone.addEventListener("lostpointercapture",()=>{stickPointer=null;stopMove()});
 function updateNearbyActions(){
  if(!state.running||!state.me)return;
- const me=state.me,alive=me.alive,ghost=!alive&&me.ghost,now=Date.now();
- $("spectatorControls").hidden=!ghost;
- $("stickZone").style.display=ghost?"none":"grid";
- if(ghost&&!state.players.some(p=>p.id===spectatorTargetId&&p.alive)){spectatorTargetId=state.players.find(p=>p.alive)?.id??null;}
- $("ghostBanner").textContent=ghost?"👻 観戦モード：生存者を観戦できます":"";
+ const me=state.me,alive=me.alive,dead=!alive,ghost=dead&&deathViewMode==="ghost",now=Date.now();
+ $("spectatorControls").hidden=!dead;
+ $("spectatorTargetNav").hidden=!dead||ghost;
+ $("spectateModeButton").classList.toggle("primary",dead&&!ghost);
+ $("ghostModeButton").classList.toggle("primary",ghost);
+ $("stickZone").style.display=(!dead||ghost)?"grid":"none";
+ if(dead&&!ghost&&!state.players.some(p=>p.id===spectatorTargetId&&p.alive)){spectatorTargetId=state.players.find(p=>p.alive)?.id??null;}
+ $("ghostBanner").textContent=dead?(ghost?"👻 幽霊モード：自由に移動できます":"👁 観戦モード：生存者の視点を見ています"):"";
+ $("deathChoice").hidden=!dead||!deathChoicePending;
  state.nearTask=alive&&me.team==="white"?state.tasks.find(t=>!t.done&&!t.completedBy?.includes(me.id)&&Math.hypot(t.x-me.x,t.y-me.y)<72)||null:null;
  state.nearBody=alive?state.dead.find(d=>Math.hypot(d.x-me.x,d.y-me.y)<82)||null:null;
  state.nearEmergency=alive&&Math.hypot(900-me.x,520-me.y)<82;const emergencyWait=Math.max(0,Math.ceil(((state.emergencyMeetingReadyAt||0)-now)/1000));const emergencyAvailable=state.nearEmergency&&!me.emergencyMeetingUsed&&emergencyWait===0;
@@ -1023,6 +1062,29 @@ function updateNearbyActions(){
  if(me.role==="暗殺者")hints.push(`手配書の対象 ${state.bountyIds.filter(id=>state.players.find(p=>p.id===id)?.alive).length}/3 人が生存`);
  if(state.sabotageUntil>now)hints.push(`停電中 ${remainingText(state.sabotageUntil)}秒`);
  $("nearHint").textContent=hints.join(" ／ ")||"黄色い端末・赤い会議ボタン・死体に近づくと操作できます。";
+}
+function setDeathViewMode(mode){
+ if(!state.me||state.me.alive)return;
+ deathChoicePending=false;
+ deathViewMode=mode==="ghost"?"ghost":"spectate";
+ if(deathViewMode==="spectate"){
+  if(!state.players.some(p=>p.id===spectatorTargetId&&p.alive))spectatorTargetId=state.players.find(p=>p.alive)?.id??null;
+  stopMove();
+ }else{
+  spectatorTargetId=null;
+  state.move=state.move||{x:0,y:0};
+ }
+ $("deathChoice").hidden=true;
+ updateNearbyActions();draw();
+ playMeetingTransition(deathViewMode==="ghost"?"幽霊モード":"観戦モード",deathViewMode==="ghost"?"自由に移動できます":"生存者の視点を切り替えられます");
+}
+function moveGhostPlayer(p){
+ if(!p||p.alive||deathViewMode!=="ghost")return;
+ const mag=Math.hypot(state.move.x,state.move.y)||1;
+ if(!state.move.x&&!state.move.y)return;
+ const speed=4.2;
+ p.x=Math.max(12,Math.min(state.worldWidth-12,p.x+(state.move.x/mag)*speed));
+ p.y=Math.max(12,Math.min(state.worldHeight-12,p.y+(state.move.y/mag)*speed));
 }
 function cycleSpectatorTarget(direction=1){
  if(!state.me||state.me.alive)return;
@@ -1176,8 +1238,8 @@ function markPlayerDead(victim,source="死亡",attacker=null){
   state.killEvents.push({victimId:victim.id,killerId:attacker.id,room:roomNameAt(victim.x,victim.y),at:Date.now(),witnessIds:nearby.filter(p=>Math.hypot(p.x-victim.x,p.y-victim.y)<=88).map(p=>p.id),nearbyIds:nearby.map(p=>p.id)});
  }
  victim.alive=false;victim.ghost=victim.id===state.me?.id;state.dead.push({...victim,alive:false});
- if(victim.id===state.me?.id){state.move={x:0,y:0};stopMove();spectatorTargetId=state.players.find(p=>p.alive&&p.id!==victim.id)?.id??null;}
- if(victim.id===state.me?.id){$("myStatus").textContent="幽霊";$("ghostBanner").hidden=false;showPersonalEffect("death","幽霊になりました",`${source}されました。移動とタスクのみ行えます。`);playSfx("death")}
+ if(victim.id===state.me?.id){state.move={x:0,y:0};stopMove();deathViewMode="spectate";deathChoicePending=true;spectatorTargetId=state.players.find(p=>p.alive&&p.id!==victim.id)?.id??null;$("deathChoice").hidden=false;}
+ if(victim.id===state.me?.id){$("myStatus").textContent="死亡";$("ghostBanner").hidden=false;showPersonalEffect("death","死亡しました","観戦するか、幽霊として自由に移動するか選べます。");playSfx("death")}
  else if(attacker?.id===state.me?.id){showPersonalEffect("kill","キル成功",`${victim.name} を倒しました。`);playSfx("kill")}
  return true;
 }
@@ -1409,7 +1471,7 @@ function addSuspicion(memory,id,amount){
 }
 function recordMeetingClaim(speakerId,text,kind=claimKind(text),truth=null,subjectIds=null){
  const ids=subjectIds||mentionedPlayers(text).map(p=>p.id);
- const claim={speakerId,text,kind,truth,subjectIds:ids,at:Date.now()};state.meetingClaims.push(claim);updateMeetingSummary();
+ const claim={speakerId,text,kind,truth,subjectIds:ids,at:Date.now(),seq:(state.meetingClaims.at(-1)?.seq||0)+1};state.meetingClaims.push(claim);updateMeetingSummary();
  // AIはプレイヤーを含む全員の発言を推理材料として取り込み、確信度を少しずつ更新する。
  state.players.filter(p=>p.alive&&p.id!==0&&!p.isHuman&&p.id!==speakerId).forEach(listener=>{
   const direct=state.meetingEvents.find(e=>e.witnessIds.includes(listener.id));
@@ -1501,37 +1563,68 @@ function buildAIStatement(ai){
 }
 function buildAIResponseToPlayer(ai,claim){
  if(!claim)return null;
- const speaker=state.players.find(p=>p.id===claim.speakerId),named=(claim.subjectIds||[]).map(id=>state.players.find(p=>p.id===id)).filter(Boolean);
- const target=named[0],speakerName=speaker?.name||"参加者",text=claim.text||"";
- const directEvent=state.meetingEvents.find(e=>e.witnessIds.includes(ai.id));
- if(directEvent){
-  const killer=state.players.find(p=>p.id===directEvent.killerId),victim=state.players.find(p=>p.id===directEvent.victimId);
-  if(killer&&victim&&target?.id===killer.id)return {text:`${speakerName}の意見に賛成です。自分も現場で${killer.name}が${victim.name}を攻撃したのを直接見ました。`,kind:"witness",truth:true,subjectIds:[killer.id,victim.id]};
+ const speaker=state.players.find(p=>p.id===claim.speakerId),speakerName=speaker?.name||"参加者",text=String(claim.text||"");
+ const named=(claim.subjectIds||[]).map(id=>state.players.find(p=>p.id===id)).filter(Boolean);
+ const target=named[0]||mentionedPlayers(text)[0]||null;
+ const direct=state.meetingEvents.find(e=>e.witnessIds.includes(ai.id));
+ const recentSightings=Object.entries(ai.aiMemory?.sightings||{}).map(([id,s])=>({person:state.players.find(p=>p.id===Number(id)),...s})).filter(x=>x.person&&Date.now()-Number(x.at||0)<60000).sort((a,b)=>b.at-a.at);
+ const ownRoom=roomNameAt(ai.x,ai.y),ranked=state.players.filter(p=>p.alive&&p.id!==ai.id).map(p=>({p,score:Number(ai.aiMemory?.suspicion?.[p.id]||0)})).sort((a,b)=>b.score-a.score);
+ const top=ranked[0],question=/[?？]|誰|だれ|どこ|いつ|何を|なに|なぜ|どうして|本当|説明|教えて|知ってる|見た|思う|理由/.test(text);
+ const asksWhere=/どこ|場所|どの部屋|どこにいた/.test(text),asksWhen=/いつ|何時|時間/.test(text),asksWhy=/なぜ|どうして|理由|根拠/.test(text),asksWho=/誰|だれ|犯人|怪しい|疑って/.test(text),asksSeen=/何を見|見た|目撃|確認/.test(text);
+ const witnessed=direct?{killer:state.players.find(p=>p.id===direct.killerId),victim:state.players.find(p=>p.id===direct.victimId),room:direct.room,at:direct.at}:null;
+ if(witnessed?.killer&&witnessed?.victim&&(!target||target.id===witnessed.killer.id||asksSeen||asksWho)){
+  const min=Math.max(0,Math.floor((witnessed.at-(state.matchStartedAt||witnessed.at))/1000));
+  return {text:`${speakerName}の質問に答えます。私は現場を直接見ています。${witnessed.room}で${witnessed.killer.name}が${witnessed.victim.name}を攻撃しました。これは推測ではなく、私自身の目撃情報です。時間は試合開始から約${min}秒後です。`,kind:"witness",truth:true,subjectIds:[witnessed.killer.id,witnessed.victim.id]};
  }
  if(target){
+  const sight=recentSightings.find(x=>x.person.id===target.id);
   const suspicion=Number(ai.aiMemory?.suspicion?.[target.id]||0),trust=Number(ai.aiMemory?.trust?.[claim.speakerId]||0);
-  const isAccusation=claim.kind==="accusation"||/怪しい|疑|犯人|黒|投票|追放/.test(text);
-  const isDefense=/アリバイ|一緒にいた|違う|無実|見間違い/.test(text);
-  if(target.id===ai.id&&isAccusation)return {text:`${speakerName}が自分を疑っているのは分かりました。ただ、今の発言だけでは根拠が足りません。自分は別の可能性も考えています。`,kind:"general",truth:null,subjectIds:[ai.id]};
-  if(isDefense&&suspicion>=1)return {text:`${speakerName}の説明は聞きました。${target.name}への疑いは少し弱まりましたが、ほかの証言とも照らし合わせたいです。`,kind:"general",truth:null,subjectIds:[target.id]};
-  if(suspicion>=2.2)return {text:`${speakerName}の意見に賛成です。${target.name}については自分にも気になる情報があります。現時点では${target.name}を最も疑っています。`,kind:"accusation",truth:null,subjectIds:[target.id]};
-  if(suspicion>=0.8||isAccusation)return {text:`${speakerName}が${target.name}を疑う理由は理解しました。自分も少し気になりますが、まだ決め手ではありません。${target.name}の説明を聞いてから投票したいです。`,kind:"general",truth:null,subjectIds:[target.id]};
-  if(trust>0.5)return {text:`${speakerName}の話は参考になります。${target.name}についてはまだ疑いきれませんが、その情報を踏まえて考え直します。`,kind:"general",truth:null,subjectIds:[target.id]};
-  return {text:`${speakerName}の意見は分かりました。ただ、自分の見た範囲では${target.name}を犯人だと断定できません。今のところは保留にします。`,kind:"general",truth:null,subjectIds:[target.id]};
+  const priorClaims=state.meetingClaims.filter(c=>c.speakerId!==ai.id&&(c.subjectIds||[]).includes(target.id)).slice(-3);
+  if(asksWhere){
+   if(sight)return {text:`${speakerName}、${target.name}の場所については、私は${sight.room}で見かけました。確認した時刻は試合開始から約${Math.max(0,Math.floor((sight.at-(state.matchStartedAt||sight.at))/1000))}秒後です。それ以降の移動までは確認できていません。`,kind:"general",truth:null,subjectIds:[target.id]};
+   return {text:`${speakerName}、${target.name}の現在地は確認できていません。私自身は${ownRoom}にいました。見ていない場所を断定することはできません。`,kind:"general",truth:null,subjectIds:[target.id]};
+  }
+  if(asksWhen){
+   if(sight)return {text:`${speakerName}、私が${target.name}を最後に確認したのは試合開始から約${Math.max(0,Math.floor((sight.at-(state.matchStartedAt||sight.at))/1000))}秒後、場所は${sight.room}です。これより後の行動は見ていません。`,kind:"general",truth:null,subjectIds:[target.id]};
+   return {text:`${speakerName}、${target.name}の行動時刻を特定できる記録はありません。時間についてはまだ判断できません。`,kind:"general",truth:null,subjectIds:[target.id]};
+  }
+  if(asksWhy||asksWho||/怪しい|疑|犯人|黒/.test(text)){
+   const reasons=[];
+   if(sight)reasons.push(`自分は${sight.room}で${target.name}を見かけました`);
+   if(priorClaims.length)reasons.push(`会議では「${priorClaims.map(c=>c.text).join("」「")}」という証言が出ています`);
+   if(suspicion>=2)reasons.push("これらを踏まえ、自分の疑いスコアも高くなっています");
+   if(suspicion<1) return {text:`${speakerName}、${target.name}を犯人だと断定できる根拠はまだありません。${reasons.join("。")||"自分が確認できた不審な行動もありません"}。名前が挙がっただけで投票するのは危険だと思います。`,kind:"general",truth:null,subjectIds:[target.id]};
+   return {text:`${speakerName}、${target.name}を疑う理由を説明します。${reasons.join("。")||"会議で出た情報を踏まえて警戒しています"}。ただし、直接キルを見たわけではないので、確定ではありません。本人の説明と他の人の証言も比べて判断したいです。`,kind:"accusation",truth:null,subjectIds:[target.id]};
+  }
+  if(/違う|無実|アリバイ|見間違い|勘違い|一緒にいた/.test(text)){
+   const reduced=Math.max(0,suspicion-0.8);ai.aiMemory.suspicion[target.id]=reduced;
+   return {text:`${speakerName}、説明を聞きました。${target.name}への疑いを${suspicion>0.8?"少し下げました":"強めてはいません"}。ただ、アリバイを裏付ける別の証言はまだ確認できていないので、完全に白と決めずに保留します。`,kind:"general",truth:null,subjectIds:[target.id]};
+  }
+  if(sight)return {text:`${speakerName}、${target.name}について私が直接確認したのは、${sight.room}にいたことです。それ以外の行動は見ていません。${suspicion>=1?"会議で出た証言も合わせると、少し気になっています。":"この情報だけで犯人とは判断できません。"}`,kind:"general",truth:null,subjectIds:[target.id]};
+  return {text:`${speakerName}、${target.name}については自分の目で確認した情報がありません。現時点で断定はできませんが、会議で出た証言を聞いて判断します。`,kind:"general",truth:null,subjectIds:[target.id]};
  }
- const ranked=state.players.filter(p=>p.alive&&p.id!==ai.id).map(p=>({p,score:Number(ai.aiMemory?.suspicion?.[p.id]||0)})).sort((a,b)=>b.score-a.score),top=ranked[0];
- if(top&&top.score>=1.2)return {text:`${speakerName}の話を聞いて考えました。自分は今のところ${top.p.name}が気になっています。${top.score>=2.2?"疑いはやや強めです。":"ただし、まだ確信はありません。"}`,kind:"accusation",truth:null,subjectIds:[top.p.id]};
- if(directEvent){
-  const killer=state.players.find(p=>p.id===directEvent.killerId),victim=state.players.find(p=>p.id===directEvent.victimId);
-  if(killer&&victim)return {text:`${speakerName}の質問に答えます。${directEvent.room}で${killer.name}が${victim.name}を攻撃したのを直接見ました。`,kind:"witness",truth:true,subjectIds:[killer.id,victim.id]};
+ if(question){
+  if(asksWhere)return {text:`${speakerName}、質問に答えます。私は会議直前まで${ownRoom}付近で行動していました。ほかの人の現在地は直接見ていないため、確認できた情報と推測を混同しないようにしたいです。`,kind:"general",truth:null,subjectIds:[]};
+  if(asksSeen&&recentSightings.length){
+   const details=recentSightings.slice(0,3).map(x=>`${x.person.name}を${x.room}で見ました`).join("。");
+   return {text:`${speakerName}、私が直近で直接見たのは次の情報です。${details}。ただし、見かけた後の移動や、その人が何をしていたかまでは確認できていません。`,kind:"witness",truth:true,subjectIds:recentSightings.slice(0,3).map(x=>x.person.id)};
+  }
+  if(asksWho&&top&&top.score>=0.7)return {text:`${speakerName}、今のところ私が最も気にしているのは${top.p.name}です。理由は、会議で出た証言と自分の目撃情報を合わせたとき、行動をもう少し確認する必要があると感じたからです。ただし、決定的な証拠があるわけではありません。`,kind:"accusation",truth:null,subjectIds:[top.p.id]};
+  if(asksWhy&&top)return {text:`${speakerName}、私の考えを説明します。${top.p.name}への疑いが一番高いですが、これは会議中の証言と目撃情報を合わせた暫定判断です。直接見た事実と推測を分けて、追加の証言を聞いてから投票します。`,kind:"general",truth:null,subjectIds:[top.p.id]};
+  return {text:`${speakerName}、質問の内容は理解しました。私が今確実に言えるのは、自分は${ownRoom}付近で行動していたことです。ほかの人の行動については、直接見た情報がある場合だけ答えます。現時点では${top&&top.score>=0.7?top.p.name+"が少し気になっています":"犯人を決められるだけの証拠はありません"}。質問されたことに答えられるよう、確認できた情報を整理しています。`,kind:"general",truth:null,subjectIds:top&&top.score>=0.7?[top.p.id]:[]};
  }
- return {text:`${speakerName}の質問には、今のところ確かな情報で答えられません。ただ、自分は全員の行動を比べて${top?.p.name||"不自然な動きをした人"}を中心に考えています。まだ投票先は決めていません。`,kind:"general",truth:null,subjectIds:top?[top.p.id]:[]};
+ if(target){
+  const suspicion=Number(ai.aiMemory?.suspicion?.[target.id]||0);
+  return {text:`${speakerName}の意見を聞きました。${target.name}については${suspicion>=1?"自分も疑いを持っています":"まだ判断材料が足りません"}。理由は、名前が挙がったことだけでなく、これまでの証言と自分が見た情報を照らし合わせて考えたいからです。別の証言があれば判断を変えるつもりです。`,kind:"general",truth:null,subjectIds:[target.id]};
+ }
+ if(top&&top.score>=1.2)return {text:`${speakerName}の話を踏まえて、自分の推理を説明します。今は${top.p.name}を最も疑っています。会議で出た情報と自分の目撃情報を合わせた暫定判断で、まだ確定ではありません。本人の説明も聞いてから投票します。`,kind:"accusation",truth:null,subjectIds:[top.p.id]};
+ return {text:`${speakerName}、意見は受け取りました。自分は${ownRoom}付近で行動していましたが、今のところ犯人を断定できる目撃情報はありません。誰かの発言だけを鵜呑みにせず、証言の一致や矛盾を確認して投票したいです。`,kind:"general",truth:null,subjectIds:[]};
 }
 function makeAITakeTurn(ai){
  if(!ai||!ai.alive||!state.meeting||state.meetingPhase!=="discussion")return;
- const pendingClaim=state.meetingClaims.slice().reverse().find(c=>c.speakerId!==ai.id&&(!ai.lastRespondedClaimAt||c.at>ai.lastRespondedClaimAt));
+ const pendingClaim=state.meetingClaims.slice().reverse().find(c=>c.speakerId!==ai.id&&(!ai.lastRespondedClaimSeq||c.seq>ai.lastRespondedClaimSeq));
  const statement=pendingClaim?buildAIResponseToPlayer(ai,pendingClaim):buildAIStatement(ai);
- if(pendingClaim)ai.lastRespondedClaimAt=pendingClaim.at;
+ if(pendingClaim)ai.lastRespondedClaimSeq=pendingClaim.seq;
  appendMeetingMessage(playerTag(ai),statement.text,"ai",ai);
  recordMeetingClaim(ai.id,statement.text,statement.kind,statement.truth,statement.subjectIds);
  state.aiTurnCount++;
@@ -1555,6 +1648,12 @@ function sendMeetingMessage(){if(isOnlineClient()){const text=$("meetingChatInpu
  const input=$("meetingChatInput"),text=input.value.trim();if(!text)return;
  appendMeetingMessage(playerTag(state.me),text,"self",state.me);recordMeetingClaim(state.me.id,text);input.value="";
  scheduleAITurn(500);
+}
+function playMatchCinematic(title,subtitle,kind="start"){
+ const old=document.getElementById("matchCinematic");if(old)old.remove();
+ const el=document.createElement("div");el.id="matchCinematic";el.className=kind;
+ el.innerHTML="<div class='cinematicRing'></div><strong>"+escapeMeetingText(title)+"</strong><span>"+escapeMeetingText(subtitle)+"</span>";
+ document.body.appendChild(el);setTimeout(()=>el.remove(),3150);
 }
 function playMeetingTransition(title,subtitle=""){
  const old=document.getElementById("meetingTransition");if(old)old.remove();
@@ -1711,7 +1810,7 @@ function endGame(msg,winners={teams:[]}){
  const humanWon=(winners.roles||[]).includes(state.me.role)||(winners.teams||[]).includes(state.me.team);saveHumanStats(humanWon);
  state.running=false;clearInterval(loop);clearInterval(clock);$("abilityAction").disabled=true;$("killAction").disabled=true;$("sabotageAction").disabled=true;
  const won=(winners.roles||[]).includes(state.me.role)||(winners.teams||[]).includes(state.me.team);
- playSfx(won?"win":"lose");
+ playSfx(won?"win":"lose");playMatchCinematic(won?"VICTORY":"DEFEAT",won?"あなたの陣営が勝利しました":"今回は敗北しました",won?"win":"loss");
  $("gameResultBadge").textContent=won?"あなたの陣営が勝利":"あなたは敗北";
  $("gameResultTitle").textContent=won?"勝利！":"敗北";
  $("gameResultTitle").className=won?"win":"loss";
@@ -1928,7 +2027,7 @@ function applyOnlineRenderInterpolation(){
  for(const p of state.players||[]){if(!Number.isFinite(p._netStart))continue;const t=Math.min(1,(now-p._netStart)/Math.max(1,p._netDuration||200));p.x=p._netFromX+(p._netToX-p._netFromX)*t;p.y=p._netFromY+(p._netToY-p._netFromY)*t;if(t>=1){delete p._netStart;delete p._netFromX;delete p._netFromY;delete p._netToX;delete p._netToY;delete p._netDuration}}
 }
 let onlinePredictionLastAt=0;
-let spectatorTargetId=null,onlineReconnectBusy=false;
+let spectatorTargetId=null,onlineReconnectBusy=false,deathViewMode="spectate",deathChoicePending=false;
 function setOnlineConnectionStatus(connected,message=""){
  const el=$("onlineConnectionBanner");if(!el)return;
  el.classList.toggle("show",!connected);
@@ -2309,8 +2408,9 @@ async function leaveOnlineRoom(){
  activeRoomId=null;activeRoomSnapshot=null;await disconnectRoomChannel();show("socialHub");await loadSocialHub();
 }
 
-function renderUpdateLog(version="0.51"){
+function renderUpdateLog(version="0.52"){
  const logs={
+  "0.52":{date:"2026年11月9日",items:["AIが質問の種類（誰・どこ・いつ・なぜ・何を見たか）を読み取り、目撃情報・会議発言・自分の位置情報を根拠に具体的に回答。","AIが疑いの理由と確信度を説明し、反論やアリバイを受けて疑いを調整。","死亡後に「生存者を観戦」と「幽霊として自由移動」を選択・切替可能に。幽霊は壁を通り抜け、タスクや能力は使用不可。","試合開始と勝敗発表に専用のシネマティック演出を追加。"]},
   "0.51":{date:"2026年11月9日",items:["AIが質問だけで終わらず、プレイヤーの発言を推理材料として取り込み、賛成・反対・疑いの変化を具体的に返すよう改善。","会議開始・投票開始・会議終了に画面全体のトランジション演出を追加。"]},
   "0.50":{date:"2026年11月9日",items:["通常対戦でも役職ごとの固定人数・出現重み・登場ON/OFF・重複許可を設定できるよう追加。設定は端末に保存。","通常対戦でも特別モードを設定でき、役職重複の扱いを選択可能。","通常対戦の脱落後も生存者を切り替えて観戦できるようUIと表示を統一。"]},
   "0.49":{date:"2026年11月9日",items:["通信が一時切断された場合に接続状態を案内し、復帰後にオンラインルームへ再接続する操作を追加。","脱落後は生存者を切り替えて観戦できるよう変更。観戦カメラと視界は選択中の生存者を基準にし、幽霊の移動・タスク操作を停止。","一度きりの役職能力に残り回数・使用済み状態を明示。オンライン退出時に確認を追加。","勝敗判定の重複実行を防止。"]},
