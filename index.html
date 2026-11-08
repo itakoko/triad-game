@@ -692,6 +692,16 @@ function updateAIWhiteTasks(now=Date.now()){
   }else if(!actor.aiGoal||actor.aiGoal.kind!=="task"||actor.aiTaskIndex===null)setAIGoal(actor,station.x,station.y,"task");
  }
 }
+function chooseAICombatSuspect(ai,candidates){
+ const scores=candidates.map(target=>{
+  let score=ai.aiMemory?.suspicion?.[target.id]||0;
+  for(const event of state.killEvents||[]){
+   if(event.killerId===target.id&&event.witnessIds?.includes(ai.id))score+=5;
+  }
+  return {target,score};
+ }).sort((a,b)=>b.score-a.score);
+ return scores.length&&scores[0].score>=1.2?scores[0].target:null;
+}
 function aiAction(){
  if(!state.running||state.meeting)return;
  const now=Date.now();
@@ -725,7 +735,10 @@ function aiAction(){
    const wanted=nearby.filter(p=>state.bountyIds.includes(p.id));
    if(wanted.length){actor.killReadyAt=now+20000;performKill(wanted[0],actor,"暗殺")}
   }else if(actor.role==="狂人"&&now>=actor.killReadyAt&&nearby.length&&Math.random()<.25){actor.killReadyAt=now+30000;performKill(nearby[0],actor,"狂人の攻撃")}
-  else if((actor.role==="狩人"||actor.role==="保安官")&&!actor.abilityUsed&&roleNearby.length&&Math.random()<.12){actor.abilityUsed=true;performKill(nearby[0],actor,"役職能力")}
+  else if((actor.role==="狩人"||actor.role==="保安官")&&!actor.abilityUsed&&roleNearby.length){
+   const suspect=chooseAICombatSuspect(actor,roleNearby);
+   if(suspect&&Math.random()<.22){actor.abilityUsed=true;performKill(suspect,actor,actor.role==="狩人"?"狩人の攻撃":"保安官の攻撃")}
+  }
   else if(actor.role==="僧侶"&&!actor.abilityUsed){const ally=targetCandidates(actor,Infinity,true).find(p=>p.id!==actor.id&&!p.protected);if(ally&&Math.random()<.18){actor.abilityUsed=true;ally.protected=true}}
   else if(actor.role==="放浪者"&&now>=actor.roleReadyAt&&wanderNearby.length){state.scentedIds.add(wanderNearby[0].id);wanderNearby[0].scented=true;actor.roleReadyAt=now+15000}
  });
