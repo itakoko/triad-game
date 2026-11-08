@@ -143,7 +143,7 @@ canvas#mapCanvas{aspect-ratio:16/10;background:#0b1522}
 </style>
 </head>
 <body>
-<header><div class="logo">TRI<span>AD</span></div><div class="row" style="align-items:center;gap:8px;flex:0 0 auto"><div class="tag">オンラインアカウント対応 · AI自動実戦 · v0.37</div><button class="headerAccountButton" type="button" onclick="openAccountsScreen()">アカウント</button></div></header>
+<header><div class="logo">TRI<span>AD</span></div><div class="row" style="align-items:center;gap:8px;flex:0 0 auto"><div class="tag">オンラインアカウント対応 · 連携限定報酬 · v0.38</div><button class="headerAccountButton" type="button" onclick="openAccountsScreen()">アカウント</button></div></header>
 <main>
 <section id="home" class="screen active">
  <div class="hero"><div class="pill">研究施設マップ・探索型推理ゲーム</div><h1>閉鎖された研究所。<br>見えない場所に誰かがいる。</h1><p>部屋と通路を自分で探索し、タスクを進めながら状況を判断します。視界はプレイヤーの周囲に限られます。</p></div>
@@ -151,7 +151,7 @@ canvas#mapCanvas{aspect-ratio:16/10;background:#0b1522}
   <div class="card"><h3>🎮 ゲームを始める</h3><p class="muted">AIと対戦するオフライン試合を開始します。</p><button class="primary" style="width:100%" onclick="show('setup')">試合設定へ</button></div>
   <div class="card"><h3>📘 遊び方</h3><p class="muted">試作版のルールと操作方法を確認します。</p><button style="width:100%" onclick="openHelp()">ルールを見る</button></div>
   <div class="card"><h3>👥 アカウント図鑑</h3><p class="muted">プレイヤーとAIアカウント全員の能力・成績・得意な役職を確認できます。</p><button style="width:100%" onclick="openAccountsScreen()">アカウントを見る</button></div>
-  <div class="card"><h3>📋 アップデートログ</h3><p class="muted">見たいバージョンを選択してください。</p><div class="field"><label for="updateVersionSelect">バージョン</label><select id="updateVersionSelect" onchange="renderUpdateLog(this.value)"><option value="0.37">v0.37（最新）</option><option value="0.36">v0.36</option><option value="0.35">v0.35</option><option value="0.34">v0.34</option><option value="0.33">v0.33</option><option value="0.32">v0.32</option><option value="0.31">v0.31</option><option value="0.29">v0.29</option><option value="0.28">v0.28</option><option value="0.27">v0.27</option><option value="0.26">v0.26</option><option value="0.25">v0.25</option><option value="0.23">v0.23</option></select></div><div id="updateLogContent" class="updateLogContent" aria-live="polite"></div></div>
+  <div class="card"><h3>📋 アップデートログ</h3><p class="muted">見たいバージョンを選択してください。</p><div class="field"><label for="updateVersionSelect">バージョン</label><select id="updateVersionSelect" onchange="renderUpdateLog(this.value)"><option value="0.38">v0.38（最新）</option><option value="0.37">v0.37</option><option value="0.36">v0.36</option><option value="0.35">v0.35</option><option value="0.34">v0.34</option><option value="0.33">v0.33</option><option value="0.32">v0.32</option><option value="0.31">v0.31</option><option value="0.29">v0.29</option><option value="0.28">v0.28</option><option value="0.27">v0.27</option><option value="0.26">v0.26</option><option value="0.25">v0.25</option><option value="0.23">v0.23</option></select></div><div id="updateLogContent" class="updateLogContent" aria-live="polite"></div></div>
  </div>
 </section>
 
@@ -184,7 +184,7 @@ canvas#mapCanvas{aspect-ratio:16/10;background:#0b1522}
 
 <section id="accounts" class="screen">
  <div class="hero"><h1>アカウント図鑑</h1><p>オンラインプレイヤーとAIアカウントのプロフィール、能力、戦績、得意・苦手を確認できます。</p></div>
- <div class="card accountAuthCard"><div class="row" style="justify-content:space-between"><div><h3 style="margin:0">オンラインプレイヤーアカウント</h3><p class="muted">別の端末からも同じアカウントで利用できます。</p></div><span class="pill" id="accountAuthStatus">未ログイン</span></div><div id="accountSignedOut"><div class="field"><label>公開ニックネーム（20文字以内）</label><input id="accountDisplayName" maxlength="20" autocomplete="nickname" placeholder="ゲーム内で表示する名前"></div><div class="field"><label>メールアドレス</label><input id="accountEmail" type="email" autocomplete="email" placeholder="登録用メールアドレス"></div><div class="field"><label>パスワード（8文字以上）</label><input id="accountPassword" type="password" minlength="8" autocomplete="new-password" placeholder="パスワード"></div><div class="row"><button class="primary" onclick="registerOnlineAccount()">新規登録</button><button onclick="loginOnlineAccount()">ログイン</button></div></div><div id="accountSignedIn" hidden><div class="muted" id="accountSignedInText">ログイン中</div><div class="field"><label>公開ニックネームの変更</label><input id="accountNewDisplayName" maxlength="20" placeholder="新しいニックネーム"></div><div class="row"><button onclick="updateOnlineDisplayName()">名前を保存</button><button onclick="logoutOnlineAccount()">ログアウト</button></div></div><p class="muted" id="accountAuthMessage" aria-live="polite">メールアドレスはログイン用です。他のプレイヤーには公開されません。公開されるのはニックネームと戦績です。</p></div>
+ <div class="card accountAuthCard"><div class="row" style="justify-content:space-between"><div><h3 style="margin:0">オンラインプレイヤーアカウント</h3><p class="muted">別の端末からも同じアカウントで利用できます。</p></div><span class="pill" id="accountAuthStatus">未ログイン</span></div><div id="accountSignedOut"><div class="field"><label>公開ニックネーム（20文字以内）</label><input id="accountDisplayName" maxlength="20" autocomplete="nickname" placeholder="ゲーム内で表示する名前"></div><div class="field"><label>メールアドレス</label><input id="accountEmail" type="email" autocomplete="email" placeholder="登録用メールアドレス"></div><div class="field"><label>パスワード（8文字以上）</label><input id="accountPassword" type="password" minlength="8" autocomplete="new-password" placeholder="パスワード"></div><div class="row"><button class="primary" onclick="registerOnlineAccount()">新規登録</button><button onclick="loginOnlineAccount()">ログイン</button></div></div><div id="accountSignedIn" hidden><div class="muted" id="accountSignedInText">ログイン中</div><div class="accountTrait" id="emailLinkRewardStatus" style="margin:10px 0">メール確認状態を確認中…</div><div class="field"><label>公開ニックネームの変更</label><input id="accountNewDisplayName" maxlength="20" placeholder="新しいニックネーム"></div><div class="row"><button onclick="updateOnlineDisplayName()">名前を保存</button><button onclick="logoutOnlineAccount()">ログアウト</button></div></div><p class="muted" id="accountAuthMessage" aria-live="polite">メールアドレスはログイン認証に使われ、他のプレイヤーには公開されません。メール確認済みアカウントには限定称号と限定バッジを付与します。公開されるのはニックネームと戦績です。</p></div>
  <div class="row accountToolbar">
   <div class="field"><label for="accountSearch">名前・IDで検索</label><input id="accountSearch" placeholder="例：ai_001 / ねこもち" oninput="renderAccountList()"></div>
   <div class="field"><label for="accountFilter">表示対象</label><select id="accountFilter" onchange="renderAccountList()"><option value="all">全アカウント</option><option value="ai">AIアカウント</option><option value="player">プレイヤー</option></select></div>
@@ -226,7 +226,7 @@ canvas#mapCanvas{aspect-ratio:16/10;background:#0b1522}
 </section>
 
 </main>
-<footer>TRIAD v0.37 · 研究施設 · AI自動実戦</footer>
+<footer>TRIAD v0.38 · 研究施設 · メール連携限定報酬</footer>
 
   <div class="modal" id="mapModal"><div class="modalbox"><h2>研究施設マップ</h2><canvas id="overviewCanvas" width="900" height="600"></canvas><div class="mapLegend"><span>● あなた　♥ 恋人の相手（恋人のみ）</span><span>● タスク端末</span><span>■ 緊急会議ボタン</span><span>！ 手配書端末</span><span>■ 遮蔽物・チェイスカバー</span><span>× 死体</span></div><button class="primary" style="width:100%" onclick="closeMap()">閉じる</button></div></div>
  <div class="modal" id="targetModal"><div class="modalbox"><h2 id="targetTitle">対象を選択</h2><p id="targetInfo" class="muted"></p><div id="targetList" class="targetList"></div><button style="width:100%" onclick="closeTargetModal()">キャンセル</button></div></div>
@@ -285,7 +285,7 @@ async function loadAIProfiles(){
 
 const $=id=>document.getElementById(id);
 
-let authUser=null,authSubscription=null,onlinePlayerProfiles=[];
+let authUser=null,authSubscription=null,onlinePlayerProfiles=[],emailLinkReward=null;
 function setAccountAuthMessage(message,isError=false){
  const el=$("accountAuthMessage");if(el){el.textContent=message;el.style.color=isError?"#ff9aa2":"var(--muted)"}
 }
@@ -294,10 +294,25 @@ function updateAccountAuthUI(){
  if($("accountAuthStatus"))$("accountAuthStatus").textContent=signedIn?"ログイン中":"未ログイン";
  if($("accountSignedOut"))$("accountSignedOut").hidden=signedIn;
  if($("accountSignedIn"))$("accountSignedIn").hidden=!signedIn;
+ if(!signedIn)emailLinkReward=null;
  if(signedIn){
   const profile=onlinePlayerProfiles.find(p=>p.user_id===authUser.id);
-  if($("accountSignedInText"))$("accountSignedInText").textContent="ログイン中："+(profile?.display_name||authUser.user_metadata?.display_name||"プレイヤー")+"（"+authUser.email+"）";
+  if($("accountSignedInText"))$("accountSignedInText").textContent="ログイン中："+(profile?.display_name||authUser.user_metadata?.display_name||"プレイヤー");
+  if($("emailLinkRewardStatus"))$("emailLinkRewardStatus").textContent=emailLinkReward?.claimed?"🏅 限定称号「リンクパイオニア」・限定バッジを獲得済み":emailLinkReward?.verified===false?"メール確認後に限定報酬を受け取れます。":"メール確認状態を確認中…";
   if($("accountNewDisplayName"))$("accountNewDisplayName").value=profile?.display_name||authUser.user_metadata?.display_name||"";
+ }
+}
+async function refreshEmailLinkReward(){
+ if(!authUser||!supabaseClient){emailLinkReward=null;updateAccountAuthUI();return}
+ try{
+  const {data,error}=await supabaseClient.rpc("claim_email_link_reward");
+  if(error)throw error;
+  emailLinkReward=data||null;
+  updateAccountAuthUI();
+ }catch(error){
+  console.warn("Email-link reward status unavailable",error);
+  emailLinkReward={claimed:false,verified:null};
+  if($("emailLinkRewardStatus"))$("emailLinkRewardStatus").textContent="限定報酬の状態を取得できません。通信後に再確認してください。";
  }
 }
 async function initializeOnlineAccounts(){
@@ -309,13 +324,13 @@ async function initializeOnlineAccounts(){
   if(!authSubscription){
    const result=supabaseClient.auth.onAuthStateChange((_event,session)=>{
     authUser=session?.user||null;updateAccountAuthUI();
-    if(authUser)setTimeout(async()=>{try{await ensureOwnPlayerProfile();await loadOnlinePlayerProfiles();await syncLocalPlayerStatsOnLogin();await loadOnlinePlayerProfiles()}catch(e){console.warn(e)}},0);
+    if(authUser)setTimeout(async()=>{try{await ensureOwnPlayerProfile();await loadOnlinePlayerProfiles();await syncLocalPlayerStatsOnLogin();await loadOnlinePlayerProfiles();await refreshEmailLinkReward()}catch(e){console.warn(e)}},0);
     else {loadOnlinePlayerProfiles().catch(console.warn)}
    });
    authSubscription=result.data.subscription;
   }
   updateAccountAuthUI();
-  if(authUser){await ensureOwnPlayerProfile();await loadOnlinePlayerProfiles();await syncLocalPlayerStatsOnLogin();}
+  if(authUser){await ensureOwnPlayerProfile();await loadOnlinePlayerProfiles();await syncLocalPlayerStatsOnLogin();await refreshEmailLinkReward();}
   await loadOnlinePlayerProfiles();
  }catch(error){console.warn("Online account initialization failed",error);setAccountAuthMessage("オンラインアカウントに接続できません。通信状態を確認して更新してください。",true)}
 }
@@ -344,7 +359,7 @@ async function registerOnlineAccount(){
   const {data,error}=await supabaseClient.auth.signUp({email,password,options:{data:{display_name:displayName}}});
   if(error)throw error;
   if(data.session){
-   authUser=data.user;await ensureOwnPlayerProfile();await loadOnlinePlayerProfiles();await syncLocalPlayerStatsOnLogin();await loadOnlinePlayerProfiles();updateAccountAuthUI();
+   authUser=data.user;await ensureOwnPlayerProfile();await loadOnlinePlayerProfiles();await syncOnlinePlayerStatsOnLogin();await loadOnlinePlayerProfiles();await refreshEmailLinkReward();updateAccountAuthUI();
    setAccountAuthMessage("登録が完了しました。オンラインアカウントにログインしています。");renderAccountList();
   }else{
    setAccountAuthMessage("登録申請を受け付けました。メール確認が必要な設定です。受信メールの案内に従って確認後、ログインしてください。");
@@ -359,12 +374,12 @@ async function loginOnlineAccount(){
   setAccountAuthMessage("ログインしています…");
   const {data,error}=await supabaseClient.auth.signInWithPassword({email,password});
   if(error)throw error;
-  authUser=data.user;await ensureOwnPlayerProfile();await loadOnlinePlayerProfiles();await syncLocalPlayerStatsOnLogin();await loadOnlinePlayerProfiles();updateAccountAuthUI();
+  authUser=data.user;await ensureOwnPlayerProfile();await loadOnlinePlayerProfiles();await syncLocalPlayerStatsOnLogin();await loadOnlinePlayerProfiles();await refreshEmailLinkReward();updateAccountAuthUI();
   setAccountAuthMessage("ログインしました。オンライン戦績を利用できます。");renderAccountList();
  }catch(error){setAccountAuthMessage(error.message||"ログインできませんでした。",true)}
 }
 async function logoutOnlineAccount(){
- try{const {error}=await supabaseClient.auth.signOut();if(error)throw error;authUser=null;updateAccountAuthUI();await loadOnlinePlayerProfiles();renderAccountList();setAccountAuthMessage("ログアウトしました。")}
+ try{const {error}=await supabaseClient.auth.signOut();if(error)throw error;authUser=null;emailLinkReward=null;updateAccountAuthUI();await loadOnlinePlayerProfiles();renderAccountList();setAccountAuthMessage("ログアウトしました。")}
  catch(error){setAccountAuthMessage(error.message||"ログアウトできませんでした。",true)}
 }
 async function updateOnlineDisplayName(){
@@ -1582,8 +1597,9 @@ function renderAccountDetail(id){
  renderAccountList();
 }
 
-function renderUpdateLog(version="0.37"){
+function renderUpdateLog(version="0.38"){
  const logs={
+  "0.38":{date:"2026年11月8日",items:["メール確認済みのオンラインアカウントに限定称号「リンクパイオニア」と限定バッジを付与。","報酬はサーバー側で本人のメール確認状態を検証して一度だけ付与。","アカウント画面に報酬状態を表示し、他プレイヤーにメールアドレスを表示しないようログイン表示を修正。"]},
   "0.37":{date:"2026年11月8日",items:["AIアカウント200体から12体ずつ参加するAI同士の自動実戦を追加。10分ごとに3試合を実行。","タスク進行・役職行動・目撃情報・会議・投票・陣営勝利条件を含む複数ラウンドの試合を実行し、結果をサーバーへ保存。","AI同士の実戦数・実戦勝利数をアカウント詳細に表示。能力値も試合結果と役職に応じて成長。","ログイン時にこの端末に残っているプレイヤー戦績をオンラインプロフィールへ引き継ぐ処理を追加。"]},
   "0.36":{date:"2026年11月8日",items:["アカウント画面を直接開く専用処理を追加し、ホームとヘッダーの両方から移動できるよう修正。","オンライン登録・ログイン・ログアウトとプレイヤー一覧の読み込み状態を改善。","通信失敗時も画面が空白にならず、再読み込み案内を表示。"]},
   "0.35":{date:"2026年11月8日",items:["アカウント図鑑の画面配置と関数の配置を修正。","オンラインプレイヤーアカウント登録・ログイン・ログアウトを追加。","公開ニックネームと戦績をサーバーに保存し、プレイヤー一覧に表示。"]},
