@@ -668,7 +668,7 @@ async function startOnlineMatch(){
  const black=Math.max(1,Number(activeRoomSnapshot.settings?.black_count)||1),third=Math.max(0,Number(activeRoomSnapshot.settings?.third_count)||0),white=total-black-third;
  if(total>30){alert("人間とAIの合計は30人以下にしてください。");return}
  if(white<1){alert("白陣営が1人以上必要です。");return}
- try{const counts=activeRoomSnapshot.settings?.role_counts;if(activeRoomSnapshot.special_mode||(counts&&Object.values(counts).some(v=>Number(v)>0)))configuredRoleQueues(counts||{},{white,black,third},!!activeRoomSnapshot.special_mode);else if(!makeRoles("white",white)||!makeRoles("black",black)||(third>0&&!makeRoles("third",third,white)))throw new Error("この人数では役職を割り当てられません。役職人数を調整してください。")}
+ try{const settings=activeRoomSnapshot.settings||{};configuredRoleQueues(settings.role_counts||{},{white,black,third},!!activeRoomSnapshot.special_mode,settings)}
  catch(e){alert(e.message||"役職設定を確認してください。");return}
  try{const {error}=await supabaseClient.rpc("start_game_room",{p_room:activeRoomId});if(error)throw error;await loadActiveRoom();await startGame()}
  catch(e){alert("試合を開始できません："+(e.message||e))}
