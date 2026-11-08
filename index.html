@@ -216,7 +216,7 @@ let loop=null,clock=null;
 const colorNames=["赤","赤橙","朱色","橙","黄橙","金","黄","黄緑","若草","緑","深緑","青緑","碧","水色","空色","青","瑠璃","藍","紺","青紫","紫","菫","赤紫","桃","桜","珊瑚","紅","栗","茶","灰白"];
 function hueColor(h){const a=document.createElement("canvas").getContext("2d");a.fillStyle=`hsl(${h},78%,62%)`;return a.fillStyle}
 const colors=Array.from({length:30},(_,i)=>hueColor(i*12));
-function fallbackAIName(index){const a=["蒼月","白夜","黒猫","星屑","桜花","紅蓮","流星","夜空","銀河","風鈴","月影","雪兎","狐火","青空","深海","雷鳴","陽炎","雲雀","琥珀","水鏡"],b=["の旅人","の観測者","の守護者","の探検家","の狙撃手","の研究員","の剣士","の案内人","の挑戦者","の放浪者"];return a[Math.floor((index-1)/10)%a.length]+b[(index-1)%10]}
+const naturalAINames=["あおい","れん","みなと","そら","ゆう","はる","りく","なぎ","しおん","りつ","こはく","つむぎ","ひなた","ゆず","すず","とうま","せな","あさひ","ましろ","かい","いおり","さくら","かなで","るか","あき","なお","みお","あん","ふう","けい"];let gameNameDeck=[];function fallbackAIName(index){return gameNameDeck[index-1]||naturalAINames[(index-1)%naturalAINames.length]}function playerTag(p){return `#${String(p.number||p.id+1).padStart(2,"0")} ${p.name}`}
 function show(id){document.querySelectorAll(".screen").forEach(s=>s.classList.remove("active"));$(id).classList.add("active")}
 function log(t){}
 function rand(a,b){return Math.random()*(b-a)+a}
@@ -254,8 +254,8 @@ async function startGame(){
   startAudio();
  let teams=shuffle(Array(black).fill("black").concat(Array(third).fill("third"),Array(white).fill("white")));
  const roleQueues={white:[...roleAssignments.white],black:[...roleAssignments.black],third:[...(roleAssignments.third||[])]};
-  const startedAt=Date.now(),profileDeck=shuffle([...aiProfilePool]);profileDeck.forEach(profile=>{profile.memory=loadAILongTermMemory(profile.id)});
-     for(let i=0;i<ai+1;i++){let spawn=i===0?[250,250]:randomSpawn();let team=teams[i],profile=i===0?null:(profileDeck[i-1]||null);let p={id:i,name:i===0?"あなた":(profile?.display_name||fallbackAIName(i)),team,role:roleQueues[team].pop(),aiProfile:profile,alive:true,ghost:false,x:spawn[0],y:spawn[1],color:colors[i%colors.length],colorName:colorNames[i%colorNames.length],shape:i%4,taskCount:0,partnerId:null,protected:false,abilityUsed:false,roleReadyAt:startedAt,killReadyAt:startedAt+(team==="black"?30000:0),sabotageReadyAt:startedAt+(team==="black"?35000:0),emergencyReadyAt:startedAt+rand(30000,65000),aiNextGoalAt:startedAt+rand(2500,8000),aiNextTaskAt:startedAt+rand(3500,6500),aiTaskIndex:null,aiGoal:null,aiPath:[],disguiseId:null,disguiseUntil:0,charging:false,charge:{x:0,y:0},scented:false,aiMemory:{suspicion:{},trust:{},sightings:{}}};state.players.push(p)}
+  const startedAt=Date.now(),profileDeck=shuffle([...aiProfilePool]);gameNameDeck=shuffle([...naturalAINames]);profileDeck.forEach(profile=>{profile.memory=loadAILongTermMemory(profile.id)});
+     for(let i=0;i<ai+1;i++){let spawn=i===0?[250,250]:randomSpawn();let team=teams[i],profile=i===0?null:(profileDeck[i-1]||null);let p={id:i,name:i===0?"あなた":fallbackAIName(i),number:i+1,team,role:roleQueues[team].pop(),aiProfile:profile,alive:true,ghost:false,x:spawn[0],y:spawn[1],color:colors[i%colors.length],colorName:colorNames[i%colorNames.length],shape:i%4,taskCount:0,partnerId:null,protected:false,abilityUsed:false,roleReadyAt:startedAt,killReadyAt:startedAt+(team==="black"?30000:0),sabotageReadyAt:startedAt+(team==="black"?35000:0),emergencyReadyAt:startedAt+rand(30000,65000),aiNextGoalAt:startedAt+rand(2500,8000),aiNextTaskAt:startedAt+rand(3500,6500),aiTaskIndex:null,aiGoal:null,aiPath:[],disguiseId:null,disguiseUntil:0,charging:false,charge:{x:0,y:0},scented:false,aiMemory:{suspicion:{},trust:{},sightings:{}}};state.players.push(p)}
  state.me=state.players[0];
   const lovers=state.players.filter(p=>p.role==="恋人");
   if(lovers.length===2){lovers[0].partnerId=lovers[1].id;lovers[1].partnerId=lovers[0].id}
@@ -472,7 +472,7 @@ function draw(){
  // visible corpses at their last positions
   state.dead.forEach(d=>{if(!hasLineOfSight(state.me,d))return;ctx.save();ctx.translate(d.x,d.y);ctx.rotate(-.35);ctx.fillStyle="#b9c5d0";ctx.fillRect(-18,-9,36,18);ctx.fillStyle="#7d3037";ctx.fillRect(-4,-9,8,18);ctx.restore()});
      state.players.forEach(p=>{if((!p.alive&&p.id!==state.me.id)||(p.id!==state.me.id&&!hasLineOfSight(state.me,p)))return;let look=p;if(p.disguiseId!==null&&p.disguiseUntil>Date.now()){look=state.players.find(x=>x.id===p.disguiseId)||p}ctx.save();ctx.globalAlpha=p.alive?1:.38;ctx.translate(p.x,p.y);ctx.fillStyle=p.alive?look.color:"#d9c7ff";ctx.strokeStyle=p.id===0?"#ffffff":"#0c1726";ctx.lineWidth=p.id===0?4:2;ctx.beginPath();if(look.shape===0)ctx.ellipse(0,0,9,11,0,0,Math.PI*2);else if(look.shape===1)ctx.ellipse(0,0,11,8,0,0,Math.PI*2);else if(look.shape===2){ctx.moveTo(0,-11);ctx.quadraticCurveTo(12,-8,9,5);ctx.quadraticCurveTo(0,14,-9,5);ctx.quadraticCurveTo(-12,-8,0,-11)}else ctx.roundRect(-9,-10,18,20,5);ctx.fill();ctx.stroke();ctx.fillStyle="#13243a";ctx.beginPath();ctx.arc(-3,-2,1.5,0,7);ctx.arc(3,-2,1.5,0,7);ctx.fill();if(!p.alive){ctx.fillStyle="#f2e5ff";ctx.font="bold 11px system-ui";ctx.fillText("幽霊", -13, -16)}ctx.restore();
-  const allyView=state.me.team==="black"&&(p.team==="black"||p.role==="狂人");ctx.save();ctx.font="bold 12px system-ui";ctx.textAlign="center";ctx.lineWidth=3.5;ctx.strokeStyle="rgba(0,0,0,.95)";const nw=ctx.measureText(p.name).width,ct=`(${p.colorName||"色"})`,cw=ctx.measureText(ct).width,sx=p.x-(nw+cw)/2;ctx.fillStyle=allyView?"#ff4545":"#fff";ctx.strokeText(p.name,sx+nw/2,p.y-19);ctx.fillText(p.name,sx+nw/2,p.y-19);ctx.fillStyle=p.color;ctx.strokeText(ct,sx+nw+cw/2,p.y-19);ctx.fillText(ct,sx+nw+cw/2,p.y-19);ctx.restore();});
+  const allyView=state.me.team==="black"&&(p.team==="black"||p.role==="狂人");ctx.save();ctx.font="bold 12px system-ui";ctx.textAlign="center";ctx.lineWidth=3.5;ctx.strokeStyle="rgba(0,0,0,.95)";const label=playerTag(p),nw=ctx.measureText(label).width,ct=`(${p.colorName||"色"})`,cw=ctx.measureText(ct).width,sx=p.x-(nw+cw)/2;ctx.fillStyle=allyView?"#ff4545":"#fff";ctx.strokeText(label,sx+nw/2,p.y-19);ctx.fillText(label,sx+nw/2,p.y-19);ctx.fillStyle=p.color;ctx.strokeText(ct,sx+nw+cw/2,p.y-19);ctx.fillText(ct,sx+nw+cw/2,p.y-19);ctx.restore();});
    if(state.me.team==="black")state.players.filter(p=>p.alive&&p.role==="狂人"&&hasLineOfSight(state.me,p)).forEach(p=>{ctx.strokeStyle="#ffc857";ctx.lineWidth=3;ctx.beginPath();ctx.arc(p.x,p.y,16,0,Math.PI*2);ctx.stroke();ctx.fillStyle="#ffe7a8";ctx.font="bold 12px system-ui";ctx.fillText("味方",p.x-13,p.y-19)});
  ctx.restore();
  // v0.11: 暗闇はプレイヤーの視界の外側だけに描画する。
@@ -594,13 +594,13 @@ function targetCandidates(actor,range,allowSelf=false,filter=()=>true){return st
 function openTargetSelection(title,info,targets,kind){
  if(!targets.length){alert("近くに対象がいません。");return}
  state.targetAction={kind};$("targetTitle").textContent=title;$("targetInfo").textContent=info;
- $("targetList").innerHTML=targets.map(p=>`<button onclick="selectTarget(${p.id})"><span class="dot" style="background:${p.color}"></span> ${p.name}${p.protected?"（加護中）":""}</button>`).join("");
+ $("targetList").innerHTML=targets.map(p=>`<button onclick="selectTarget(${p.id})"><span class="dot" style="background:${p.color}"></span> ${playerTag(p)}${p.protected?"（加護中）":""}</button>`).join("");
  $("targetModal").classList.add("show");
 }
 function closeTargetModal(){$("targetModal").classList.remove("show");state.targetAction=null}
 function showSeerResult(target){
  const colors={white:"#72e3df",black:"#ff858b",third:"#c69cff"};
- $("seerTargetName").textContent="占った相手："+target.name;
+ $("seerTargetName").textContent="占った相手："+playerTag(target);
  $("seerFactionValue").textContent=teamName(target.team)+" 陣営";
  $("seerFactionValue").style.border="2px solid "+colors[target.team];
  $("seerResultModal").classList.add("show");
@@ -855,7 +855,7 @@ function buildAIStatement(ai){
 }
 function makeAITakeTurn(ai){
  const statement=buildAIStatement(ai);
- appendMeetingMessage(ai.name,statement.text,"ai");
+ appendMeetingMessage(playerTag(ai),statement.text,"ai");
  recordMeetingClaim(ai.id,statement.text,statement.kind,statement.truth,statement.subjectIds);
  state.aiTurnCount++;
 }
@@ -873,7 +873,7 @@ function scheduleAITurn(delay=2400){
 function sendMeetingMessage(){
  if(!state.meeting||state.meetingPhase!=="discussion"||!state.me.alive)return;
  const input=$("meetingChatInput"),text=input.value.trim();if(!text)return;
- appendMeetingMessage(state.me.name,text,"self");recordMeetingClaim(state.me.id,text);input.value="";
+ appendMeetingMessage(playerTag(state.me),text,"self");recordMeetingClaim(state.me.id,text);input.value="";
  scheduleAITurn(700);
 }
 function callMeeting(message="会議が招集されました。",caller=state.me){
@@ -903,7 +903,7 @@ function beginVoting(){
  state.selectedVote=state.me.alive?null:"ghost";$("selectedVoteText").textContent=state.me.alive?"投票先：未選択":"👻 幽霊は投票できません";$("submitVoteAction").disabled=state.me.alive;$("submitVoteAction").textContent=state.me.alive?"投票を確定":"AIの投票結果を表示";
  $("voteResult").textContent="";$("voteBreakdown").textContent="";$("ballotBreakdown").textContent="";
  const alive=state.players.filter(p=>p.alive);
- $("voteList").innerHTML=alive.map(p=>`<button data-vote-id="${p.id}" onclick="castVote(${p.id})"><span class="dot" style="background:${p.color}"></span>${p.name}<small style="color:${p.color}">(${p.colorName||"色"})</small></button>`).join("");
+ $("voteList").innerHTML=alive.map(p=>`<button data-vote-id="${p.id}" onclick="castVote(${p.id})"><span class="dot" style="background:${p.color}"></span>${playerTag(p)}<small style="color:${p.color}">(${p.colorName||"色"})</small></button>`).join("");
  if(!state.me.alive)$("voteList").querySelectorAll("button").forEach(b=>b.disabled=true);
 }
 function openMap(){if(!state.running||!state.me.alive)return;drawOverview();$("mapModal").classList.add("show")}
@@ -917,11 +917,11 @@ function drawOverview(canvasId="overviewCanvas"){
   if(state.bountyIds.length){ctx.fillStyle="#d8a7f4";ctx.beginPath();ctx.arc(1344,494,22,0,Math.PI*2);ctx.fill();ctx.fillStyle="#21142b";ctx.font="bold 23px system-ui";ctx.fillText("!",1337,503)}
   state.players.filter(p=>p.alive).forEach(p=>{ctx.fillStyle=p.color;ctx.beginPath();ctx.arc(p.x,p.y,18,0,Math.PI*2);ctx.fill();ctx.strokeStyle="#101820";ctx.lineWidth=6;ctx.stroke();ctx.strokeStyle="#fff";ctx.lineWidth=2;ctx.stroke()});ctx.restore();
 }
-function renderMeetingAliveList(){const alive=state.players.filter(p=>p.alive);$("meetingAliveSummary").textContent=`生存者：${alive.length}人 / ${state.players.length}人`;$("meetingAliveList").innerHTML=alive.map(p=>`<div class="meetingAliveItem"><span class="dot" style="background:${p.color}"></span><span>${p.name}</span><small style="color:${p.color}">(${p.colorName||"色"})</small></div>`).join("")}
+function renderMeetingAliveList(){const alive=state.players.filter(p=>p.alive);$("meetingAliveSummary").textContent=`生存者：${alive.length}人 / ${state.players.length}人`;$("meetingAliveList").innerHTML=alive.map(p=>`<div class="meetingAliveItem"><span class="dot" style="background:${p.color}"></span><span>${playerTag(p)}</span><small style="color:${p.color}">(${p.colorName||"色"})</small></div>`).join("")}
 function castVote(id){
  if(!state.meeting||state.meetingPhase!=="voting"||!state.me.alive)return;
  const target=state.players.find(p=>p.id===Number(id)&&p.alive);if(!target)return;
- state.selectedVote=target.id;$("selectedVoteText").textContent="投票先："+target.name;$("submitVoteAction").disabled=false;
+ state.selectedVote=target.id;$("selectedVoteText").textContent="投票先："+playerTag(target);$("submitVoteAction").disabled=false;
  $("voteList").querySelectorAll("button").forEach(b=>b.classList.toggle("selected",Number(b.dataset.voteId)===target.id));
 }
 function skipVote(){
@@ -1014,7 +1014,7 @@ function endGame(msg,winners={teams:[]}){
  $("gameResultTitle").className=won?"win":"loss";
  $("gameResultReason").textContent=msg;
  $("gameResultDetail").textContent=`あなた：${teamName(state.me.team)}「${state.me.role}」／ ${state.me.alive?"生存":"幽霊"}`;
- $("roleReveal").innerHTML=state.players.map(p=>`<div class="pill"><span class="dot" style="background:${p.color}"></span> ${p.name} — ${teamName(p.team)}「${p.role}」${p.alive?"":"（死亡）"}</div>`).join("");
+ $("roleReveal").innerHTML=state.players.map(p=>`<div class="pill"><span class="dot" style="background:${p.color}"></span> ${playerTag(p)} — ${teamName(p.team)}「${p.role}」${p.alive?"":"（死亡）"}</div>`).join("");
  $("gameOverModal").classList.add("show");
 }
 function endToHome(){if(state.running)saveAILongTermMemories({teams:[]},true);state.running=false;clearInterval(loop);clearInterval(clock);stopMove();stopBGM();document.querySelectorAll(".modal").forEach(m=>m.classList.remove("show"));show("home")}
