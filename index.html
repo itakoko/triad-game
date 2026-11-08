@@ -690,7 +690,7 @@ async function startGame(){
  if(white<1){alert("白陣営が1人以上必要です。");return}
  if(white>9&&!activeRoomSnapshot?.special_mode){alert("通常モードの白陣営は最大9人です。人数を調整してください。");return}
  if(state.aiTurnTimer)clearTimeout(state.aiTurnTimer);
- state.map=maps.lab;state.worldWidth=state.map.width;state.worldHeight=state.map.height;state.players=[];state.dead=[];state.seconds=0;state.done=0;state.total=Math.floor(rand(53,58));state.log=[];state.camera={x:0,y:0};state.bountyIds=[];state.scentedIds=new Set();state.sabotageUntil=0;state.targetAction=null;state.lastDirection={x:1,y:0};state.meetingPhase="";state.selectedVote=null;state.lastBallots=[];state.emergencyMeetingReadyAt=startedAt+25000;state.meetingClaims=[];state.meetingEvents=[];state.aiTurnCount=0;state.aiTurnTimer=null;state.sightTick=0;state.killEvents=[];
+ state.map=maps.lab;state.worldWidth=state.map.width;state.worldHeight=state.map.height;state.players=[];state.dead=[];state.seconds=0;state.done=0;state.total=Math.floor(rand(53,58));state.log=[];state.camera={x:0,y:0};state.bountyIds=[];state.scentedIds=new Set();state.sabotageUntil=0;state.targetAction=null;state.lastDirection={x:1,y:0};state.meetingPhase="";state.selectedVote=null;state.lastBallots=[];state.emergencyMeetingReadyAt=Date.now()+25000;state.meetingClaims=[];state.meetingEvents=[];state.aiTurnCount=0;state.aiTurnTimer=null;state.sightTick=0;state.killEvents=[];
  const roleSettings=onlineHost?activeRoomSnapshot.settings||{}:{},roleCounts=roleSettings.role_counts||null,special=onlineHost&&!!activeRoomSnapshot.special_mode;let roleQueues;
  try{
   if(onlineHost||special||(roleCounts&&Object.values(roleCounts).some(v=>Number(v)>0)))roleQueues=configuredRoleQueues(roleCounts||{},{white,black,third},special,roleSettings);
