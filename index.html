@@ -1563,6 +1563,7 @@ function sendMeetingMessage(){if(isOnlineClient()){const text=$("meetingChatInpu
 function callMeeting(message="会議が招集されました。",caller=state.me){
  if(onlineGame?.isHost){onlineMeetingLog=[];onlineLastChatSignature="";onlineVotes.clear()}
  if(!state.running||state.meeting||!caller?.alive)return;
+ if(String(message).includes("緊急会議ボタン"))caller.emergencyMeetingUsed=true;
  playSfx("meeting");
  if(state.aiTurnTimer)clearTimeout(state.aiTurnTimer);
  state.meeting=true;state.meetingPhase="discussion";state.selectedVote=null;state.lastBallots=[];state.meetingClaims=[];state.aiTurnCount=0;state.aiSpokenIds=[];state.meetingDuration=onlineGame?.isHost?Math.max(30,Math.min(300,state.meetingDuration||90)):Math.max(30,Math.min(300,Number($("meetingDuration")?.value)||90));
@@ -1667,6 +1668,7 @@ function submitVote(){if(isOnlineClient()){if(state.selectedVote!==null&&!state.
 }
 function closeMeeting(){if(isOnlineClient()){sendOnlineInput({kind:"action",action:"close_meeting"});return}stopMeetingTimer();
  if(!state.meeting||!state.lastBallots.length)return;
+ state.emergencyMeetingReadyAt=Date.now()+25000;
  $("meetingModal").classList.remove("show");
  if(state.running)respawnLivingPlayers();
  state.dead=[];
