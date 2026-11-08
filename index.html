@@ -135,6 +135,15 @@ canvas#mapCanvas{aspect-ratio:16/10;background:#0b1522}
 }
 
 
+
+#meetingTransition{position:fixed;inset:0;z-index:10050;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:10px;background:radial-gradient(circle at center,#244968f2 0%,#081321f7 68%);pointer-events:none;animation:meetingCurtain 1.25s ease both}
+#meetingTransition strong{font-size:clamp(30px,7vw,58px);letter-spacing:.18em;color:#fff;text-shadow:0 0 22px #68d8ff;animation:meetingTitlePop .75s cubic-bezier(.2,.8,.2,1) both}
+#meetingTransition span{font-size:clamp(13px,2.5vw,18px);color:#ccecff;letter-spacing:.12em}
+#meetingTransition .line{width:min(72vw,440px);height:3px;background:linear-gradient(90deg,transparent,#78e5ff,transparent);box-shadow:0 0 18px #78e5ff;animation:meetingLine .9s ease both}
+@keyframes meetingCurtain{0%{opacity:0}12%,72%{opacity:1}100%{opacity:0}}
+@keyframes meetingTitlePop{0%{opacity:0;transform:scale(1.35);filter:blur(8px)}35%{opacity:1;transform:scale(1);filter:blur(0)}100%{opacity:1}}
+@keyframes meetingLine{0%{transform:scaleX(0);opacity:0}45%{transform:scaleX(1);opacity:1}100%{transform:scaleX(.65);opacity:.5}}
+
 .meetingTimerBar{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:8px 11px;margin:9px 0;background:#152b40;border:1px solid #55718c;border-radius:10px;font-weight:800}
 #meetingTimeLeft{font-variant-numeric:tabular-nums;font-size:20px;color:#ffe08a}
 .meetingSummary{margin:10px 0;padding:11px;background:#142638;border:1px solid #5a7891;border-radius:11px}
@@ -154,7 +163,7 @@ canvas#mapCanvas{aspect-ratio:16/10;background:#0b1522}
   <div class="card"><h3>🌐 オンライン対戦</h3><p class="muted">フレンドと遊ぶ・公開ルームを探す・AI人数や特別ルールを設定。</p><button class="primary" style="width:100%" onclick="openSocialHub()">オンラインロビーへ</button></div>
   <div class="card"><h3>📘 遊び方</h3><p class="muted">試作版のルールと操作方法を確認します。</p><button style="width:100%" onclick="openHelp()">ルールを見る</button></div>
   <div class="card"><h3>👥 アカウント図鑑</h3><p class="muted">プレイヤーとAIアカウント全員の能力・成績・得意な役職を確認できます。</p><button style="width:100%" onclick="openAccountsScreen()">アカウントを見る</button></div>
-  <div class="card"><h3>📋 アップデートログ</h3><p class="muted">見たいバージョンを選択してください。</p><div class="field"><label for="updateVersionSelect">バージョン</label><select id="updateVersionSelect" onchange="renderUpdateLog(this.value)"><option value="0.50">v0.50（最新）</option><option value="0.49">v0.49</option><option value="0.48">v0.48</option><option value="0.44">v0.44</option><option value="0.43">v0.43</option><option value="0.42">v0.42</option><option value="0.41">v0.41</option><option value="0.40">v0.40</option><option value="0.39">v0.39</option><option value="0.38">v0.38</option><option value="0.37">v0.37</option><option value="0.36">v0.36</option><option value="0.35">v0.35</option><option value="0.34">v0.34</option><option value="0.33">v0.33</option><option value="0.32">v0.32</option><option value="0.31">v0.31</option><option value="0.29">v0.29</option><option value="0.28">v0.28</option><option value="0.27">v0.27</option><option value="0.26">v0.26</option><option value="0.25">v0.25</option><option value="0.23">v0.23</option></select></div><div id="updateLogContent" class="updateLogContent" aria-live="polite"></div></div>
+  <div class="card"><h3>📋 アップデートログ</h3><p class="muted">見たいバージョンを選択してください。</p><div class="field"><label for="updateVersionSelect">バージョン</label><select id="updateVersionSelect" onchange="renderUpdateLog(this.value)"><option value="0.50">v0.51（最新）</option><option value="0.49">v0.49</option><option value="0.48">v0.48</option><option value="0.44">v0.44</option><option value="0.43">v0.43</option><option value="0.42">v0.42</option><option value="0.41">v0.41</option><option value="0.40">v0.40</option><option value="0.39">v0.39</option><option value="0.38">v0.38</option><option value="0.37">v0.37</option><option value="0.36">v0.36</option><option value="0.35">v0.35</option><option value="0.34">v0.34</option><option value="0.33">v0.33</option><option value="0.32">v0.32</option><option value="0.31">v0.31</option><option value="0.29">v0.29</option><option value="0.28">v0.28</option><option value="0.27">v0.27</option><option value="0.26">v0.26</option><option value="0.25">v0.25</option><option value="0.23">v0.23</option></select></div><div id="updateLogContent" class="updateLogContent" aria-live="polite"></div></div>
  </div>
 </section>
 
@@ -1401,15 +1410,17 @@ function addSuspicion(memory,id,amount){
 function recordMeetingClaim(speakerId,text,kind=claimKind(text),truth=null,subjectIds=null){
  const ids=subjectIds||mentionedPlayers(text).map(p=>p.id);
  const claim={speakerId,text,kind,truth,subjectIds:ids,at:Date.now()};state.meetingClaims.push(claim);updateMeetingSummary();
- // 名前が出ただけ・疑いを口にしただけでは疑いスコアを変えない。
- // 実際のキル現場を直接見たAIだけが、目撃した犯人に確かな疑いを持つ。
+ // AIはプレイヤーを含む全員の発言を推理材料として取り込み、確信度を少しずつ更新する。
  state.players.filter(p=>p.alive&&p.id!==0&&!p.isHuman&&p.id!==speakerId).forEach(listener=>{
   const direct=state.meetingEvents.find(e=>e.witnessIds.includes(listener.id));
-  if(!direct)return;
-  if(ids.includes(direct.killerId)&&kind==="witness"&&truth===true&&/倒す|攻撃|キル|殺害/.test(text)){
-   addSuspicion(listener.aiMemory,direct.killerId,3.0);
-   listener.aiMemory.trust[speakerId]=(listener.aiMemory.trust[speakerId]||0)+1.0;
+  if(direct&&ids.includes(direct.killerId)&&kind==="witness"&&truth===true&&/倒す|攻撃|キル|殺害/.test(text)){
+   addSuspicion(listener.aiMemory,direct.killerId,3.0);listener.aiMemory.trust[speakerId]=(listener.aiMemory.trust[speakerId]||0)+1.0;return;
   }
+  ids.forEach(id=>{
+   if(kind==="witness"){addSuspicion(listener.aiMemory,id,truth===false?0.25:1.05);listener.aiMemory.trust[speakerId]=(listener.aiMemory.trust[speakerId]||0)+0.28}
+   else if(kind==="accusation"){addSuspicion(listener.aiMemory,id,0.48);listener.aiMemory.trust[speakerId]=(listener.aiMemory.trust[speakerId]||0)+0.10}
+   if(/アリバイ|一緒にいた|違う|無実|見間違い/.test(text))addSuspicion(listener.aiMemory,id,-0.25);
+  });
  });
 }
 function chooseAISuspect(ai,exclude=[]){
@@ -1490,63 +1501,31 @@ function buildAIStatement(ai){
 }
 function buildAIResponseToPlayer(ai,claim){
  if(!claim)return null;
- const speaker=state.players.find(p=>p.id===claim.speakerId);
- const named=(claim.subjectIds||[]).map(id=>state.players.find(p=>p.id===id)).filter(Boolean);
+ const speaker=state.players.find(p=>p.id===claim.speakerId),named=(claim.subjectIds||[]).map(id=>state.players.find(p=>p.id===id)).filter(Boolean);
  const target=named[0],speakerName=speaker?.name||"参加者",text=claim.text||"";
  const directEvent=state.meetingEvents.find(e=>e.witnessIds.includes(ai.id));
- const isQuestion=/[?？]|誰か|どこ|いつ|本当|教えて|説明して|なぜ|見た/.test(text);
- if(isQuestion){
-  if(directEvent){
-   const killer=state.players.find(p=>p.id===directEvent.killerId),victim=state.players.find(p=>p.id===directEvent.victimId);
-   if(killer&&victim)return {text:`自分は現場を直接見た。${directEvent.room}で${killer.name}が${victim.name}を攻撃していた。`,kind:"witness",truth:true,subjectIds:[killer.id,victim.id]};
-  }
-  return {text:target?`${speakerName}の質問だけど、${target.name}について自分は決定的な場面を直接見ていない。ほかに目撃した人はいる？`:`${speakerName}の質問に答えると、自分が直接確認した情報はまだない。推測だけで答えず、目撃した人の話を聞きたい。`,kind:"general",truth:null,subjectIds:target?[target.id]:[]};
+ if(directEvent){
+  const killer=state.players.find(p=>p.id===directEvent.killerId),victim=state.players.find(p=>p.id===directEvent.victimId);
+  if(killer&&victim&&target?.id===killer.id)return {text:`${speakerName}の意見に賛成です。自分も現場で${killer.name}が${victim.name}を攻撃したのを直接見ました。`,kind:"witness",truth:true,subjectIds:[killer.id,victim.id]};
  }
- if(target&&/怪しい|疑|犯人|黒|投票|追放/.test(text)){
-  if(directEvent&&directEvent.killerId===target.id){
-   const victim=state.players.find(p=>p.id===directEvent.victimId);
-   return {text:`${speakerName}の意見について、自分も${target.name}を現場で見ている。${victim?.name||"被害者"}への行動を直接確認した。`,kind:"witness",truth:true,subjectIds:[target.id]};
-  }
-  return {text:`${speakerName}は${target.name}を疑っているんだね。理由を確認したい。直接見たことと推測を分けて説明してほしい。`,kind:"general",truth:null,subjectIds:[target.id]};
+ if(target){
+  const suspicion=Number(ai.aiMemory?.suspicion?.[target.id]||0),trust=Number(ai.aiMemory?.trust?.[claim.speakerId]||0);
+  const isAccusation=claim.kind==="accusation"||/怪しい|疑|犯人|黒|投票|追放/.test(text);
+  const isDefense=/アリバイ|一緒にいた|違う|無実|見間違い/.test(text);
+  if(target.id===ai.id&&isAccusation)return {text:`${speakerName}が自分を疑っているのは分かりました。ただ、今の発言だけでは根拠が足りません。自分は別の可能性も考えています。`,kind:"general",truth:null,subjectIds:[ai.id]};
+  if(isDefense&&suspicion>=1)return {text:`${speakerName}の説明は聞きました。${target.name}への疑いは少し弱まりましたが、ほかの証言とも照らし合わせたいです。`,kind:"general",truth:null,subjectIds:[target.id]};
+  if(suspicion>=2.2)return {text:`${speakerName}の意見に賛成です。${target.name}については自分にも気になる情報があります。現時点では${target.name}を最も疑っています。`,kind:"accusation",truth:null,subjectIds:[target.id]};
+  if(suspicion>=0.8||isAccusation)return {text:`${speakerName}が${target.name}を疑う理由は理解しました。自分も少し気になりますが、まだ決め手ではありません。${target.name}の説明を聞いてから投票したいです。`,kind:"general",truth:null,subjectIds:[target.id]};
+  if(trust>0.5)return {text:`${speakerName}の話は参考になります。${target.name}についてはまだ疑いきれませんが、その情報を踏まえて考え直します。`,kind:"general",truth:null,subjectIds:[target.id]};
+  return {text:`${speakerName}の意見は分かりました。ただ、自分の見た範囲では${target.name}を犯人だと断定できません。今のところは保留にします。`,kind:"general",truth:null,subjectIds:[target.id]};
  }
- const recent=state.meetingClaims.slice(-5).filter(c=>c.speakerId!==ai.id);
- const recentTargets=[...new Set(recent.flatMap(c=>(c.subjectIds||[]).map(id=>state.players.find(p=>p.id===id)?.name).filter(Boolean)))];
- const options=[];
- if(target&&/怪しい|疑|犯人|黒|投票|追放/.test(text)){
-  options.push(
-   `${target.name}を疑う理由は？何か見た？`,
-   `それは直接見た情報？それとも推測？`,
-   `${target.name}本人の話も聞きたいな。`,
-   `他にその人を見た人いる？`
-  );
- }else if(/見た|見かけ|一緒|いた|通路|部屋|タスク|アリバイ|移動/.test(text)){
-  options.push(
-   `何時ごろ？場所も詳しく聞きたい。`,
-   `その後、誰と一緒にいたか覚えてる？`,
-   `他にも見ていた人はいる？`,
-   `なるほど。本人の説明と比べたいね。`
-  );
- }else if(/[?？]|誰か|どこ|いつ|本当|教えて|説明して|なぜ/.test(text)){
-  options.push(
-   `私はまだ分からない。誰か答えられる？`,
-   `その質問、私も気になる。`,
-   `知っている人がいたら教えてほしい。`,
-   `そこは確認したいね。`
-  );
- }else{
-  options.push(
-   `なるほど。ほかの人はどう思う？`,
-   `その話、もう少し詳しく聞ける？`,
-   `私は少し違う見方かな。根拠を確認したい。`,
-   `今の話で気になったのは、誰が見ていたかだね。`,
-   `まだ決めきれないな。別の意見も聞きたい。`
-  );
+ const ranked=state.players.filter(p=>p.alive&&p.id!==ai.id).map(p=>({p,score:Number(ai.aiMemory?.suspicion?.[p.id]||0)})).sort((a,b)=>b.score-a.score),top=ranked[0];
+ if(top&&top.score>=1.2)return {text:`${speakerName}の話を聞いて考えました。自分は今のところ${top.p.name}が気になっています。${top.score>=2.2?"疑いはやや強めです。":"ただし、まだ確信はありません。"}`,kind:"accusation",truth:null,subjectIds:[top.p.id]};
+ if(directEvent){
+  const killer=state.players.find(p=>p.id===directEvent.killerId),victim=state.players.find(p=>p.id===directEvent.victimId);
+  if(killer&&victim)return {text:`${speakerName}の質問に答えます。${directEvent.room}で${killer.name}が${victim.name}を攻撃したのを直接見ました。`,kind:"witness",truth:true,subjectIds:[killer.id,victim.id]};
  }
- if(target&&recentTargets.includes(target.name))options.push(`${target.name}の話は出ているね。別の人の情報も聞こう。`);
- const recentTexts=state.meetingClaims.slice(-5).map(c=>c.text);
- const fresh=options.filter(line=>!recentTexts.includes(line));
- const chosen=pickDialogue(fresh.length?fresh:options);
- return {text:chosen,kind:"general",truth:null,subjectIds:target?[target.id]:[]};
+ return {text:`${speakerName}の質問には、今のところ確かな情報で答えられません。ただ、自分は全員の行動を比べて${top?.p.name||"不自然な動きをした人"}を中心に考えています。まだ投票先は決めていません。`,kind:"general",truth:null,subjectIds:top?[top.p.id]:[]};
 }
 function makeAITakeTurn(ai){
  if(!ai||!ai.alive||!state.meeting||state.meetingPhase!=="discussion")return;
@@ -1577,11 +1556,18 @@ function sendMeetingMessage(){if(isOnlineClient()){const text=$("meetingChatInpu
  appendMeetingMessage(playerTag(state.me),text,"self",state.me);recordMeetingClaim(state.me.id,text);input.value="";
  scheduleAITurn(500);
 }
+function playMeetingTransition(title,subtitle=""){
+ const old=document.getElementById("meetingTransition");if(old)old.remove();
+ const el=document.createElement("div");el.id="meetingTransition";
+ el.innerHTML="<strong>"+escapeMeetingText(title)+"</strong><div class='line'></div><span>"+escapeMeetingText(subtitle)+"</span>";
+ document.body.appendChild(el);setTimeout(()=>el.remove(),1350);
+}
 function callMeeting(message="会議が招集されました。",caller=state.me){
  if(onlineGame?.isHost){onlineMeetingLog=[];onlineLastChatSignature="";onlineVotes.clear()}
  if(!state.running||state.meeting||!caller?.alive)return;
  if(String(message).includes("緊急会議ボタン"))caller.emergencyMeetingUsed=true;
  state.meetingId=Date.now()+Math.random();
+ playMeetingTransition("会議開始","全員、会議室に集合してください");
  playSfx("meeting");
  if(state.aiTurnTimer)clearTimeout(state.aiTurnTimer);
  state.meeting=true;state.meetingPhase="discussion";state.selectedVote=null;state.lastBallots=[];state.meetingClaims=[];state.aiTurnCount=0;state.aiSpokenIds=[];state.meetingDuration=onlineGame?.isHost?Math.max(30,Math.min(300,state.meetingDuration||90)):Math.max(30,Math.min(300,Number($("meetingDuration")?.value)||90));
@@ -1601,7 +1587,7 @@ function callMeeting(message="会議が招集されました。",caller=state.me
 function beginVoting(auto=false){if(isOnlineClient()){sendOnlineInput({kind:"action",action:"begin_vote"});return}
  if(!state.meeting||state.meetingPhase!=="discussion")return;
  if(state.aiTurnTimer)clearTimeout(state.aiTurnTimer);state.aiTurnTimer=null;stopMeetingTimer();
- state.meetingPhase="voting";$("meetingPhaseLabel").textContent="投票フェーズ";$("meetingTimeLeft").textContent=auto?"時間終了":"議論終了";
+ state.meetingPhase="voting";playMeetingTransition("投票開始","議論を終了し、投票してください");$("meetingPhaseLabel").textContent="投票フェーズ";$("meetingTimeLeft").textContent=auto?"時間終了":"議論終了";
  $("meetingInfo").textContent=state.me.alive?"投票先を選んで「投票を確定」してください。":"あなたは幽霊のため投票できません。生存者のAIが投票します。";
  $("meetingComposer").hidden=true;$("beginVoteAction").hidden=true;$("meetingVotePanel").hidden=false;
  state.selectedVote=state.me.alive?null:"ghost";$("selectedVoteText").textContent=state.me.alive?"投票先：未選択":"👻 幽霊は投票できません";$("submitVoteAction").disabled=state.me.alive;$("submitVoteAction").textContent=state.me.alive?"投票を確定":"AIの投票結果を表示";
@@ -1684,17 +1670,19 @@ function submitVote(){if(isOnlineClient()){if(state.selectedVote!==null&&!state.
  }
  updateNearbyActions();draw();
 }
-function closeMeeting(){if(isOnlineClient()){sendOnlineInput({kind:"action",action:"close_meeting"});return}stopMeetingTimer();
- if(!state.meeting||!state.lastBallots.length)return;
- state.emergencyMeetingReadyAt=Date.now()+25000;
- $("meetingModal").classList.remove("show");
- if(state.running)respawnLivingPlayers();
- state.dead=[];
- state.tasks.forEach(task=>{task.completedBy=[]});
- state.players.slice(1).forEach(p=>{p.aiTaskIndex=null;if(p.aiGoal?.kind==="task"){p.aiGoal=null;p.aiPath=[]}p.aiNextTaskAt=Date.now()+rand(3500,6000)});
- state.meeting=false;state.meetingPhase="";state.selectedVote=null;
- updateNearbyActions();draw();
- if(state.running)checkWin();
+function closeMeeting(){if(isOnlineClient()){sendOnlineInput({kind:"action",action:"close_meeting"});return}
+ if(!state.meeting||!state.lastBallots.length||state._closingMeeting)return;
+ state._closingMeeting=true;$("closeMeetingAction").disabled=true;
+ playMeetingTransition("会議終了","投票結果を確定しました");
+ setTimeout(()=>{
+  stopMeetingTimer();state.emergencyMeetingReadyAt=Date.now()+25000;
+  $("meetingModal").classList.remove("show");
+  if(state.running)respawnLivingPlayers();
+  state.dead=[];state.tasks.forEach(task=>{task.completedBy=[]});
+  state.players.slice(1).forEach(p=>{p.aiTaskIndex=null;if(p.aiGoal?.kind==="task"){p.aiGoal=null;p.aiPath=[]}p.aiNextTaskAt=Date.now()+rand(3500,6000)});
+  state.meeting=false;state.meetingPhase="";state.selectedVote=null;state._closingMeeting=false;
+  updateNearbyActions();draw();if(state.running)checkWin();
+ },1050);
 }
 function checkWin(){
  if(!state.running||state._checkingWin)return;
