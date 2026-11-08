@@ -130,14 +130,14 @@ canvas#mapCanvas{aspect-ratio:16/10;background:#0b1522}
 </style>
 </head>
 <body>
-<header><div class="logo">TRI<span>AD</span></div><div class="tag">オフライン試作 · v0.30</div></header>
+<header><div class="logo">TRI<span>AD</span></div><div class="tag">オフライン試作 · v0.31</div></header>
 <main>
 <section id="home" class="screen active">
  <div class="hero"><div class="pill">研究施設マップ・探索型推理ゲーム</div><h1>閉鎖された研究所。<br>見えない場所に誰かがいる。</h1><p>部屋と通路を自分で探索し、タスクを進めながら状況を判断します。視界はプレイヤーの周囲に限られます。</p></div>
  <div class="grid">
   <div class="card"><h3>🎮 ゲームを始める</h3><p class="muted">AIと対戦するオフライン試合を開始します。</p><button class="primary" style="width:100%" onclick="show('setup')">試合設定へ</button></div>
   <div class="card"><h3>📘 遊び方</h3><p class="muted">試作版のルールと操作方法を確認します。</p><button style="width:100%" onclick="openHelp()">ルールを見る</button></div>
-  <div class="card"><h3>📋 アップデートログ</h3><p class="muted">見たいバージョンを選択してください。</p><div class="field"><label for="updateVersionSelect">バージョン</label><select id="updateVersionSelect" onchange="renderUpdateLog(this.value)"><option value="0.30">v0.30（最新）</option><option value="0.29">v0.29</option><option value="0.28">v0.28</option><option value="0.27">v0.27</option><option value="0.26">v0.26</option><option value="0.25">v0.25</option><option value="0.23">v0.23</option></select></div><div id="updateLogContent" class="updateLogContent" aria-live="polite"></div></div>
+  <div class="card"><h3>📋 アップデートログ</h3><p class="muted">見たいバージョンを選択してください。</p><div class="field"><label for="updateVersionSelect">バージョン</label><select id="updateVersionSelect" onchange="renderUpdateLog(this.value)"><option value="0.31">v0.31（最新）</option><option value="0.29">v0.29</option><option value="0.28">v0.28</option><option value="0.27">v0.27</option><option value="0.26">v0.26</option><option value="0.25">v0.25</option><option value="0.23">v0.23</option></select></div><div id="updateLogContent" class="updateLogContent" aria-live="polite"></div></div>
  </div>
 </section>
 
@@ -1063,7 +1063,7 @@ function buildAIStatement(ai){
   "てるてる":["てるてるです。追放されることが勝利条件です。……今のは冗談です。","私は普通に議論したいだけです。投票先は慎重に決めましょう。","役職のことは秘密です。まず怪しい人の話を聞きたいです。"],
   "狂人":["狂人です。黒陣営とは違う勝利条件を持っています。","私は狂人。場をかき回すより、状況を見て動きます。","役職は秘密ですが、皆さんの推理を聞かせてください。"]
  };
- if(Math.random()<.62){
+ if(ai.team==="white"&&Math.random()<.30){
   const lines=roleTalk[ai.role]||[];
   const detail=lines.length?pickDialogue(lines):"私は自分の役職に応じた行動をしています。";
   const prefix="役職CO："+ai.role+"です。";
@@ -1085,38 +1085,45 @@ function buildAIResponseToPlayer(ai,claim){
  if(!claim)return null;
  const speaker=state.players.find(p=>p.id===claim.speakerId);
  const named=(claim.subjectIds||[]).map(id=>state.players.find(p=>p.id===id)).filter(Boolean);
- const target=named[0],speakerName=speaker?.name||"あなた";
- const text=claim.text||"";
- const recent=state.meetingClaims.filter(c=>c.speakerId!==ai.id).slice(-4);
- const recentNames=[...new Set(recent.flatMap(c=>(c.subjectIds||[]).map(id=>state.players.find(p=>p.id===id)?.name).filter(Boolean)))];
- const context=recentNames.length?"ここまでの発言では"+recentNames.join("、")+"の名前が挙がっています。":"まだ具体的な名前や証言は多くありません。";
- if(target&&/怪しい|疑|犯人|黒だと思う|投票|追放/.test(text)){
-  return {text:pickDialogue([
-   `${speakerName}の意見を整理します。${target.name}を疑っている理由は、今のところ「${text.slice(0,55)}」という点ですね。ただ、疑いだけでは判断できないので、いつ・どこで・何を見たのかを確認したいです。${target.name}本人にも説明してほしいですし、同じ場所にいた人がいれば証言をお願いします。`,
-   `${target.name}が怪しいという指摘ですね。私は、直接見た事実と誰かから聞いた話を分けて考えたいです。${speakerName}、その情報は自分で目撃しましたか？ それとも別の人の発言が根拠ですか？ ${context}ほかの人も、この疑いに賛成か反対か理由を添えて話してください。`,
-   `今の発言は投票先を考えるうえで重要だと思います。ただ、${target.name}の行動だけでなく、その時間に周囲にいた人の説明も必要です。${target.name}は反論できますか？ また、${speakerName}の話を裏付けられる人はいますか？`
-  ]),kind:"general",truth:null,subjectIds:[target.id]};
+ const target=named[0],speakerName=speaker?.name||"あなた",text=claim.text||"";
+ const recent=state.meetingClaims.slice(-5).filter(c=>c.speakerId!==ai.id);
+ const recentTargets=[...new Set(recent.flatMap(c=>(c.subjectIds||[]).map(id=>state.players.find(p=>p.id===id)?.name).filter(Boolean)))];
+ const options=[];
+ if(target&&/怪しい|疑|犯人|黒|投票|追放/.test(text)){
+  options.push(
+   `${target.name}を疑う理由は？何か見た？`,
+   `それは直接見た情報？それとも推測？`,
+   `${target.name}本人の話も聞きたいな。`,
+   `他にその人を見た人いる？`
+  );
+ }else if(/見た|見かけ|一緒|いた|通路|部屋|タスク|アリバイ|移動/.test(text)){
+  options.push(
+   `何時ごろ？場所も詳しく聞きたい。`,
+   `その後、誰と一緒にいたか覚えてる？`,
+   `他にも見ていた人はいる？`,
+   `なるほど。本人の説明と比べたいね。`
+  );
+ }else if(/[?？]|誰か|どこ|いつ|本当|教えて|説明して|なぜ/.test(text)){
+  options.push(
+   `私はまだ分からない。誰か答えられる？`,
+   `その質問、私も気になる。`,
+   `知っている人がいたら教えてほしい。`,
+   `そこは確認したいね。`
+  );
+ }else{
+  options.push(
+   `なるほど。ほかの人はどう思う？`,
+   `その話、もう少し詳しく聞ける？`,
+   `私は少し違う見方かな。根拠を確認したい。`,
+   `今の話で気になったのは、誰が見ていたかだね。`,
+   `まだ決めきれないな。別の意見も聞きたい。`
+  );
  }
- if(/見た|見かけ|一緒|いた|通路|部屋|タスク|アリバイ|移動/.test(text)){
-  return {text:pickDialogue([
-   `${speakerName}の証言をもう少し詳しく聞きたいです。見かけた時刻と場所、その人が何をしていたかを教えてください。${target?target.name+"についての情報ですね。本人の説明とも照らし合わせたいです。":""}同じ場所にいた人がいれば、記憶が一致するか確認しましょう。私は、目撃した事実と推測を混ぜずに整理したいです。`,
-   `その情報は手掛かりになりそうです。ただ、単に同じ部屋にいたことと、不審な行動をしたことは別です。${speakerName}、最後に見た方向や、その後に誰と会ったかも覚えていますか？ ほかの人は同じ時間帯にどこにいましたか？`,
-   `分かりました。今の話を時系列にすると、場所と移動経路が重要になりそうです。${target?target.name+"がその場にいたかどうか": "誰がその場にいたか"}を確認したいです。直接見た人が複数いれば、証言を比べてみましょう。`
-  ]),kind:"general",truth:null,subjectIds:target?[target.id]:[]};
- }
- if(/[?？]|誰か|どこ|いつ|本当|教えて|説明して|なぜ/.test(text)){
-  return {text:pickDialogue([
-   `${speakerName}の質問に答えられる人はいますか？ 私だけでは断定できません。${context}質問された人は、分かる範囲で場所・時間・一緒にいた相手を具体的に説明してください。曖昧な部分は曖昧だと伝えて大丈夫です。`,
-   `その確認は必要だと思います。特に、誰が直接見たのか、誰が後から聞いたのかをはっきりさせたいです。${speakerName}、回答が出たらその内容と矛盾する証言がないか一緒に確認しましょう。ほかの人も補足をお願いします。`,
-   `今の質問を放置したまま投票するのは早いと思います。関係する人は順番に説明してください。${context}説明が食い違った場合は、どの部分が実際に確認できた情報なのかを比べましょう。`
-  ]),kind:"general",truth:null,subjectIds:target?[target.id]:[]};
- }
- return {text:pickDialogue([
-  `${speakerName}の発言は確認しました。私は、今の情報だけで誰かを決めつけるのは避けたいです。${context}疑いを向けるなら根拠を、疑われた側は行動の説明を出してほしいです。まだ発言していない人も、直前にいた場所を共有してください。`,
-  `なるほど。その意見を踏まえて、もう一つ確認したいことがあります。会議の直前に誰と一緒にいたか、また最後に見かけた人は誰か、覚えている範囲で話してください。${context}複数の証言が一致すれば、投票先を絞り込めると思います。`,
-  `私は今の話を聞いて、場所と時間の整理が先だと感じました。誰かの名前だけが出ても判断材料としては足りません。${speakerName}の話に補足できる人はいますか？ 反対意見がある場合も、理由を具体的に説明してください。`,
-  `その話は覚えておきます。投票までに、疑われている人の説明と目撃者の証言を両方聞きたいです。${context}特に、直接見たこと・推測したこと・他人から聞いたことを分けて話してもらえると助かります。`
- ]),kind:"general",truth:null,subjectIds:target?[target.id]:[]};
+ if(target&&recentTargets.includes(target.name))options.push(`${target.name}の話は出ているね。別の人の情報も聞こう。`);
+ const recentTexts=state.meetingClaims.slice(-5).map(c=>c.text);
+ const fresh=options.filter(line=>!recentTexts.includes(line));
+ const chosen=pickDialogue(fresh.length?fresh:options);
+ return {text:chosen,kind:"general",truth:null,subjectIds:target?[target.id]:[]};
 }
 function makeAITakeTurn(ai){
  if(!ai||!ai.alive||!state.meeting||state.meetingPhase!=="discussion")return;
@@ -1291,9 +1298,9 @@ function endGame(msg,winners={teams:[]}){
  $("gameOverModal").classList.add("show");
 }
 function endToHome(){if(state.running)saveAILongTermMemories({teams:[]},true);state.running=false;clearInterval(loop);clearInterval(clock);stopMove();stopBGM();document.querySelectorAll(".modal").forEach(m=>m.classList.remove("show"));show("home")}
-function renderUpdateLog(version="0.30"){
+function renderUpdateLog(version="0.31"){
  const logs={
-  "0.30":{date:"2026年11月8日",items:["「投票フェーズへ」押下時のエラーを修正。","AIの発言を長文化し、理由・時系列・追加質問を含む会話に改善。","AIが役職COするとき、実際に割り当てられた役職名を正確に表示。"]},
+  "0.31":{date:"2026年11月8日",items:["「投票フェーズへ」押下時のエラーを修正。","AIの発言を長文化し、理由・時系列・追加質問を含む会話に改善。","AIが役職COするとき、実際に割り当てられた役職名を正確に表示。"]},
   "0.29":{date:"2026年11月8日",items:["会議のリアルタイム要約に疑われている人の順位・疑いの強さ・理由を表示。","目撃証言と現場記録を疑い順位に反映。","10か所のタスクをすべて別々のミニゲームに変更。"]},
   "0.28":{date:"2026年11月8日",items:["会議の議論時間を設定できるように変更。","AIが会議中に継続して発言し、プレイヤーの発言に反応。","会議内容のリアルタイム要約を追加。"]},
   "0.26":{date:"2026年11月8日",items:["スマートフォン専用レイアウトを追加。縦長画面で操作パネルを画面下部に固定。","タブレットの従来レイアウトは維持。","小型スマートフォンと横向き画面にも表示を調整。"]},
@@ -1301,7 +1308,7 @@ function renderUpdateLog(version="0.30"){
   "0.24":{date:"2026年11月8日",items:["会議マップは自分の位置だけを表示。","会議画面に生存者・死亡者の一覧を追加。","AIの役職発言・推理・会話パターンを拡充。","AIプロフィール通信が止まっても4.5秒でローカル設定に切替。"]},
   "0.23":{date:"2026年11月8日",items:["試合開始後に移動とタイマーが進む安定版を復元。","タスクを暗号解読方式に整理。","AIプロフィール取得に失敗した場合もローカル設定で試合を進行。"]}
  };
- const entry=logs[version]||logs["0.30"],root=$("updateLogContent");
+ const entry=logs[version]||logs["0.31"],root=$("updateLogContent");
  if(root)root.innerHTML='<strong>'+("v"+version)+' · '+entry.date+'</strong><ul>'+entry.items.map(item=>'<li>'+item+'</li>').join('')+'</ul>';
 }
 function setHelpTab(tab){const roles=tab==="roles";$("helpRulesPanel").hidden=roles;$("helpRolesPanel").hidden=!roles;$("helpRulesTab").classList.toggle("primary",!roles);$("helpRolesTab").classList.toggle("primary",roles)}
