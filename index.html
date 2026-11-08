@@ -14,7 +14,7 @@ header{padding:14px 18px;border-bottom:1px solid #ffffff18;display:flex;align-it
 main{max-width:1100px;margin:auto;padding:18px}.screen{display:none}.screen.active{display:block}.hero{padding:26px 8px 18px}.hero h1{font-size:clamp(27px,5vw,44px);line-height:1.15;margin:8px 0}.hero p{color:var(--muted);max-width:650px}
 .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px}.card{background:linear-gradient(145deg,#20314b,#18263b);border:1px solid var(--line);border-radius:18px;padding:16px;box-shadow:0 10px 30px #0002}.card h3{margin:0 0 8px}.muted{color:var(--muted);font-size:13px}.field{display:grid;gap:6px;margin:12px 0}.field label{font-size:13px;color:var(--muted)}input,select{width:100%;background:#111e31;color:var(--text);border:1px solid var(--line);border-radius:10px;padding:10px}
 .row{display:flex;gap:9px;align-items:center;flex-wrap:wrap}.row>*{flex:1}.pill{padding:5px 9px;border-radius:99px;background:#ffffff12;font-size:12px}.actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}
-.accountToolbar{align-items:end;gap:10px;margin:8px 0 14px}.accountToolbar .field{min-width:150px;margin:0;flex:1}
+.accountAuthCard{margin:12px 0}.accountAuthCard .field{margin:10px 0}.accountToolbar{align-items:end;gap:10px;margin:8px 0 14px}.accountToolbar .field{min-width:150px;margin:0;flex:1}
 .accountLayout{display:grid;grid-template-columns:minmax(240px,.85fr) minmax(300px,1.4fr);gap:12px;align-items:start}
 .accountListCard,.accountDetailCard{min-width:0}.accountList{display:grid;gap:7px;margin-top:12px;max-height:65vh;overflow:auto;padding-right:3px}
 .accountItem{display:flex;align-items:center;gap:10px;text-align:left;width:100%;padding:10px;background:#142239;border:1px solid #344b68;border-radius:12px}
@@ -151,25 +151,12 @@ canvas#mapCanvas{aspect-ratio:16/10;background:#0b1522}
   <div class="card"><h3>🎮 ゲームを始める</h3><p class="muted">AIと対戦するオフライン試合を開始します。</p><button class="primary" style="width:100%" onclick="show('setup')">試合設定へ</button></div>
   <div class="card"><h3>📘 遊び方</h3><p class="muted">試作版のルールと操作方法を確認します。</p><button style="width:100%" onclick="openHelp()">ルールを見る</button></div>
   <div class="card"><h3>👥 アカウント図鑑</h3><p class="muted">プレイヤーとAIアカウント全員の能力・成績・得意な役職を確認できます。</p><button style="width:100%" onclick="show('accounts')">アカウントを見る</button></div>
-  <div class="card"><h3>📋 アップデートログ</h3><p class="muted">見たいバージョンを選択してください。</p><div class="field"><label for="updateVersionSelect">バージョン</label><select id="updateVersionSelect" onchange="renderUpdateLog(this.value)"><option value="0.34">v0.34（最新）</option><option value="0.33">v0.33</option><option value="0.32">v0.32</option><option value="0.31">v0.31</option><option value="0.29">v0.29</option><option value="0.28">v0.28</option><option value="0.27">v0.27</option><option value="0.26">v0.26</option><option value="0.25">v0.25</option><option value="0.23">v0.23</option></select></div><div id="updateLogContent" class="updateLogContent" aria-live="polite"></div></div>
+  <div class="card"><h3>📋 アップデートログ</h3><p class="muted">見たいバージョンを選択してください。</p><div class="field"><label for="updateVersionSelect">バージョン</label><select id="updateVersionSelect" onchange="renderUpdateLog(this.value)"><option value="0.35">v0.35（最新）</option><option value="0.34">v0.34</option><option value="0.33">v0.33</option><option value="0.32">v0.32</option><option value="0.31">v0.31</option><option value="0.29">v0.29</option><option value="0.28">v0.28</option><option value="0.27">v0.27</option><option value="0.26">v0.26</option><option value="0.25">v0.25</option><option value="0.23">v0.23</option></select></div><div id="updateLogContent" class="updateLogContent" aria-live="polite"></div></div>
  </div>
 </section>
 
 <section id="setup" class="screen">
-<section id="accounts" class="screen">
- <div class="hero"><h1>アカウント図鑑</h1><p>プレイヤーとAIアカウントのプロフィール、能力、戦績、得意・苦手を確認できます。</p></div>
- <div class="row accountToolbar">
-  <div class="field"><label for="accountSearch">名前・IDで検索</label><input id="accountSearch" placeholder="例：ai_001 / ねこもち" oninput="renderAccountList()"></div>
-  <div class="field"><label for="accountFilter">表示対象</label><select id="accountFilter" onchange="renderAccountList()"><option value="all">全アカウント</option><option value="ai">AIアカウント</option><option value="player">プレイヤー</option></select></div>
-  <div class="field"><label for="accountSort">並び順</label><select id="accountSort" onchange="renderAccountList()"><option value="ability">総合能力順</option><option value="matches">試合数順</option><option value="wins">勝利数順</option><option value="winrate">勝率順</option><option value="name">名前順</option></select></div>
- </div>
- <div class="accountLayout">
-  <div class="card accountListCard"><div class="row" style="justify-content:space-between"><strong>アカウント一覧</strong><span class="pill" id="accountCount">読み込み中</span></div><div id="accountList" class="accountList"><div class="muted">プロフィールを読み込んでいます…</div></div></div>
-  <div class="card accountDetailCard" id="accountDetail"><div class="muted">アカウントを選択してください。</div></div>
- </div>
- <div class="actions"><button onclick="show('home')">ホームに戻る</button><button onclick="refreshAccounts()">最新情報に更新</button></div>
- <p class="muted">AIの共有戦績・能力はサーバーに保存されます。プレイヤー「あなた」の戦績は現在この端末内に保存されます。</p>
-</section>
+
 
  <div class="hero"><h1>試合設定</h1><p>人数・マップ・ゲーム形式を決めます。最初は人間1人＋AIがおすすめです。</p></div>
  <div class="grid">
@@ -193,6 +180,22 @@ canvas#mapCanvas{aspect-ratio:16/10;background:#0b1522}
   </div>
  </div>
  <div class="actions"><button onclick="show('home')">戻る</button><button class="primary" onclick="startGame()">試合開始</button></div>
+</section>
+
+<section id="accounts" class="screen">
+ <div class="hero"><h1>アカウント図鑑</h1><p>オンラインプレイヤーとAIアカウントのプロフィール、能力、戦績、得意・苦手を確認できます。</p></div>
+ <div class="card accountAuthCard"><div class="row" style="justify-content:space-between"><div><h3 style="margin:0">オンラインプレイヤーアカウント</h3><p class="muted">別の端末からも同じアカウントで利用できます。</p></div><span class="pill" id="accountAuthStatus">未ログイン</span></div><div id="accountSignedOut"><div class="field"><label>公開ニックネーム（20文字以内）</label><input id="accountDisplayName" maxlength="20" autocomplete="nickname" placeholder="ゲーム内で表示する名前"></div><div class="field"><label>メールアドレス</label><input id="accountEmail" type="email" autocomplete="email" placeholder="登録用メールアドレス"></div><div class="field"><label>パスワード（8文字以上）</label><input id="accountPassword" type="password" minlength="8" autocomplete="new-password" placeholder="パスワード"></div><div class="row"><button class="primary" onclick="registerOnlineAccount()">新規登録</button><button onclick="loginOnlineAccount()">ログイン</button></div></div><div id="accountSignedIn" hidden><div class="muted" id="accountSignedInText">ログイン中</div><div class="field"><label>公開ニックネームの変更</label><input id="accountNewDisplayName" maxlength="20" placeholder="新しいニックネーム"></div><div class="row"><button onclick="updateOnlineDisplayName()">名前を保存</button><button onclick="logoutOnlineAccount()">ログアウト</button></div></div><p class="muted" id="accountAuthMessage" aria-live="polite">メールアドレスはログイン用です。他のプレイヤーには公開されません。公開されるのはニックネームと戦績です。</p></div>
+ <div class="row accountToolbar">
+  <div class="field"><label for="accountSearch">名前・IDで検索</label><input id="accountSearch" placeholder="例：ai_001 / ねこもち" oninput="renderAccountList()"></div>
+  <div class="field"><label for="accountFilter">表示対象</label><select id="accountFilter" onchange="renderAccountList()"><option value="all">全アカウント</option><option value="ai">AIアカウント</option><option value="player">プレイヤー</option></select></div>
+  <div class="field"><label for="accountSort">並び順</label><select id="accountSort" onchange="renderAccountList()"><option value="ability">総合能力順</option><option value="matches">試合数順</option><option value="wins">勝利数順</option><option value="winrate">勝率順</option><option value="name">名前順</option></select></div>
+ </div>
+ <div class="accountLayout">
+  <div class="card accountListCard"><div class="row" style="justify-content:space-between"><strong>アカウント一覧</strong><span class="pill" id="accountCount">読み込み中</span></div><div id="accountList" class="accountList"><div class="muted">プロフィールを読み込んでいます…</div></div></div>
+  <div class="card accountDetailCard" id="accountDetail"><div class="muted">アカウントを選択してください。</div></div>
+ </div>
+ <div class="actions"><button onclick="show('home')">ホームに戻る</button><button onclick="refreshAccounts()">最新情報に更新</button></div>
+ <p class="muted">AIの共有戦績・能力はサーバーに保存されます。プレイヤー「あなた」の戦績は現在この端末内に保存されます。</p>
 </section>
 
 <section id="game" class="screen">
@@ -313,7 +316,7 @@ const colorNames=["赤","青","黄色","紫","緑","オレンジ","ピンク","�
 const colors=["#e53935","#1e88e5","#fdd835","#8e24aa","#43a047","#fb8c00","#ec407a","#00acc1","#7cb342","#8d6e63","#3949ab","#d81b60","#00897b","#c0a000","#ff7043","#c0ca33","#283593","#9575cd","#f4511e","#26a69a","#b08d00","#ad1457","#00a152","#1565c0","#f9a825","#6d1b3b","#66bb6a","#7e57c2","#a65e2e","#eeeeee"];
 const naturalAINames=["ねこもち","もちもち","しろくま","くろまめ","ぽてと","ぷりん","たこやき","しらす","ぺんぎん","からあげ","こむぎ","みたらし","ねむねむ","うさぎもち","わたあめ","めんだこ","ましゅまろ","こんぺいとう","ほっとけーき","おにぎり","きなこもち","すいか","りんごあめ","ぽんず","ふわり","もちぱん","しおこんぶ","だいふく","ちくわ","くりーむ"];let gameNameDeck=[];function fallbackAIName(index){return gameNameDeck[index-1]||naturalAINames[(index-1)%naturalAINames.length]}function playerTag(p){return `#${String(p.number||p.id+1).padStart(2,"0")} ${p.name}`}
 function meetingNameColor(p){return state.meeting&&state.me?.team==="black"&&p?.team==="black"&&p.id!==state.me.id?"#ff777e":"";}
-function show(id){document.querySelectorAll(".screen").forEach(s=>s.classList.remove("active"));$(id).classList.add("active");if(id==="home")renderUpdateLog($("updateVersionSelect")?.value||"0.34");if(id==="accounts")openAccounts()}
+function show(id){document.querySelectorAll(".screen").forEach(s=>s.classList.remove("active"));const target=$(id);if(!target){console.warn("Screen not found:",id);return}target.classList.add("active");if(id==="home")renderUpdateLog($("updateVersionSelect")?.value||"0.35");if(id==="accounts")openAccounts()}
 function log(t){}
 function rand(a,b){return Math.random()*(b-a)+a}
 function shuffle(items){let a=[...items];for(let i=a.length-1;i>0;i--){let j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a}
@@ -1348,7 +1351,6 @@ function endGame(msg,winners={teams:[]}){
  $("gameOverModal").classList.add("show");
 }
 function endToHome(){if(state.running)saveAILongTermMemories({teams:[]},true);state.running=false;clearInterval(loop);clearInterval(clock);stopMove();stopBGM();document.querySelectorAll(".modal").forEach(m=>m.classList.remove("show"));show("home")}
-function renderUpdateLog(version="0.34"){
 function openAccounts(){showAccountLoading();loadAIProfiles().then(()=>{renderAccountList();const detail=$("accountDetail");if(detail&&!detail.dataset.selected)renderAccountDetail("player")}).catch(()=>{renderAccountList()})}
 function showAccountLoading(){const list=$("accountList");if(list)list.innerHTML='<div class="muted">AIプロフィールを読み込んでいます…</div>'}
 function refreshAccounts(){aiProfilesLoaded=false;openAccounts()}
@@ -1398,7 +1400,9 @@ function renderAccountDetail(id){
  renderAccountList();
 }
 
+function renderUpdateLog(version="0.35"){
  const logs={
+  "0.35":{date:"2026年11月8日",items:["アカウント図鑑の画面配置と関数の配置を修正。","オンラインプレイヤーアカウント登録・ログイン・ログアウトを追加。","公開ニックネームと戦績をサーバーに保存し、プレイヤー一覧に表示。"]},
   "0.34":{date:"2026年11月8日",items:["ホームにアカウント図鑑を追加。プレイヤーとAIアカウント200体を検索・並び替え。","能力パラメーター、得意・苦手、勝利数、試合数、勝率、生存率、自動練習数を表示。","役職別の試合数・勝利数・生存数を記録し、AI戦績をサーバーへ保存。プレイヤー戦績は端末内に保存。"]},
   "0.33":{date:"2026年11月8日",items:["黒陣営で会議に参加したとき、自分の味方の名前を自分の画面だけ赤色で表示。","AIがプレイヤーだけでなく他のAIの質問・意見にも順番に反応し、確認した情報と推測を分けて回答。","AIアカウント200体が10分ごとに3回の自動練習試合を行い、個体差を保ちながら能力値を成長。"]},
   "0.32":{date:"2026年11月8日",items:["名前が出ただけでは疑いスコアが上がらないよう修正。","実際のキル現場を直接目撃した証言を、疑いの根拠として優先。","根拠が足りない場合、AIは無理に犯人を決めず質問や確認を行うよう改善。"]},
