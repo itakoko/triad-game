@@ -21,6 +21,7 @@ main{max-width:1100px;margin:auto;padding:18px}.screen{display:none}.screen.acti
 
 .log{font-size:12px;color:var(--muted);max-height:120px;overflow:auto;line-height:1.55}.hidden{display:none!important}
 .modal{position:fixed;inset:0;background:#07101ddd;display:none;align-items:center;justify-content:center;padding:14px;z-index:10}.modal.show{display:flex}.modalbox{width:min(600px,100%);max-height:90vh;overflow:auto;background:#1b2a41;border:1px solid var(--line);border-radius:18px;padding:18px}
+.taskPuzzleCode{font-size:28px;letter-spacing:.22em;text-align:center;padding:14px;background:#101a2a;border:1px solid var(--line);border-radius:12px;font-weight:900}.taskCipher{display:grid;grid-template-columns:repeat(3,1fr);gap:7px;margin:10px 0}.taskCipher span{background:#101a2a;border:1px solid var(--line);border-radius:9px;padding:8px;text-align:center;font-weight:800}.taskPuzzleInput{font-size:24px!important;letter-spacing:.3em;text-align:center}.taskPuzzleFeedback{min-height:22px;color:#ffd36b;font-size:13px}
 .voteList{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:8px;margin:12px 0}.voteList button{display:flex;align-items:center;gap:8px;text-align:left}.dot{width:13px;height:13px;border-radius:50%;display:inline-block}
 .targetList{display:grid;gap:8px;margin:12px 0}.targetList button{text-align:left}
 .meetingChat{display:flex;flex-direction:column;gap:8px;max-height:230px;overflow:auto;background:#101a2a;border:1px solid var(--line);border-radius:12px;padding:10px;margin:12px 0}
@@ -68,7 +69,7 @@ canvas#mapCanvas{aspect-ratio:16/10;background:#0b1522}
 </style>
 </head>
 <body>
-<header><div class="logo">TRI<span>AD</span></div><div class="tag">オフライン試作 · v0.21</div></header>
+<header><div class="logo">TRI<span>AD</span></div><div class="tag">オフライン試作 · v0.22</div></header>
 <main>
 <section id="home" class="screen active">
  <div class="hero"><div class="pill">研究施設マップ・探索型推理ゲーム</div><h1>閉鎖された研究所。<br>見えない場所に誰かがいる。</h1><p>部屋と通路を自分で探索し、タスクを進めながら状況を判断します。視界はプレイヤーの周囲に限られます。</p></div>
@@ -130,10 +131,11 @@ canvas#mapCanvas{aspect-ratio:16/10;background:#0b1522}
 </section>
 
 </main>
-<footer>TRIAD v0.21 · 研究施設 · オフライン版</footer>
+<footer>TRIAD v0.22 · 研究施設 · オフライン版</footer>
 
   <div class="modal" id="mapModal"><div class="modalbox"><h2>研究施設マップ</h2><canvas id="overviewCanvas" width="900" height="600"></canvas><div class="mapLegend"><span>● あなた</span><span>♥ 恋人（恋人のみ）</span><span>● タスク端末</span><span>■ 緊急会議ボタン</span><span>！ 手配書端末</span><span>■ 遮蔽物・チェイスカバー</span><span>× 死体</span></div><button class="primary" style="width:100%" onclick="closeMap()">閉じる</button></div></div>
  <div class="modal" id="targetModal"><div class="modalbox"><h2 id="targetTitle">対象を選択</h2><p id="targetInfo" class="muted"></p><div id="targetList" class="targetList"></div><button style="width:100%" onclick="closeTargetModal()">キャンセル</button></div></div>
+ <div class="modal" id="taskPuzzleModal"><div class="modalbox"><h2>🔐 暗号解読</h2><p id="taskPuzzleLabel" class="muted">端末の暗号を解読してください。</p><div id="taskCipherMap" class="taskCipher"></div><div id="taskCipherCode" class="taskPuzzleCode"></div><p class="muted">対応表を見て、暗号を4桁の数字に変換してください。</p><input id="taskPuzzleInput" class="taskPuzzleInput" type="text" inputmode="numeric" maxlength="4" placeholder="4桁の数字" onkeydown="if(event.key==='Enter'){event.preventDefault();submitTaskPuzzle()}"><p id="taskPuzzleFeedback" class="taskPuzzleFeedback"></p><div class="actions"><button onclick="closeTaskPuzzle()">中断</button><button class="primary" onclick="submitTaskPuzzle()">解読する</button></div></div></div>
  <div class="modal" id="seerResultModal"><div class="modalbox"><h2>占い結果</h2><p id="seerTargetName" class="muted"></p><div id="seerFactionValue" class="seerFaction"></div><p class="muted">占いで分かるのは役職名ではなく、陣営（白・黒・第三）です。</p><button class="primary" style="width:100%" onclick="closeSeerResult()">閉じる</button></div></div>
  <div class="modal" id="aliveModal"><div class="modalbox"><h2>生存者一覧</h2><p id="aliveSummary" class="muted"></p><div id="aliveList" class="targetList"></div><button class="primary" style="width:100%" onclick="closeAliveList()">閉じる</button></div></div>
  <div class="modal" id="bountyModal"><div class="modalbox"><h2>暗殺者の手配書</h2><p class="muted">手配対象は暗殺者本人だけに表示されています。対象以外を殺すと暗殺者も死亡します。</p><p id="bountyText"></p><button class="primary" style="width:100%" onclick="closeBounty()">手配書を閉じる</button></div></div>
@@ -160,7 +162,7 @@ canvas#mapCanvas{aspect-ratio:16/10;background:#0b1522}
   <button class="primary" style="width:100%;margin-top:12px" onclick="endToHome()">ホームへ戻る</button>
  </div></div>
  <div id="personalEffect"><div class="effectCard"><strong id="personalEffectTitle"></strong><span id="personalEffectText"></span></div></div>
-   <div class="modal" id="helpModal"><div class="modalbox"><h2>遊び方</h2><ul><li>黄色い端末でタスクを行い、死体の近くか中央の会議ボタンから会議を始めます。</li><li>白陣営の共有タスク目標は試合ごとに53〜57件。白陣営のAIも作業し、全員の合計が目標に達すると白陣営が勝利します。</li><li>試合内で同じ役職は重複しません。恋人だけは特殊役職として必ず2人で登場します。</li><li>黒陣営はキルと停電サボタージュを使えます。開始時からそれぞれ30秒・35秒のクールタイムがあります。</li><li>各役職は能力ボタンから対象選択や能力確認ができます。科学者は生存者一覧をいつでも確認できます。</li><li>占い師は結果画面で相手の陣営（白・黒・第三）を確認できます。役職名そのものは表示されません。</li><li>物資箱・柱・通路モジュールの向こう側にいるプレイヤーは見えず、カバー越しの対象は能力でも選べません。</li><li>AIは死体を見つけると通報し、時機を見て緊急会議を開きます。移動中は物資箱や柱を回り込んで進みます。</li><li>会議では目撃情報や直前に見た場所を使って話し、発言に反応して投票します。NPCには本当の証言だけでなくブラフもあります。</li><li>投票後は候補者ごとの票数と投票先が表示されます。幽霊になった後は投票せず、AIの会議結果を見られます。</li><li>会議が終わると、生存者は研究所内の決められたスポーン地点へランダムに再配置され、死体はすべて消えます。</li><li>死亡後は幽霊となり、移動とタスクだけ行えます。</li><li>恋人はお互いの位置をマップで確認できます。暗殺者がいる試合では手配書端末がマップに表示されます。</li><li>第三陣営は役職ごとの単独勝利条件を持ちます。</li></ul><p class="muted">AIはルールベースのNPC推理を行い、会議発言・遮蔽物で見通せる相手・直接目撃したキルを参照します。発言の種類や言い回しには複数のパターンがあります。</p><button class="primary" style="width:100%" onclick="closeHelp()">閉じる</button></div></div>
+   <div class="modal" id="helpModal"><div class="modalbox"><h2>遊び方</h2><ul><li>黄色い端末でタスクを行い、死体の近くか中央の会議ボタンから会議を始めます。</li><li>白陣営の共有タスク目標は試合ごとに53〜57件。白陣営のAIも作業し、全員の合計が目標に達すると白陣営が勝利します。</li><li>試合内で同じ役職は重複しません。恋人だけは特殊役職として必ず2人で登場します。</li><li>黒陣営のプレイヤーは開始30秒後からキル可能。AIの攻撃系役職は開始60秒後から攻撃可能です。停電サボタージュは35秒のクールタイムです。</li><li>各タスク端末は、同じプレイヤーが1回の会議サイクルで1回だけ使用できます。会議終了後に再び使用可能になり、全体の進捗は保持されます。</li><li>各役職は能力ボタンから対象選択や能力確認ができます。科学者は生存者一覧をいつでも確認できます。</li><li>占い師は結果画面で相手の陣営（白・黒・第三）を確認できます。役職名そのものは表示されません。</li><li>物資箱・柱・通路モジュールの向こう側にいるプレイヤーは見えず、カバー越しの対象は能力でも選べません。</li><li>AIは死体を見つけると通報し、時機を見て緊急会議を開きます。移動中は物資箱や柱を回り込んで進みます。</li><li>会議では目撃情報や直前に見た場所を使って話し、発言に反応して投票します。NPCには本当の証言だけでなくブラフもあります。</li><li>投票後は候補者ごとの票数と投票先が表示されます。幽霊になった後は投票せず、AIの会議結果を見られます。</li><li>会議が終わると、生存者は研究所内の決められたスポーン地点へランダムに再配置され、死体はすべて消えます。</li><li>死亡後は幽霊となり、移動とタスクだけ行えます。</li><li>恋人はお互いの位置をマップで確認できます。暗殺者がいる試合では手配書端末がマップに表示されます。</li><li>第三陣営は役職ごとの単独勝利条件を持ちます。</li></ul><p class="muted">AIはルールベースのNPC推理を行い、会議発言・遮蔽物で見通せる相手・直接目撃したキルを参照します。発言の種類や言い回しには複数のパターンがあります。</p><button class="primary" style="width:100%" onclick="closeHelp()">閉じる</button></div></div>
 
 <script>
 const $=id=>document.getElementById(id);
@@ -230,13 +232,13 @@ function startGame(){
  let teams=shuffle(Array(black).fill("black").concat(Array(third).fill("third"),Array(white).fill("white")));
  const roleQueues={white:[...roleAssignments.white],black:[...roleAssignments.black],third:[...(roleAssignments.third||[])]};
   const startedAt=Date.now();
-     for(let i=0;i<ai+1;i++){let spawn=i===0?[250,250]:randomSpawn();let team=teams[i];let p={id:i,name:i===0?"あなた":"プレイヤー"+(i+1),team,role:roleQueues[team].pop(),alive:true,ghost:false,x:spawn[0],y:spawn[1],color:colors[i%colors.length],shape:i%4,taskCount:0,partnerId:null,protected:false,abilityUsed:false,roleReadyAt:startedAt,killReadyAt:startedAt+(team==="black"?30000:0),sabotageReadyAt:startedAt+(team==="black"?35000:0),emergencyReadyAt:startedAt+rand(30000,65000),aiNextGoalAt:startedAt+rand(2500,8000),aiNextTaskAt:startedAt+rand(1500,5000),aiTaskIndex:null,aiGoal:null,aiPath:[],disguiseId:null,disguiseUntil:0,charging:false,charge:{x:0,y:0},scented:false,aiMemory:{suspicion:{},trust:{},sightings:{}}};state.players.push(p)}
+     for(let i=0;i<ai+1;i++){let spawn=i===0?[250,250]:randomSpawn();let team=teams[i];let p={id:i,name:i===0?"あなた":"プレイヤー"+(i+1),team,role:roleQueues[team].pop(),alive:true,ghost:false,x:spawn[0],y:spawn[1],color:colors[i%colors.length],shape:i%4,taskCount:0,partnerId:null,protected:false,abilityUsed:false,roleReadyAt:startedAt,killReadyAt:startedAt+(team==="black"?30000:0),sabotageReadyAt:startedAt+(team==="black"?35000:0),emergencyReadyAt:startedAt+rand(30000,65000),aiNextGoalAt:startedAt+rand(2500,8000),aiNextTaskAt:startedAt+rand(3500,6500),aiCombatReadyAt:startedAt+60000,aiTaskIndex:null;aiGoal:null,aiPath:[],disguiseId:null,disguiseUntil:0,charging:false,charge:{x:0,y:0},scented:false,aiMemory:{suspicion:{},trust:{},sightings:{}}};state.players.push(p)}
  state.me=state.players[0];
   const lovers=state.players.filter(p=>p.role==="恋人");
   if(lovers.length===2){lovers[0].partnerId=lovers[1].id;lovers[1].partnerId=lovers[0].id}
   if(state.players.some(p=>p.role==="暗殺者"))state.bountyIds=shuffle(state.players.filter(p=>p.team==="white").map(p=>p.id)).slice(0,3);
   state.players.filter(p=>p.role==="放浪者").forEach(p=>state.scentedIds.add(p.id));
-  state.tasks=state.map.tasks.map((p,i)=>{const quota=Math.floor(state.total/state.map.tasks.length)+(i<state.total%state.map.tasks.length?1:0);return {id:i,x:p[0],y:p[1],done:false,quota,remaining:quota,label:["サンプル確認","端末同期","データ解析","電力調整"][i%4]}});
+  state.tasks=state.map.tasks.map((p,i)=>{const quota=Math.floor(state.total/state.map.tasks.length)+(i<state.total%state.map.tasks.length?1:0);return {id:i,x:p[0],y:p[1],done:false,quota,remaining:quota,completedBy:[],label:["サンプル確認","端末同期","データ解析","電力調整"][i%4]}});
   $("mapLabel").textContent="マップ：研究施設";$("roleLabel").textContent="役職："+state.me.role;$("myRoleText").textContent="陣営："+teamName(state.me.team)+" ／ 役職："+state.me.role+"。"+roleDescription(state.me);
   $("myStatus").textContent="生存";$("ghostBanner").hidden=true;$("taskCount").textContent="0 / "+state.total;$("taskProgress").style.width="0%";log("研究施設に到着。");
   show("game");state.running=true;updateNearbyActions();draw();clearInterval(loop);clearInterval(clock);loop=setInterval(tick,70);clock=setInterval(()=>{if(!state.running)return;state.seconds++;$("timer").textContent=String(Math.floor(state.seconds/60)).padStart(2,"0")+":"+String(state.seconds%60).padStart(2,"0");aiAction();checkWin()},1000);
@@ -485,7 +487,7 @@ stickZone.addEventListener("pointerup",releaseStick);stickZone.addEventListener(
 function updateNearbyActions(){
  if(!state.running||!state.me)return;
  const me=state.me,alive=me.alive,ghost=!alive&&me.ghost,now=Date.now();
- state.nearTask=(alive||ghost)&&me.team==="white"?state.tasks.find(t=>!t.done&&Math.hypot(t.x-me.x,t.y-me.y)<72)||null:null;
+ state.nearTask=(alive||ghost)&&me.team==="white"?state.tasks.find(t=>!t.done&&!t.completedBy?.includes(me.id)&&Math.hypot(t.x-me.x,t.y-me.y)<72)||null:null;
  state.nearBody=alive?state.dead.find(d=>Math.hypot(d.x-me.x,d.y-me.y)<82)||null:null;
  state.nearEmergency=alive&&Math.hypot(900-me.x,520-me.y)<82;
   $("taskAction").textContent=ghost?"👻 タスクを解読":state.nearTask?`🔧 ${state.nearTask.label}を解析（残り${state.nearTask.remaining}件）`:"🔧 タスクを行う";
@@ -524,8 +526,36 @@ function updateNearbyActions(){
  if(state.sabotageUntil>now)hints.push(`停電中 ${remainingText(state.sabotageUntil)}秒`);
  $("nearHint").textContent=hints.join(" ／ ")||"黄色い端末・赤い会議ボタン・死体に近づくと操作できます。";
 }
+let activeTaskPuzzle=null,activeTaskAnswer="";
+function openTaskPuzzle(task){
+ if(!state.running||!task||task.done||task.remaining<=0||!state.me||task.completedBy?.includes(state.me.id))return;
+ activeTaskPuzzle=task;
+ const symbols=["◆","●","▲","■","★","☾"],digits=shuffle(["1","2","3","4","5","6"]),map={};
+ symbols.forEach((symbol,i)=>map[symbol]=digits[i]);
+ const cipher=Array.from({length:4},()=>symbols[Math.floor(Math.random()*symbols.length)]);
+ activeTaskAnswer=cipher.map(symbol=>map[symbol]).join("");
+ $("taskPuzzleLabel").textContent=task.label+"：記号を数字に変換してください。";
+ $("taskCipherMap").innerHTML=symbols.map(symbol=>"<span>"+symbol+" ＝ "+map[symbol]+"</span>").join("");
+ $("taskCipherCode").textContent=cipher.join("　");
+ $("taskPuzzleInput").value="";$("taskPuzzleFeedback").textContent="";
+ $("taskPuzzleModal").classList.add("show");
+}
+function closeTaskPuzzle(){
+ $("taskPuzzleModal").classList.remove("show");activeTaskPuzzle=null;activeTaskAnswer="";
+}
+function submitTaskPuzzle(){
+ if(!activeTaskPuzzle||!state.running)return;
+ const answer=$("taskPuzzleInput").value.trim();
+ if(!/^\\d{4}$/.test(answer)){$("taskPuzzleFeedback").textContent="4桁の数字を入力してください。";return}
+ if(answer!==activeTaskAnswer){$("taskPuzzleFeedback").textContent="不正解です。対応表を確認してもう一度！";$("taskPuzzleInput").value="";return}
+ const task=activeTaskPuzzle;closeTaskPuzzle();
+ if(completeSharedTask(task,state.me)){updateNearbyActions();draw()}
+}
 function completeSharedTask(task,actor){
  if(!state.running||!task||task.done||task.remaining<=0||actor?.team!=="white")return false;
+ task.completedBy=task.completedBy||[];
+ if(task.completedBy.includes(actor.id))return false;
+ task.completedBy.push(actor.id);
  task.remaining--;state.done++;actor.taskCount=(actor.taskCount||0)+1;if(task.remaining<=0)task.done=true;
  $("taskCount").textContent=state.done+" / "+state.total;$("taskProgress").style.width=(state.done/state.total*100)+"%";
  if(actor.id===state.me.id)playSfx("task");
@@ -534,7 +564,7 @@ function completeSharedTask(task,actor){
 }
 function doTask(){
  if(!state.running||!(state.me.alive||state.me.ghost)||state.me.team!=="white"||!state.nearTask)return;
- completeSharedTask(state.nearTask,state.me);updateNearbyActions();draw();
+ openTaskPuzzle(state.nearTask);
 }
 function targetCandidates(actor,range,allowSelf=false,filter=()=>true){return state.players.filter(p=>p.alive&&(allowSelf||p.id!==actor.id)&&Math.hypot(p.x-actor.x,p.y-actor.y)<=range&&hasLineOfSight(actor,p)&&filter(p))}
 function openTargetSelection(title,info,targets,kind){
@@ -643,19 +673,19 @@ function updateAIWhiteTasks(now=Date.now()){
  for(const actor of state.players.slice(1)){
   if(!actor.alive||actor.team!=="white"||actor.aiGoal?.kind==="emergency")continue;
   let station=state.tasks[actor.aiTaskIndex];
-  if(!station||station.done||station.remaining<=0){
+  if(!station||station.done||station.remaining<=0||station.completedBy?.includes(actor.id)){
    actor.aiTaskIndex=null;
    if(actor.aiGoal?.kind==="task"){actor.aiGoal=null;actor.aiPath=[]}
-   const choices=state.tasks.map((task,index)=>({task,index,distance:Math.hypot(actor.x-task.x,actor.y-task.y)})).filter(x=>!x.task.done&&x.task.remaining>0).sort((a,b)=>a.distance-b.distance).slice(0,3);
+   const choices=state.tasks.map((task,index)=>({task,index,distance:Math.hypot(actor.x-task.x,actor.y-task.y)})).filter(x=>!x.task.done&&x.task.remaining>0&&!x.task.completedBy?.includes(actor.id)).sort((a,b)=>a.distance-b.distance).slice(0,3);
    if(!choices.length)return;
    const pick=choices[Math.floor(Math.random()*choices.length)];station=pick.task;actor.aiTaskIndex=pick.index;
-   actor.aiNextTaskAt=Math.max(actor.aiNextTaskAt||0,now+rand(1100,2300));setAIGoal(actor,station.x,station.y,"task");
+   actor.aiNextTaskAt=Math.max(actor.aiNextTaskAt||0,now+rand(3500,5000));setAIGoal(actor,station.x,station.y,"task");
   }
   if(Math.hypot(actor.x-station.x,actor.y-station.y)<=58){
    actor.aiGoal=null;actor.aiPath=[];
    if(now>=actor.aiNextTaskAt){
-    completeSharedTask(station,actor);actor.aiNextTaskAt=now+rand(1400,2900);
-    if(station.remaining<=0){actor.aiTaskIndex=null;actor.aiGoal=null;actor.aiPath=[]}
+    completeSharedTask(station,actor);actor.aiNextTaskAt=now+rand(4500,6500);
+    if(station.remaining<=0||station.completedBy?.includes(actor.id)){actor.aiTaskIndex=null;actor.aiGoal=null;actor.aiPath=[]}
     if(!state.running)return;
    }
   }else if(!actor.aiGoal||actor.aiGoal.kind!=="task"||actor.aiTaskIndex===null)setAIGoal(actor,station.x,station.y,"task");
@@ -685,14 +715,14 @@ function aiAction(){
   const nearby=targetCandidates(actor,86,false,p=>!(actor.team==="black"&&p.team==="black"));
   if(actor.team==="black"){
    if(now>=actor.sabotageReadyAt&&state.sabotageUntil<now&&Math.random()<.035){state.sabotageUntil=now+10000;actor.sabotageReadyAt=now+35000}
-   if(now>=actor.killReadyAt&&nearby.length){const t=nearby[Math.floor(Math.random()*nearby.length)];actor.killReadyAt=now+30000;performKill(t,actor,"キル")}
+   if(now>=Math.max(actor.killReadyAt,actor.aiCombatReadyAt||0)&&nearby.length){const t=nearby[Math.floor(Math.random()*nearby.length)];actor.killReadyAt=now+30000;performKill(t,actor,"キル")}
    if(actor.role==="百面相"&&now>=actor.roleReadyAt&&nearby.length&&Math.random()<.04){actor.disguiseId=nearby[0].id;actor.disguiseUntil=now+10000;actor.roleReadyAt=now+35000}
-   if(actor.role==="イノシシ"&&!actor.charging&&now>=actor.roleReadyAt&&nearby.length&&Math.random()<.05){let t=nearby[0],dx=t.x-actor.x,dy=t.y-actor.y,m=Math.hypot(dx,dy)||1;actor.charge={x:dx/m,y:dy/m};actor.charging=true}
-  }else if(actor.role==="暗殺者"&&now>=actor.killReadyAt){
+   if(actor.role==="イノシシ"&&!actor.charging&&now>=Math.max(actor.roleReadyAt,actor.aiCombatReadyAt||0)&&nearby.length&&Math.random()<.05){let t=nearby[0],dx=t.x-actor.x,dy=t.y-actor.y,m=Math.hypot(dx,dy)||1;actor.charge={x:dx/m,y:dy/m};actor.charging=true}
+  }else if(actor.role==="暗殺者"&&now>=Math.max(actor.killReadyAt,actor.aiCombatReadyAt||0)){
    const wanted=nearby.filter(p=>state.bountyIds.includes(p.id));
    if(wanted.length){actor.killReadyAt=now+20000;performKill(wanted[0],actor,"暗殺")}
-  }else if(actor.role==="狂人"&&now>=actor.killReadyAt&&nearby.length&&Math.random()<.25){actor.killReadyAt=now+30000;performKill(nearby[0],actor,"狂人の攻撃")}
-  else if((actor.role==="狩人"||actor.role==="保安官")&&!actor.abilityUsed&&nearby.length&&Math.random()<.12){actor.abilityUsed=true;performKill(nearby[0],actor,"役職能力")}
+  }else if(actor.role==="狂人"&&now>=Math.max(actor.killReadyAt,actor.aiCombatReadyAt||0)&&nearby.length&&Math.random()<.25){actor.killReadyAt=now+30000;performKill(nearby[0],actor,"狂人の攻撃")}
+  else if((actor.role==="狩人"||actor.role==="保安官")&&now>=(actor.aiCombatReadyAt||0)&&!actor.abilityUsed&&nearby.length&&Math.random()<.12){actor.abilityUsed=true;performKill(nearby[0],actor,"役職能力")}
   else if(actor.role==="僧侶"&&!actor.abilityUsed){const ally=targetCandidates(actor,95,true).find(p=>p.id!==actor.id&&!p.protected);if(ally&&Math.random()<.18){actor.abilityUsed=true;ally.protected=true}}
   else if(actor.role==="放浪者"&&now>=actor.roleReadyAt&&nearby.length){state.scentedIds.add(nearby[0].id);nearby[0].scented=true;actor.roleReadyAt=now+15000}
  });
@@ -907,6 +937,8 @@ function closeMeeting(){
  $("meetingModal").classList.remove("show");
  if(state.running)respawnLivingPlayers();
  state.dead=[];
+ state.tasks.forEach(task=>{task.completedBy=[]});
+ state.players.slice(1).forEach(p=>{p.aiTaskIndex=null;if(p.aiGoal?.kind==="task"){p.aiGoal=null;p.aiPath=[]}p.aiNextTaskAt=Date.now()+rand(3500,6000)});
  state.meeting=false;state.meetingPhase="";state.selectedVote=null;
  updateNearbyActions();draw();
  if(state.running)checkWin();
