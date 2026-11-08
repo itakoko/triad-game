@@ -1644,7 +1644,7 @@ function chooseAIVote(voter,alive){
  for(let i=0;i<shortlist.length;i++){roll-=weights[i];if(roll<=0)return shortlist[i].target.id}
  return shortlist[0].target.id;
 }
-function submitVote(){if(isOnlineClient()){if(state.selectedVote!==null){sendOnlineInput({kind:"action",action:"vote",target:state.selectedVote});$("submitVoteAction").disabled=true;$("meetingInfo").textContent="投票を送信しました。他の参加者の投票を待っています。"}return}if(onlineGame?.isHost){if(state.selectedVote!==null){onlineVotes.set(state.me.id,state.selectedVote);resolveOnlineVotes()}return}
+function submitVote(){if(isOnlineClient()){if(state.selectedVote!==null&&!state.onlineVoteSubmitted){state.onlineVoteSubmitted=true;sendOnlineInput({kind:"action",action:"vote",target:state.selectedVote});$("submitVoteAction").disabled=true;$("meetingInfo").textContent="投票を送信しました。他の参加者の投票を待っています。"}return}if(onlineGame?.isHost){if(state.selectedVote!==null){onlineVotes.set(state.me.id,state.selectedVote);resolveOnlineVotes()}return}
  if(!state.meeting||state.meetingPhase!=="voting"||(state.me.alive&&state.selectedVote===null)||(!state.me.alive&&state.selectedVote!=="ghost"))return;
  const alive=state.players.filter(p=>p.alive),ballots=state.me.alive?[{voter:state.me.id,target:state.selectedVote}]:[];
  playSfx("vote");
@@ -1792,7 +1792,7 @@ const ROLE_CONFIG_GROUPS=[
  {team:"black",label:"⚫ 黒陣営",roles:["インポスター","イノシシ","百面相"]},
  {team:"third",label:"🟣 第三陣営",roles:["放浪者","暗殺者","てるてる","狂人"]}
 ];
-let onlineGame=null,onlineMoveTimer=null,onlineSnapshotTimer=null,onlineInputChannels=[],onlineUserChannels=[],onlineInputs=new Map(),onlineVotes=new Map(),onlineMeetingLog=[],onlineGameRevision=0,onlineSnapshotBusy=false,onlinePrivateChannel=null,onlinePrivatePlayer=null,onlineInputChannel=null,onlinePendingInputs=[];
+let onlineGame=null,onlineMoveTimer=null,onlineSnapshotTimer=null,onlineInputChannels=[],onlineUserChannels=[],onlineInputs=new Map(),onlineVotes=new Map(),onlineMeetingLog=[],onlineGameRevision=0,onlineSnapshotBusy=false,onlinePrivateChannel=null,onlinePrivatePlayer=null,onlineInputChannel=null,onlinePendingInputs=[],onlineVoteListSignature="";
 
 
 
@@ -1853,7 +1853,7 @@ function startOnlineClient(){
  ensureOnlineInputChannel().catch(e=>socialMessage(e.message||String(e),true));
  if(onlineMoveTimer)clearInterval(onlineMoveTimer);let last="";
  onlineMoveTimer=setInterval(()=>{if(!isOnlineClient())return;const m=state.move||{x:0,y:0},key=m.x.toFixed(2)+","+m.y.toFixed(2);if(key!==last||Math.abs(m.x)+Math.abs(m.y)>.02){last=key;sendOnlineInput({kind:"move",x:m.x,y:m.y})}},80);
- if(loop)clearInterval(loop);loop=setInterval(()=>{if(!isOnlineClient())return;applyOnlineRenderInterpolation();updateNearbyActions();draw()},33);
+ if(loop)clearInterval(loop);loop=setInterval(()=>{if(!isOnlineClient())return;applyOnlineRenderInterpolation();predictOnlineLocalMovement();updateNearbyActions();draw()},33);
  if(clock)clearInterval(clock);show("game");startAudio();
 }
 function applyOnlinePrivatePlayer(){
@@ -1888,7 +1888,7 @@ async function broadcastOnlineToUsers(event,payload){
 async function broadcastOnlineSnapshot(){
  if(!isOnlineHost()||onlineSnapshotBusy||!onlineUserChannels.length)return;onlineSnapshotBusy=true;
  try{
-  const payload={revision:++onlineGameRevision,state:serializeOnlinePublicState(),chat:onlineMeetingLog.slice(-80)};
+  const payload={revision:++onlineGameRevision,state:serializeOnlinePublicState(),chat:onlineMeetingLog.slice(-80),votedUserIds:[...onlineVotes.keys()].map(id=>state.players.find(p=>p.id===id)?.userId).filter(Boolean)};
   await broadcastOnlineToUsers("game_snapshot",payload);
  }catch(e){console.warn("snapshot send",e)}finally{onlineSnapshotBusy=false}
 }
@@ -1912,13 +1912,32 @@ function applyOnlineRenderInterpolation(){
  if(!isOnlineClient())return;const now=performance.now();
  for(const p of state.players||[]){if(!Number.isFinite(p._netStart))continue;const t=Math.min(1,(now-p._netStart)/Math.max(1,p._netDuration||200));p.x=p._netFromX+(p._netToX-p._netFromX)*t;p.y=p._netFromY+(p._netToY-p._netFromY)*t;if(t>=1){delete p._netStart;delete p._netFromX;delete p._netFromY;delete p._netToX;delete p._netToY;delete p._netDuration}}
 }
+function predictOnlineLocalMovement(){
+ const p=state.me;if(!isOnlineClient()||!p||( !p.alive&&!p.ghost)||p.charging)return;
+ const m=state.move||{x:0,y:0},mag=Math.hypot(m.x,m.y);if(mag<.015)return;
+ const nx=p.x+(m.x/mag)*3.5,ny=p.y+(m.y/mag)*3.5;
+ if(isWalkable(nx,p.y))p.x=nx;if(isWalkable(p.x,ny))p.y=ny;
+ if(Number.isFinite(p._correctionX)&&Number.isFinite(p._correctionY)){
+  const cx=p._correctionX*.24,cy=p._correctionY*.24;p.x+=cx;p.y+=cy;p._correctionX-=cx;p._correctionY-=cy;
+  if(Math.abs(p._correctionX)<.04&&Math.abs(p._correctionY)<.04){delete p._correctionX;delete p._correctionY}
+ }
+}
 function receiveOnlineSnapshot(payload){
  if(!onlineGame||onlineGame.isHost||!payload?.state||payload.revision<onlineGameRevision)return;onlineGameRevision=payload.revision;
- const previousPlayers=new Map((state.players||[]).map(p=>[p.id,p]));
+ const previousPlayers=new Map((state.players||[]).map(p=>[p.id,p])),localMove={...(state.move||{x:0,y:0})};
+ const previousPhase=state.meetingPhase,previousMeeting=!!state.meeting,previousVote=state.selectedVote,previousVoteSubmitted=!!state.onlineVoteSubmitted;
  const restored=JSON.parse(JSON.stringify(payload.state),(k,v)=>v&&typeof v==="object"&&Array.isArray(v.__triadSet)?new Set(v.__triadSet):v);
  const now=performance.now();
- restored.players=(restored.players||[]).map(p=>{const old=previousPlayers.get(p.id);if(old&&p.userId!==authUser.id&&Number.isFinite(old.x)&&Number.isFinite(old.y)&&Number.isFinite(p.x)&&Number.isFinite(p.y)){p._netFromX=old.x;p._netFromY=old.y;p._netToX=p.x;p._netToY=p.y;p._netStart=now;p._netDuration=200;p.x=old.x;p.y=old.y;}return p});
- state={...restored,map:maps.lab,me:null,aiTurnTimer:null,meetingTimer:null};state.worldWidth=maps.lab.width;state.worldHeight=maps.lab.height;state.running=true;
+ restored.players=(restored.players||[]).map(p=>{
+  const old=previousPlayers.get(p.id);
+  if(old&&Number.isFinite(old.x)&&Number.isFinite(old.y)&&Number.isFinite(p.x)&&Number.isFinite(p.y)){
+   if(p.userId===authUser.id){const authoritativeX=p.x,authoritativeY=p.y;p.x=old.x;p.y=old.y;p._correctionX=authoritativeX-old.x;p._correctionY=authoritativeY-old.y;}
+   else{p._netFromX=old.x;p._netFromY=old.y;p._netToX=p.x;p._netToY=p.y;p._netStart=now;p._netDuration=200;p.x=old.x;p.y=old.y;}
+  }
+  return p;
+ });
+ state={...restored,map:maps.lab,me:null,move:localMove,selectedVote:(previousMeeting&&restored.meeting&&previousPhase===restored.meetingPhase)?previousVote:null,aiTurnTimer:null,meetingTimer:null,onlineVoteSubmitted:(previousMeeting&&restored.meeting&&previousPhase===restored.meetingPhase)?previousVoteSubmitted:false,onlineVotedUserIds:payload.votedUserIds||[]};
+ state.worldWidth=maps.lab.width;state.worldHeight=maps.lab.height;state.running=true;
  state.scentedIds=state.scentedIds instanceof Set?state.scentedIds:new Set();state.me=state.players.find(p=>p.userId===authUser.id)||null;
  if(state.me&&onlinePrivatePlayer)Object.assign(state.me,onlinePrivatePlayer);if(!state.me)return;
  $("mapLabel").textContent="マップ：研究施設";$("roleLabel").textContent="役職："+(state.me.role||"確認中");
@@ -1929,17 +1948,25 @@ function receiveOnlineSnapshot(payload){
  onlineMeetingLog=payload.chat||[];if(!$("game").classList.contains("active"))show("game");renderOnlineMeeting();updateNearbyActions();draw();
 }
 function renderOnlineMeeting(){
- if(!isOnlineClient())return;if(!state.meeting){$("meetingModal").classList.remove("show");return}
+ if(!isOnlineClient())return;
+ if(!state.meeting){$("meetingModal").classList.remove("show");onlineVoteListSignature="";return}
  $("meetingModal").classList.add("show");$("meetingTitle").textContent="会議";
  $("meetingPhaseLabel").textContent=state.meetingPhase==="voting"?"投票フェーズ":"議論フェーズ";
  $("meetingTimeLeft").textContent=state.meetingSecondsLeft+"秒";
- $("meetingInfo").textContent=state.meetingPhase==="voting"?"投票先を選んで投票を確定してください。":"全員で話し合ってください。";
+ const voted=(state.onlineVotedUserIds||[]).includes(authUser.id)||!!state.onlineVoteSubmitted;
+ $("meetingInfo").textContent=state.meetingPhase==="voting"?(voted?"投票を送信しました。他の参加者の投票を待っています。":"投票先を選んで「投票を確定」してください。"):"全員で話し合ってください。";
  $("meetingComposer").hidden=state.meetingPhase!=="discussion"||!state.me.alive;
  $("beginVoteAction").hidden=state.meetingPhase!=="discussion"||!state.me.alive;
  $("meetingVotePanel").hidden=state.meetingPhase!=="voting";
  $("closeMeetingAction").disabled=!(state.lastBallots||[]).length;
  if(onlineLastChatCount!==onlineMeetingLog.length){$("meetingChat").textContent="";onlineMeetingLog.forEach(m=>appendMeetingMessage(m.name,m.text,m.kind,m.player||null));onlineLastChatCount=onlineMeetingLog.length}
- if(state.meetingPhase==="voting"){$("voteList").innerHTML=state.players.filter(p=>p.alive).map(p=>'<button data-vote-id="'+p.id+'" onclick="castVote('+p.id+')"><span class="dot" style="background:'+p.color+'"></span>'+playerTag(p)+'</button>').join("");$("submitVoteAction").disabled=state.selectedVote===null}
+ if(state.meetingPhase==="voting"){
+  const alive=state.players.filter(p=>p.alive),signature=alive.map(p=>p.id).join(",")+"|"+state.meetingPhase;
+  if(signature!==onlineVoteListSignature){$("voteList").innerHTML=alive.map(p=>'<button data-vote-id="'+p.id+'" onclick="castVote('+p.id+')"><span class="dot" style="background:'+p.color+'"></span>'+playerTag(p)+'</button>').join("");onlineVoteListSignature=signature}
+  $("voteList").querySelectorAll("button").forEach(b=>{const id=Number(b.dataset.voteId);b.classList.toggle("selected",state.selectedVote!==null&&state.selectedVote!=="skip"&&id===Number(state.selectedVote));b.disabled=voted||!state.me.alive});
+  $("selectedVoteText").textContent=state.selectedVote==="skip"?"投票先：スキップ":state.selectedVote!==null?"投票先："+playerTag(state.players.find(p=>p.id===Number(state.selectedVote))):"投票先：未選択";
+  $("submitVoteAction").disabled=voted||state.selectedVote===null||!state.me.alive;
+ }
 }
 async function handleOnlineAction(payload){
  if(!isOnlineHost()||!payload)return;const actor=state.players.find(p=>p.userId===payload.userId&&p.isHuman);
