@@ -673,7 +673,7 @@ function resumeSavedGame(){
     scheduleAITurn(2500);
    }
   }
-  startMatchAutosave();if(state.me.role==="ギャンブラー")chooseGamblerPrediction(state.me);
+  startMatchAutosave();if(state.me.role==="ギャンブラー"&&!state.me.gamblerPrediction)chooseGamblerPrediction(state.me);
   updateResumeGameUI();
  }catch(error){console.error("Match restore failed",error);alert("試合データを復元できませんでした。\n原因："+(error&&error.message?error.message:String(error)));}
 }
@@ -764,6 +764,8 @@ async function startGame(){
  show("game");state.running=true;playMatchCinematic("TRIAD","試合開始","start");playSfx("meeting");updateNearbyActions();draw();clearInterval(loop);clearInterval(clock);loop=setInterval(tick,70);
  clock=setInterval(()=>{if(!state.running)return;state.seconds++;$("timer").textContent=String(Math.floor(state.seconds/60)).padStart(2,"0")+":"+String(state.seconds%60).padStart(2,"0");aiAction();checkWin()},1000);
  startMatchAutosave();
+ state.players.filter(p=>p.role==="ギャンブラー"&&!p.isHuman).forEach(p=>chooseGamblerPrediction(p));
+ if(state.me.role==="ギャンブラー")chooseGamblerPrediction(state.me);
  if(onlineHost)await startOnlineHostSync();else onlineGame=null;
 }
 function randomSpawn(){
@@ -1287,17 +1289,48 @@ function showAliveList(){
  $("aliveModal").classList.add("show");
 }
 function closeAliveList(){$("aliveModal").classList.remove("show")}
+function chooseGamblerPrediction(actor,onlineClient=false){
+ if(!actor||actor.role!=="ギャンブラー"||actor.gamblerPrediction)return;
+ let choice="";
+ if(actor.id!==state.me?.id&&!actor.isHuman)choice=Math.random()<.5?"low":"high";
+ else{
+  const answer=prompt("次の会議まで、どちらの目が多く出ると予想しますか？\\n1：1〜3（JACKPOT・強運・運命の目）\\n2：4〜6（小当たり・ハズレ・大凶）","1");
+  choice=answer==="2"||String(answer||"").trim()==="4-6"||String(answer||"").trim()==="4〜6"?"high":"low";
+ }
+ actor.gamblerPrediction=choice;actor.gamblerPredictionAsked=true;
+ if(onlineClient)sendOnlineInput({kind:"action",action:"gamblerPredict",prediction:choice});
+ if(actor.id===state.me?.id)actor.gamblerNotice="予想："+(choice==="low"?"1〜3が多い":"4〜6が多い");
+}
+function resolveGamblerPredictionCycle(){
+ const gamblers=state.players.filter(p=>p.role==="ギャンブラー"&&p.alive);
+ for(const actor of gamblers){
+  const low=Number(actor.gamblerLowCount)||0,high=Number(actor.gamblerHighCount)||0;
+  if(low!==high&&actor.gamblerPrediction){
+   const actual=low>high?"low":"high",correct=actual===actor.gamblerPrediction;
+   if(correct){
+    actor.gamblerPredictionHits=(actor.gamblerPredictionHits||0)+1;
+    actor.gamblerNotice="予想的中！ "+actor.gamblerPredictionHits+"/2";
+    if(actor.gamblerPrediction==="high"){actor.protected=true;actor.gamblerNotice+=" ／ 追加の加護を獲得！"}
+    if(actor.gamblerPredictionHits>=2){endGame("ギャンブラーが多数予想を2回的中させたため単独勝利！",{roles:["ギャンブラー"]});return}
+   }else actor.gamblerNotice="予想は外れました。次の会議までに再挑戦！";
+  }else if(low===high)actor.gamblerNotice="1〜3と4〜6が同数。予想判定なし。";
+  actor.gamblerLowCount=0;actor.gamblerHighCount=0;actor.gamblerPrediction=null;actor.gamblerPredictionAsked=false;
+  if(actor.id===state.me?.id)chooseGamblerPrediction(actor);
+  else if(!actor.isHuman)chooseGamblerPrediction(actor);
+ }
+}
 function resolveGamblerRoll(actor,now=Date.now()){
  if(!actor?.alive||actor.role!=="ギャンブラー"||remainingText(actor.roleReadyAt)>0)return;
  const roll=1+Math.floor(Math.random()*6);actor.roleReadyAt=now+25000;
+ if(roll<=3)actor.gamblerLowCount=(actor.gamblerLowCount||0)+1;else actor.gamblerHighCount=(actor.gamblerHighCount||0)+1;
  const announce=(message)=>{actor.gamblerNotice=message;actor.gamblerNoticeUntil=now+12000;log(actor.name+"："+message)};
- if(roll===1){actor.gamblerJackpots=(actor.gamblerJackpots||0)+1;const targets=targetCandidates(actor,160,false,p=>p.team!==actor.team);if(targets.length){const target=targets[Math.floor(Math.random()*targets.length)];announce("🎰 JACKPOT!! "+actor.gamblerJackpots+"/3");playSfx("jackpot");performKill(target,actor,"ギャンブラーの大当たり")}else{actor.protected=true;announce("🎰 JACKPOT!! 対象不在のため加護を獲得！ "+actor.gamblerJackpots+"/3");playSfx("jackpot")}if(actor.alive&&actor.gamblerJackpots>=3)endGame("ギャンブラーが大当たりを3回引いたため単独勝利！",{roles:["ギャンブラー"]})}
+ if(roll===1){actor.gamblerJackpots=(actor.gamblerJackpots||0)+1;actor.gamblerKillReady=true;announce("🎰 JACKPOT！1回使えるキル能力を獲得！");playSfx("jackpot")}
  else if(roll===2){actor.protected=true;announce("✨ 強運！次の攻撃を1回防ぐ！");playSfx("ability")}
  else if(roll===3){const targets=state.players.filter(p=>p.alive&&p.id!==actor.id);const target=targets[Math.floor(Math.random()*targets.length)];announce(target?"🔍 運命の目！ "+target.name+" は"+teamName(target.team)+"陣営！":"🔍 情報なし");playSfx("ability")}
  else if(roll===4){actor.roleReadyAt=now+5000;announce("🍀 小当たり！次の抽選まで5秒！");playSfx("ability")}
  else if(roll===5){announce("💨 ハズレ！何も起きなかった…");playSfx("ability")}
- else{announce("💀 大凶！賭けに負けた…自分が脱落！");playSfx("death");markPlayerDead(actor,"ギャンブル失敗",actor);checkWin()}
- updateNearbyActions();draw();
+ else{actor.gamblerBadLuckCount=(actor.gamblerBadLuckCount||0)+1;announce("💀 大凶！累計"+actor.gamblerBadLuckCount+"/3回");playSfx("death");if(actor.gamblerBadLuckCount>=3)markPlayerDead(actor,"大凶を3回引いた",actor)}
+ updateNearbyActions();draw();if(!actor.alive)checkWin();
 }
 function useAbility(){if(isOnlineClient()){if(state.me?.role==="サイエンティスト"){showAliveList();return}if(state.me?.role==="暗殺者"){openBounty();sendOnlineInput({kind:"action",action:"ability"});return}if(state.me?.role==="ギャンブラー"&&state.me.gamblerKillReady){openTargetSelection("JACKPOTキル","近くの相手1人をキルできます。",targetCandidates(state.me,100,false,p=>p.team!==state.me.team),"gamblerKill");return}if(!["占い師","狩人","保安官","僧侶","百面相","放浪者"].includes(state.me?.role)){sendOnlineInput({kind:"action",action:"ability"});return}}
  const actor=state.me;if(!state.running||!actor.alive)return;
@@ -1875,7 +1908,9 @@ function closeMeeting(){if(isOnlineClient()){sendOnlineInput({kind:"action",acti
    if(p.id!==0){p.aiTaskIndex=null;if(p.aiGoal?.kind==="task"){p.aiGoal=null;p.aiPath=[]}p.aiNextTaskAt=cooldownStart+rand(3500,6000)}
   });
   state.meeting=false;state.meetingPhase="";state.selectedVote=null;state._closingMeeting=false;
+  resolveGamblerPredictionCycle();
   updateNearbyActions();draw();if(state.running)checkWin();
+  if(onlineGame?.isHost){broadcastOnlineSnapshot();sendOnlinePrivateStates()}
  },1050);
 }
 function checkWin(){
