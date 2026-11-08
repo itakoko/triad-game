@@ -191,7 +191,7 @@ canvas#mapCanvas{aspect-ratio:16/10;background:#0b1522}
   <div class="card"><h3>🌐 オンライン対戦</h3><p class="muted">フレンドと遊ぶ・公開ルームを探す・AI人数や特別ルールを設定。</p><button class="primary" style="width:100%" onclick="openSocialHub()">オンラインロビーへ</button></div>
   <div class="card"><h3>📘 遊び方</h3><p class="muted">試作版のルールと操作方法を確認します。</p><button style="width:100%" onclick="openHelp()">ルールを見る</button></div>
   <div class="card"><h3>👥 アカウント図鑑</h3><p class="muted">プレイヤーとAIアカウント全員の能力・成績・得意な役職を確認できます。</p><button style="width:100%" onclick="openAccountsScreen()">アカウントを見る</button></div>
-  <div class="card"><h3>📋 アップデートログ</h3><p class="muted">見たいバージョンを選択してください。</p><div class="field"><label for="updateVersionSelect">バージョン</label><select id="updateVersionSelect" onchange="renderUpdateLog(this.value)"><option value="0.55">v0.55（最新）</option><option value="0.54">v0.54（最新）</option><option value="0.53">v0.53</option><option value="0.52">v0.52</option><option value="0.51">v0.51</option><option value="0.49">v0.49</option><option value="0.48">v0.48</option><option value="0.44">v0.44</option><option value="0.43">v0.43</option><option value="0.42">v0.42</option><option value="0.41">v0.41</option><option value="0.40">v0.40</option><option value="0.39">v0.39</option><option value="0.38">v0.38</option><option value="0.37">v0.37</option><option value="0.36">v0.36</option><option value="0.35">v0.35</option><option value="0.34">v0.34</option><option value="0.33">v0.33</option><option value="0.32">v0.32</option><option value="0.31">v0.31</option><option value="0.29">v0.29</option><option value="0.28">v0.28</option><option value="0.27">v0.27</option><option value="0.26">v0.26</option><option value="0.25">v0.25</option><option value="0.23">v0.23</option></select></div><div id="updateLogContent" class="updateLogContent" aria-live="polite"></div></div>
+  <div class="card"><h3>📋 アップデートログ</h3><p class="muted">見たいバージョンを選択してください。</p><div class="field"><label for="updateVersionSelect">バージョン</label><select id="updateVersionSelect" onchange="renderUpdateLog(this.value)"><option value="0.56">v0.56（最新）</option><option value="0.55">v0.55（最新）</option><option value="0.54">v0.54（最新）</option><option value="0.53">v0.53</option><option value="0.52">v0.52</option><option value="0.51">v0.51</option><option value="0.49">v0.49</option><option value="0.48">v0.48</option><option value="0.44">v0.44</option><option value="0.43">v0.43</option><option value="0.42">v0.42</option><option value="0.41">v0.41</option><option value="0.40">v0.40</option><option value="0.39">v0.39</option><option value="0.38">v0.38</option><option value="0.37">v0.37</option><option value="0.36">v0.36</option><option value="0.35">v0.35</option><option value="0.34">v0.34</option><option value="0.33">v0.33</option><option value="0.32">v0.32</option><option value="0.31">v0.31</option><option value="0.29">v0.29</option><option value="0.28">v0.28</option><option value="0.27">v0.27</option><option value="0.26">v0.26</option><option value="0.25">v0.25</option><option value="0.23">v0.23</option></select></div><div id="updateLogContent" class="updateLogContent" aria-live="polite"></div></div>
  </div>
 </section>
 
@@ -341,7 +341,9 @@ canvas#mapCanvas{aspect-ratio:16/10;background:#0b1522}
 <footer>TRIAD v0.50 · 通常対戦の役職詳細設定・観戦機能</footer>
 
   <div id="onlineConnectionBanner" role="status">オンライン接続が不安定です。<button type="button" onclick="retryOnlineConnection()">再接続</button></div>
-  <div class="modal" id="offlineRoleSettingsModal"><div class="modalbox"><h2>通常対戦・役職詳細設定</h2><p class="muted">固定人数を指定した役職は必ず登場します。残りの枠はONになっている役職から出現重みに応じて抽選します。</p><div class="row"><div class="field"><label>黒陣営人数</label><input id="offlineRoleBlack" type="number" min="1" max="3" value="1" oninput="updateOfflineRoleSettingsSummary()"></div><div class="field"><label>第三陣営人数</label><input id="offlineRoleThird" type="number" min="0" max="4" value="1" oninput="updateOfflineRoleSettingsSummary()"></div></div><label><input id="offlineRoleSpecial" type="checkbox" style="width:auto;margin-right:8px" onchange="updateOfflineRoleSettingsSummary()">特別モード（役職重複を許可）</label><p class="muted">恋人は0人または2人です。特別モードをOFFにすると、原則として同じ役職は同じ試合に重複しません。</p><div id="offlineRoleConfigEditor"></div><div id="offlineRoleConfigSummary" class="muted" style="padding:10px;background:#101a2a;border-radius:10px;margin-top:10px"></div><div class="actions"><button onclick="document.getElementById('offlineRoleSettingsModal').classList.remove('show')">閉じる</button><button class="primary" onclick="saveOfflineRoleSettings()">設定を保存</button></div></div></div>
+  <div class="modal" id="offlineRoleSettingsModal"><div class="modalbox"><h2>通常対戦・役職詳細設定</h2><p class="muted">固定人数を指定した役職は必ず登場します。残りの枠はONになっている役職から出現重みに応じて抽選します。</p>
+<div class="row" style="gap:8px;margin:10px 0"><button type="button" onclick="resetOfflineRoleSettingsToDefault()">標準設定に戻す</button><button type="button" class="primary" onclick="randomizeOfflineRoleSettings()">人数・役職をすべてランダム</button></div>
+<p class="muted">標準設定ではAI9人・黒2人・第三1人、役職重複なしに戻ります。ランダムではAI人数・各陣営人数・役職の固定人数・重複許可・出現重みをまとめて抽選します。</p><div class="row"><div class="field"><label>黒陣営人数</label><input id="offlineRoleBlack" type="number" min="1" max="3" value="1" oninput="updateOfflineRoleSettingsSummary()"></div><div class="field"><label>第三陣営人数</label><input id="offlineRoleThird" type="number" min="0" max="4" value="1" oninput="updateOfflineRoleSettingsSummary()"></div></div><label><input id="offlineRoleSpecial" type="checkbox" style="width:auto;margin-right:8px" onchange="updateOfflineRoleSettingsSummary()">特別モード（役職重複を許可）</label><p class="muted">恋人は0人または2人です。特別モードをOFFにすると、原則として同じ役職は同じ試合に重複しません。</p><div id="offlineRoleConfigEditor"></div><div id="offlineRoleConfigSummary" class="muted" style="padding:10px;background:#101a2a;border-radius:10px;margin-top:10px"></div><div class="actions"><button onclick="document.getElementById('offlineRoleSettingsModal').classList.remove('show')">閉じる</button><button class="primary" onclick="saveOfflineRoleSettings()">設定を保存</button></div></div></div>
 <div class="modal" id="mapModal"><div class="modalbox"><h2>研究施設マップ</h2><canvas id="overviewCanvas" width="900" height="600"></canvas><div class="mapLegend"><span>● あなた　♥ 恋人の相手（恋人のみ）</span><span>● タスク端末</span><span>■ 緊急会議ボタン</span><span>！ 手配書端末</span><span>■ 遮蔽物・チェイスカバー</span><span>× 死体</span></div><button class="primary" style="width:100%" onclick="closeMap()">閉じる</button></div></div>
  <div class="modal" id="targetModal"><div class="modalbox"><h2 id="targetTitle">対象を選択</h2><p id="targetInfo" class="muted"></p><div id="targetList" class="targetList"></div><button style="width:100%" onclick="closeTargetModal()">キャンセル</button></div></div>
  <div class="modal" id="taskPuzzleModal"><div class="modalbox"><h2>🔐 暗号解読</h2><p id="taskPuzzleLabel" class="muted">端末の暗号を解読してください。</p><div id="taskCipherMap" class="taskCipher"></div><div id="taskCipherCode" class="taskPuzzleCode"></div><p class="muted">対応表を見て、暗号を4桁の数字に変換してください。</p><input id="taskPuzzleInput" class="taskPuzzleInput" type="text" inputmode="numeric" maxlength="4" placeholder="4桁の数字" onkeydown="if(event.key==='Enter'){event.preventDefault();submitTaskPuzzle()}"><p id="taskPuzzleFeedback" class="taskPuzzleFeedback"></p><div class="actions"><button onclick="closeTaskPuzzle()">中断</button><button class="primary" onclick="submitTaskPuzzle()">解読する</button></div></div></div>
@@ -689,7 +691,7 @@ function activateScreen(id){
 }
 function show(id){
  if(!activateScreen(id))return;
- if(id==="home"){renderUpdateLog($("updateVersionSelect")?.value||"0.55");updateResumeGameUI()}
+ if(id==="home"){renderUpdateLog($("updateVersionSelect")?.value||"0.56");updateResumeGameUI()}
  if(id==="accounts")loadAccountDirectoryData();
  if(id==="socialHub")loadSocialHub();
 }
@@ -2301,6 +2303,64 @@ function resolveOnlineVotes(){
 function loadOfflineRoleSettings(){
  try{return JSON.parse(localStorage.getItem("triad_offline_role_settings")||"null")||{role_counts:{},role_enabled:{},role_weights:{},role_duplicate_allowed:{},special_mode:false}}catch{return {role_counts:{},role_enabled:{},role_weights:{},role_duplicate_allowed:{},special_mode:false}}
 }
+function applyOfflineRoleSettingsToEditor(settings){
+ $("aiCount").value=settings.ai_count;
+ $("offlineRoleBlack").value=settings.black_count;
+ $("offlineRoleThird").value=settings.third_count;
+ $("offlineRoleSpecial").checked=!!settings.special_mode;
+ const maps=[
+  ["[data-offline-count]","offlineCount",settings.role_counts||{}],
+  ["[data-offline-enabled]","offlineEnabled",settings.role_enabled||{}],
+  ["[data-offline-weight]","offlineWeight",settings.role_weights||{}],
+  ["[data-offline-duplicate]","offlineDuplicate",settings.role_duplicate_allowed||{}]
+ ];
+ maps.forEach(([selector,key,values])=>document.querySelectorAll("#offlineRoleConfigEditor "+selector).forEach(el=>{
+  const value=values[el.dataset[key]];
+  if(key==="offlineEnabled"||key==="offlineDuplicate")el.checked=!!value;
+  else el.value=value??0;
+ }));
+ updateOfflineRoleSettingsSummary();
+}
+function resetOfflineRoleSettingsToDefault(){
+ const settings={ai_count:9,black_count:2,third_count:1,special_mode:false,role_counts:{},role_enabled:{},role_weights:{},role_duplicate_allowed:{}};
+ ROLE_CONFIG_GROUPS.forEach(g=>g.roles.forEach(role=>{
+  settings.role_counts[role]=0;settings.role_enabled[role]=true;settings.role_weights[role]=1;settings.role_duplicate_allowed[role]=false;
+ }));
+ applyOfflineRoleSettingsToEditor(settings);
+}
+function randomizeOfflineRoleSettings(){
+ const ai=3+Math.floor(Math.random()*9);
+ let black=1,third=0,white=0;
+ const valid=[];
+ for(let b=1;b<=3;b++)for(let t=0;t<=4;t++){
+  const w=1+ai-b-t;
+  if(w>=1&&w<=9)valid.push({black:b,third:t,white:w});
+ }
+ const faction=valid[Math.floor(Math.random()*valid.length)];
+ black=faction.black;third=faction.third;white=faction.white;
+ const special=Math.random()<0.35,counts={},enabled={},weights={},duplicates={};
+ ROLE_CONFIG_GROUPS.forEach(g=>{
+  let remaining=g.team==="white"?white:g.team==="black"?black:third;
+  const roles=[...g.roles].sort(()=>Math.random()-.5);
+  roles.forEach(role=>{
+   enabled[role]=true;weights[role]=1+Math.floor(Math.random()*100);
+   duplicates[role]=Math.random()<0.5;
+   let n=0;
+   if(role==="恋人"){
+    if(remaining>=2&&Math.random()<0.28)n=2;
+   }else{
+    const cap=Math.min(remaining,(special||duplicates[role])?2:1);
+    if(cap>0&&Math.random()<0.48)n=Math.floor(Math.random()*(cap+1));
+   }
+   if(n>1)duplicates[role]=true;
+   counts[role]=n;remaining-=n;
+  });
+ });
+ const settings={ai_count:ai,black_count:black,third_count:third,special_mode:special,role_counts:counts,role_enabled:enabled,role_weights:weights,role_duplicate_allowed:duplicates};
+ try{configuredRoleQueues(counts,{white,black,third},special,settings)}
+ catch(e){alert("ランダム設定の作成に失敗しました。もう一度押してください。");return}
+ applyOfflineRoleSettingsToEditor(settings);
+}
 function openOfflineRoleSettings(){
  const settings=loadOfflineRoleSettings(),hasSaved=!!localStorage.getItem("triad_offline_role_settings");$("offlineRoleBlack").value=hasSaved?(settings.black_count||1):($("blackCount").value||1);$("offlineRoleThird").value=hasSaved?(settings.third_count??0):($("thirdCount").value||0);$("offlineRoleSpecial").checked=!!settings.special_mode;
  const root=$("offlineRoleConfigEditor"),counts=settings.role_counts||{},enabled=settings.role_enabled||{},weights=settings.role_weights||{},duplicates=settings.role_duplicate_allowed||{};
@@ -2552,8 +2612,9 @@ async function leaveOnlineRoom(){
  activeRoomId=null;activeRoomSnapshot=null;await disconnectRoomChannel();show("socialHub");await loadSocialHub();
 }
 
-function renderUpdateLog(version="0.55"){
+function renderUpdateLog(version="0.56"){
  const logs={
+  "0.56":{date:"2026年11月9日",items:["通常対戦の役職詳細設定に「標準設定に戻す」「人数・役職をすべてランダム」を追加。AI人数・各陣営人数・役職固定人数・重複許可・出現重みをまとめて初期化／抽選できます。"]},
   "0.55":{date:"2026年11月9日",items:["ギャンブラーの予想をブラウザの入力ダイアログからゲーム内の専用ボタン選択に変更。試合開始時と会議終了後に画面内で1〜3／4〜6を選択できます。","役職一覧のギャンブラー説明を実際のダイス6面・JACKPOTキル能力・予想勝利条件・大凶3回脱落に合わせて修正。"]},
   "0.54":{date:"2026年11月9日",items:["ギャンブラーのダイスをJACKPOT／強運／運命の目／小当たり／ハズレ／大凶の6面に統一。","JACKPOTは即時キルではなく、1回使えるキル能力を獲得する方式に変更。","1〜3と4〜6の多数予想を追加。会議までに2回的中するとギャンブラーが単独勝利。会議後に再予想。","大凶は累計3回で脱落。4〜6予想の的中時には追加の加護を獲得。","オンライン対戦でも予想・キル能力・累計回数を同期。"]},
   "0.53":{date:"2026年11月9日",items:["会議中のAIがGemini APIを利用し、プレイヤーの発言・役職・陣営・目撃情報・疑いの根拠から、その場で回答を生成。","Gemini APIに接続できない場合や無料枠の上限に達した場合は、従来のローカル推理AIへ自動的に切替。","AIのAPIキーをHTMLに含めず、Supabase Edge Functionのサーバー環境変数から読み込む構成を追加。","無料枠の負荷を抑えるため、1会議あたりのGemini呼び出しを最大8回に制限。"]},
