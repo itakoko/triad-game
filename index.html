@@ -216,6 +216,7 @@ let loop=null,clock=null;
 const colorNames=["赤","赤橙","朱色","橙","黄橙","金","黄","黄緑","若草","緑","深緑","青緑","碧","水色","空色","青","瑠璃","藍","紺","青紫","紫","菫","赤紫","桃","桜","珊瑚","紅","栗","茶","灰白"];
 function hueColor(h){const a=document.createElement("canvas").getContext("2d");a.fillStyle=`hsl(${h},78%,62%)`;return a.fillStyle}
 const colors=Array.from({length:30},(_,i)=>hueColor(i*12));
+function fallbackAIName(index){const a=["蒼月","白夜","黒猫","星屑","桜花","紅蓮","流星","夜空","銀河","風鈴","月影","雪兎","狐火","青空","深海","雷鳴","陽炎","雲雀","琥珀","水鏡"],b=["の旅人","の観測者","の守護者","の探検家","の狙撃手","の研究員","の剣士","の案内人","の挑戦者","の放浪者"];return a[Math.floor((index-1)/10)%a.length]+b[(index-1)%10]}
 function show(id){document.querySelectorAll(".screen").forEach(s=>s.classList.remove("active"));$(id).classList.add("active")}
 function log(t){}
 function rand(a,b){return Math.random()*(b-a)+a}
@@ -254,7 +255,7 @@ async function startGame(){
  let teams=shuffle(Array(black).fill("black").concat(Array(third).fill("third"),Array(white).fill("white")));
  const roleQueues={white:[...roleAssignments.white],black:[...roleAssignments.black],third:[...(roleAssignments.third||[])]};
   const startedAt=Date.now(),profileDeck=shuffle([...aiProfilePool]);profileDeck.forEach(profile=>{profile.memory=loadAILongTermMemory(profile.id)});
-     for(let i=0;i<ai+1;i++){let spawn=i===0?[250,250]:randomSpawn();let team=teams[i],profile=i===0?null:(profileDeck[i-1]||null);let p={id:i,name:i===0?"あなた":(profile?.display_name||"プレイヤー"+(i+1)),team,role:roleQueues[team].pop(),aiProfile:profile,alive:true,ghost:false,x:spawn[0],y:spawn[1],color:colors[i%colors.length],colorName:colorNames[i%colorNames.length],shape:i%4,taskCount:0,partnerId:null,protected:false,abilityUsed:false,roleReadyAt:startedAt,killReadyAt:startedAt+(team==="black"?30000:0),sabotageReadyAt:startedAt+(team==="black"?35000:0),emergencyReadyAt:startedAt+rand(30000,65000),aiNextGoalAt:startedAt+rand(2500,8000),aiNextTaskAt:startedAt+rand(3500,6500),aiTaskIndex:null,aiGoal:null,aiPath:[],disguiseId:null,disguiseUntil:0,charging:false,charge:{x:0,y:0},scented:false,aiMemory:{suspicion:{},trust:{},sightings:{}}};state.players.push(p)}
+     for(let i=0;i<ai+1;i++){let spawn=i===0?[250,250]:randomSpawn();let team=teams[i],profile=i===0?null:(profileDeck[i-1]||null);let p={id:i,name:i===0?"あなた":(profile?.display_name||fallbackAIName(i)),team,role:roleQueues[team].pop(),aiProfile:profile,alive:true,ghost:false,x:spawn[0],y:spawn[1],color:colors[i%colors.length],colorName:colorNames[i%colorNames.length],shape:i%4,taskCount:0,partnerId:null,protected:false,abilityUsed:false,roleReadyAt:startedAt,killReadyAt:startedAt+(team==="black"?30000:0),sabotageReadyAt:startedAt+(team==="black"?35000:0),emergencyReadyAt:startedAt+rand(30000,65000),aiNextGoalAt:startedAt+rand(2500,8000),aiNextTaskAt:startedAt+rand(3500,6500),aiTaskIndex:null,aiGoal:null,aiPath:[],disguiseId:null,disguiseUntil:0,charging:false,charge:{x:0,y:0},scented:false,aiMemory:{suspicion:{},trust:{},sightings:{}}};state.players.push(p)}
  state.me=state.players[0];
   const lovers=state.players.filter(p=>p.role==="恋人");
   if(lovers.length===2){lovers[0].partnerId=lovers[1].id;lovers[1].partnerId=lovers[0].id}
@@ -1002,7 +1003,7 @@ function checkWin(){
  else if(b>=w)endGame("黒陣営が人数で優位になりました。",{teams:["black"]});
 }
 function loadAILongTermMemory(profileId){try{return JSON.parse(localStorage.getItem("triad_ai_memory_"+profileId)||"{}")}catch{return {}}}
-function saveAILongTermMemories(winners={teams:[]}){state.players.filter(p=>p.id!==0&&p.aiProfile?.id).forEach(ai=>{const old=ai.aiProfile.memory||{},won=(winners.roles||[]).includes(ai.role)||(winners.teams||[]).includes(ai.team),sus=Number(ai.aiMemory?.suspicion?.[0]||0),trust=Number(ai.aiMemory?.trust?.[0]||0);const memory={...old,matchesPlayed:(old.matchesPlayed||0)+1,wins:(old.wins||0)+(won?1:0),losses:(old.losses||0)+(won?0:1),survived:(old.survived||0)+(ai.alive?1:0),lastRole:ai.role,lastFaction:ai.team,lastResult:won?"勝利":"敗北",humanSuspicion:Math.max(0,Math.min(10,(old.humanSuspicion||0)*.72+sus*.28)),humanTrust:Math.max(0,Math.min(10,(old.humanTrust||0)*.72+trust*.28)),roleHistory:[...(old.roleHistory||[]),ai.role].slice(-8),lastPlayedAt:Date.now()};ai.aiProfile.memory=memory;try{localStorage.setItem("triad_ai_memory_"+ai.aiProfile.id,JSON.stringify(memory))}catch(e){console.warn("AI memory save failed",e)}})}
+function saveAILongTermMemories(winners={teams:[]},interrupted=false){state.players.filter(p=>p.id!==0&&p.aiProfile?.id).forEach(ai=>{const old=ai.aiProfile.memory||{},won=(winners.roles||[]).includes(ai.role)||(winners.teams||[]).includes(ai.team),sus=Number(ai.aiMemory?.suspicion?.[0]||0),trust=Number(ai.aiMemory?.trust?.[0]||0);const memory={...old,matchesPlayed:(old.matchesPlayed||0)+(interrupted?0:1),wins:(old.wins||0)+(!interrupted&&won?1:0),losses:(old.losses||0)+(!interrupted&&!won?1:0),survived:(old.survived||0)+(!interrupted&&ai.alive?1:0),lastRole:ai.role,lastFaction:ai.team,lastResult:interrupted?"中断":won?"勝利":"敗北",humanSuspicion:Math.max(0,Math.min(10,(old.humanSuspicion||0)*.72+sus*.28)),humanTrust:Math.max(0,Math.min(10,(old.humanTrust||0)*.72+trust*.28)),roleHistory:[...(old.roleHistory||[]),ai.role].slice(-8),lastPlayedAt:Date.now()};ai.aiProfile.memory=memory;try{localStorage.setItem("triad_ai_memory_"+ai.aiProfile.id,JSON.stringify(memory))}catch(e){console.warn("AI memory save failed",e)}})}
 function endGame(msg,winners={teams:[]}){
  saveAILongTermMemories(winners);
  state.running=false;clearInterval(loop);clearInterval(clock);$("abilityAction").disabled=true;$("killAction").disabled=true;$("sabotageAction").disabled=true;
@@ -1016,7 +1017,7 @@ function endGame(msg,winners={teams:[]}){
  $("roleReveal").innerHTML=state.players.map(p=>`<div class="pill"><span class="dot" style="background:${p.color}"></span> ${p.name} — ${teamName(p.team)}「${p.role}」${p.alive?"":"（死亡）"}</div>`).join("");
  $("gameOverModal").classList.add("show");
 }
-function endToHome(){state.running=false;clearInterval(loop);clearInterval(clock);stopMove();stopBGM();document.querySelectorAll(".modal").forEach(m=>m.classList.remove("show"));show("home")}
+function endToHome(){if(state.running)saveAILongTermMemories({teams:[]},true);state.running=false;clearInterval(loop);clearInterval(clock);stopMove();stopBGM();document.querySelectorAll(".modal").forEach(m=>m.classList.remove("show"));show("home")}
 function setHelpTab(tab){const roles=tab==="roles";$("helpRulesPanel").hidden=roles;$("helpRolesPanel").hidden=!roles;$("helpRulesTab").classList.toggle("primary",!roles);$("helpRolesTab").classList.toggle("primary",roles)}
 function openHelp(){setHelpTab("rules");$("helpModal").classList.add("show")}function closeHelp(){$("helpModal").classList.remove("show")}
 </script>
