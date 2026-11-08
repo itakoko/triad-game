@@ -359,7 +359,7 @@ async function registerOnlineAccount(){
   const {data,error}=await supabaseClient.auth.signUp({email,password,options:{data:{display_name:displayName}}});
   if(error)throw error;
   if(data.session){
-   authUser=data.user;await ensureOwnPlayerProfile();await loadOnlinePlayerProfiles();await syncOnlinePlayerStatsOnLogin();await loadOnlinePlayerProfiles();await refreshEmailLinkReward();updateAccountAuthUI();
+   authUser=data.user;await ensureOwnPlayerProfile();await loadOnlinePlayerProfiles();await syncLocalPlayerStatsOnLogin();await loadOnlinePlayerProfiles();await refreshEmailLinkReward();updateAccountAuthUI();
    setAccountAuthMessage("登録が完了しました。オンラインアカウントにログインしています。");renderAccountList();
   }else{
    setAccountAuthMessage("登録申請を受け付けました。メール確認が必要な設定です。受信メールの案内に従って確認後、ログインしてください。");
