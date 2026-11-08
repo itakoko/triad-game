@@ -1338,7 +1338,7 @@ function useAbility(){if(isOnlineClient()){if(state.me?.role==="サイエンテ�
  if(role==="サイエンティスト"){playSfx("ability");showAliveList();return}
  if(role==="暗殺者"){if(remainingText(actor.roleReadyAt)===0){playSfx("ability");openBounty()}return}
  if(["イノシシ","百面相","放浪者"].includes(role)&&remainingText(actor.roleReadyAt)>0)return;
- if(role==="ギャンブラー"){resolveGamblerRoll(actor,now);updateNearbyActions();draw();return}
+ if(role==="ギャンブラー"){if(actor.gamblerKillReady){playSfx("ability");openTargetSelection("JACKPOTキル","近くの相手1人をキルできます。",targetCandidates(actor,100,false,p=>p.team!==actor.team),"gamblerKill");return}resolveGamblerRoll(actor,now);updateNearbyActions();draw();return}
   if(role==="イノシシ"){playSfx("ability");actor.charging=true;actor.charge={...state.lastDirection};state.move={x:0,y:0};$("nearHint").textContent="突進中！壁に当たるまで操作できません。";return}
  if(role==="占い師"){playSfx("ability");openTargetSelection("占う相手を選択","近くの相手を1人だけ占えます。",targetCandidates(actor,100),"seer");return}
  if(role==="狩人"||role==="保安官"){playSfx("ability");openTargetSelection("能力を使う相手を選択","近くの相手を1人選べます。能力は一度だけです。",targetCandidates(actor,100),"roleKill");return}
@@ -1353,6 +1353,7 @@ function selectTarget(id){if(isOnlineClient()){const kind=state.targetAction?.ki
  if(action.kind==="seer"){actor.abilityUsed=true;showSeerResult(target)}
  else if(action.kind==="gamblerKill"){if(actor.role==="ギャンブラー"&&actor.gamblerKillReady&&Math.hypot(target.x-actor.x,target.y-actor.y)<=100&&hasLineOfSight(actor,target)){actor.gamblerKillReady=false;performKill(target,actor,"ギャンブラーのJACKPOTキル")}}
  else if(action.kind==="roleKill"){actor.abilityUsed=true;performKill(target,actor,actor.role==="狩人"?"狩人の攻撃":"保安官の攻撃")}
+ else if(action.kind==="gamblerKill"){if(actor.role==="ギャンブラー"&&actor.gamblerKillReady&&Math.hypot(target.x-actor.x,target.y-actor.y)<=100&&hasLineOfSight(actor,target)){actor.gamblerKillReady=false;performKill(target,actor,"ギャンブラーのJACKPOTキル")}}
  else if(action.kind==="protect"){actor.abilityUsed=true;target.protected=true;alert(`${target.name} に加護を与えました。次の攻撃を1度防ぎます。`)}
  else if(action.kind==="disguise"){actor.disguiseId=target.id;actor.disguiseUntil=now+10000;actor.roleReadyAt=now+35000;alert(`${target.name} の姿に10秒間変身しました。`)}
  else if(action.kind==="scent"){target.scented=true;state.scentedIds.add(target.id);actor.roleReadyAt=now+15000;alert("匂いを移しました。相手には知られていません。");checkWin()}
@@ -2105,7 +2106,7 @@ function applyOnlinePrivatePlayer(){
  if(!onlinePrivatePlayer||!state.players?.length)return;const p=state.players.find(x=>x.userId===authUser.id);if(!p)return;
  // Public snapshots own live position/alive state. Merge only private role data so a delayed
  // private packet can never rewind this player to an older position or revive a dead player.
- const privateKeys=["role","team","abilityUsed","roleReadyAt","killReadyAt","sabotageReadyAt","emergencyReadyAt","partnerId","bountyIds","scented","disguiseId","disguiseUntil","protected","gamblerJackpots","gamblerNotice","gamblerNoticeUntil","gamblerLowCount","gamblerHighCount","gamblerPrediction","gamblerPredictionHits","gamblerBadLuckCount","gamblerKillReady"];
+ const privateKeys=["role","team","abilityUsed","roleReadyAt","killReadyAt","sabotageReadyAt","emergencyReadyAt","partnerId","bountyIds","scented","disguiseId","disguiseUntil","protected","gamblerJackpots","gamblerNotice","gamblerNoticeUntil","gamblerLowCount","gamblerHighCount","gamblerPrediction","gamblerPredictionHits","gamblerBadLuckCount","gamblerKillReady","gamblerPredictionAsked"];
  privateKeys.forEach(k=>{if(Object.prototype.hasOwnProperty.call(onlinePrivatePlayer,k))p[k]=onlinePrivatePlayer[k]});state.me=p;state.bountyIds=onlinePrivatePlayer.bountyIds||state.bountyIds||[];
  $("roleLabel").textContent="役職："+(p.role||"確認中");$("myRoleText").textContent="陣営："+teamName(p.team)+" ／ 役職："+p.role+"。"+roleDescription(p);
  $("myStatus").textContent=p.alive?"生存":"死亡";$("ghostBanner").hidden=!!p.alive;if(p.alive)spectatorTargetId=null;else if(!state.players.some(x=>x.id===spectatorTargetId&&x.alive))spectatorTargetId=state.players.find(x=>x.alive)?.id??null;if(p.role==="ギャンブラー"&&!p.gamblerPrediction&&!p.gamblerPredictionAsked)chooseGamblerPrediction(p,true);updateNearbyActions();
