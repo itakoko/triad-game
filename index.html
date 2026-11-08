@@ -713,7 +713,9 @@ function aiAction(){
  }
   updateAIWhiteTasks(now);if(!state.running)return;
  state.players.filter(p=>p.id!==0&&p.alive).forEach(actor=>{
-  const nearby=targetCandidates(actor,86,false,p=>!(actor.team==="black"&&p.team==="black"));
+  const nearby=targetCandidates(actor,88,false,p=>!(actor.team==="black"&&p.team==="black"));
+  const roleNearby=targetCandidates(actor,100,false,p=>!(actor.team==="black"&&p.team==="black"));
+  const wanderNearby=targetCandidates(actor,90,false,p=>!(actor.team==="black"&&p.team==="black"));
   if(actor.team==="black"){
    if(now>=actor.sabotageReadyAt&&state.sabotageUntil<now&&Math.random()<.035){state.sabotageUntil=now+10000;actor.sabotageReadyAt=now+35000}
    if(now>=actor.killReadyAt&&nearby.length){const t=nearby[Math.floor(Math.random()*nearby.length)];actor.killReadyAt=now+30000;performKill(t,actor,"キル")}
@@ -723,9 +725,9 @@ function aiAction(){
    const wanted=nearby.filter(p=>state.bountyIds.includes(p.id));
    if(wanted.length){actor.killReadyAt=now+20000;performKill(wanted[0],actor,"暗殺")}
   }else if(actor.role==="狂人"&&now>=actor.killReadyAt&&nearby.length&&Math.random()<.25){actor.killReadyAt=now+30000;performKill(nearby[0],actor,"狂人の攻撃")}
-  else if((actor.role==="狩人"||actor.role==="保安官")&&!actor.abilityUsed&&nearby.length&&Math.random()<.12){actor.abilityUsed=true;performKill(nearby[0],actor,"役職能力")}
-  else if(actor.role==="僧侶"&&!actor.abilityUsed){const ally=targetCandidates(actor,95,true).find(p=>p.id!==actor.id&&!p.protected);if(ally&&Math.random()<.18){actor.abilityUsed=true;ally.protected=true}}
-  else if(actor.role==="放浪者"&&now>=actor.roleReadyAt&&nearby.length){state.scentedIds.add(nearby[0].id);nearby[0].scented=true;actor.roleReadyAt=now+15000}
+  else if((actor.role==="狩人"||actor.role==="保安官")&&!actor.abilityUsed&&roleNearby.length&&Math.random()<.12){actor.abilityUsed=true;performKill(nearby[0],actor,"役職能力")}
+  else if(actor.role==="僧侶"&&!actor.abilityUsed){const ally=targetCandidates(actor,Infinity,true).find(p=>p.id!==actor.id&&!p.protected);if(ally&&Math.random()<.18){actor.abilityUsed=true;ally.protected=true}}
+  else if(actor.role==="放浪者"&&now>=actor.roleReadyAt&&wanderNearby.length){state.scentedIds.add(wanderNearby[0].id);wanderNearby[0].scented=true;actor.roleReadyAt=now+15000}
  });
  updateNearbyActions();draw();
 }
