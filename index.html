@@ -47,7 +47,7 @@ main{max-width:1100px;margin:auto;padding:18px}.screen{display:none}.screen.acti
 #gameResultTitle.win{color:#72e3df}#gameResultTitle.loss{color:#ff858b}
 #roleReveal{max-height:220px;overflow:auto}
 .audioToggle{width:100%;margin:0 0 9px;background:#263c50;border-color:#6fa5dc}
-footer{padding:22px;text-align:center;color:var(--muted);font-size:11px}
+footer{padding:22px;text-align:center;color:var(--muted);font-size:11px}.updateLogContent{margin-top:10px;padding:12px;background:#101a2a;border:1px solid var(--line);border-radius:10px;font-size:13px;line-height:1.7}.updateLogContent ul{padding-left:20px;margin:7px 0}
 @media(max-width:760px){main{padding:12px}#gameLayout{grid-template-columns:1fr}.gamebox{min-height:0}.side{display:grid;grid-template-columns:1fr 1fr}.side .wide{grid-column:1/-1}.hud{font-size:11px}.controls button{font-size:13px;padding:9px 5px}.hero{padding-top:16px}}
 
 /* v0.15: clearer Among-Us-like HUD */
@@ -70,14 +70,14 @@ canvas#mapCanvas{aspect-ratio:16/10;background:#0b1522}
 \n.meetingMapToggle{width:100%;margin:8px 0;background:#294b70;border:2px solid #82b9e8;font-weight:800}.meetingMapPanel[hidden]{display:none!important}\n@media (orientation:landscape) and (min-width:600px){main{max-width:1500px;padding:10px 16px}#gameLayout{grid-template-columns:minmax(0,1fr) 250px;gap:14px}.gamebox{max-width:none;width:100%}.side{display:flex;flex-direction:column}.side .wide{grid-column:auto}.actionPanel{grid-template-columns:1fr 1fr}#meetingModal .modalbox{width:min(1120px,96vw);max-height:94vh}.meetingChat{max-height:28vh}.meetingAliveList{grid-template-columns:repeat(3,minmax(0,1fr));max-height:110px}}\n</style>
 </head>
 <body>
-<header><div class="logo">TRI<span>AD</span></div><div class="tag">オフライン試作 · v0.24</div></header>
+<header><div class="logo">TRI<span>AD</span></div><div class="tag">オフライン試作 · v0.25</div></header>
 <main>
 <section id="home" class="screen active">
  <div class="hero"><div class="pill">研究施設マップ・探索型推理ゲーム</div><h1>閉鎖された研究所。<br>見えない場所に誰かがいる。</h1><p>部屋と通路を自分で探索し、タスクを進めながら状況を判断します。視界はプレイヤーの周囲に限られます。</p></div>
  <div class="grid">
   <div class="card"><h3>🎮 ゲームを始める</h3><p class="muted">AIと対戦するオフライン試合を開始します。</p><button class="primary" style="width:100%" onclick="show('setup')">試合設定へ</button></div>
   <div class="card"><h3>📘 遊び方</h3><p class="muted">試作版のルールと操作方法を確認します。</p><button style="width:100%" onclick="openHelp()">ルールを見る</button></div>
-  <div class="card"><h3>📋 アップデートログ</h3><p class="muted">2026年11月8日更新 · v0.24</p><ul style="padding-left:20px;margin:8px 0"><li>会議マップは自分の位置だけを表示</li><li>会議画面に生存者・死亡者の一覧を追加</li><li>AIの役職発言・推理・会話パターンを拡充</li><li>AIプロフィール通信が止まっても4.5秒でローカル設定に切替</li></ul></div>
+  <div class="card"><h3>📋 アップデートログ</h3><p class="muted">見たいバージョンを選択してください。</p><div class="field"><label for="updateVersionSelect">バージョン</label><select id="updateVersionSelect" onchange="renderUpdateLog(this.value)"><option value="0.25">v0.25（最新）</option><option value="0.24">v0.25</option><option value="0.23">v0.23</option></select></div><div id="updateLogContent" class="updateLogContent" aria-live="polite"></div></div>
  </div>
 </section>
 
@@ -133,9 +133,9 @@ canvas#mapCanvas{aspect-ratio:16/10;background:#0b1522}
 </section>
 
 </main>
-<footer>TRIAD v0.24 · 研究施設 · オフライン版</footer>
+<footer>TRIAD v0.25 · 研究施設 · オフライン版</footer>
 
-  <div class="modal" id="mapModal"><div class="modalbox"><h2>研究施設マップ</h2><canvas id="overviewCanvas" width="900" height="600"></canvas><div class="mapLegend"><span>● あなた</span><span>♥ 恋人（恋人のみ）</span><span>● タスク端末</span><span>■ 緊急会議ボタン</span><span>！ 手配書端末</span><span>■ 遮蔽物・チェイスカバー</span><span>× 死体</span></div><button class="primary" style="width:100%" onclick="closeMap()">閉じる</button></div></div>
+  <div class="modal" id="mapModal"><div class="modalbox"><h2>研究施設マップ</h2><canvas id="overviewCanvas" width="900" height="600"></canvas><div class="mapLegend"><span>● あなた（他プレイヤーの位置は非表示）</span><span>● タスク端末</span><span>■ 緊急会議ボタン</span><span>！ 手配書端末</span><span>■ 遮蔽物・チェイスカバー</span><span>× 死体</span></div><button class="primary" style="width:100%" onclick="closeMap()">閉じる</button></div></div>
  <div class="modal" id="targetModal"><div class="modalbox"><h2 id="targetTitle">対象を選択</h2><p id="targetInfo" class="muted"></p><div id="targetList" class="targetList"></div><button style="width:100%" onclick="closeTargetModal()">キャンセル</button></div></div>
  <div class="modal" id="taskPuzzleModal"><div class="modalbox"><h2>🔐 暗号解読</h2><p id="taskPuzzleLabel" class="muted">端末の暗号を解読してください。</p><div id="taskCipherMap" class="taskCipher"></div><div id="taskCipherCode" class="taskPuzzleCode"></div><p class="muted">対応表を見て、暗号を4桁の数字に変換してください。</p><input id="taskPuzzleInput" class="taskPuzzleInput" type="text" inputmode="numeric" maxlength="4" placeholder="4桁の数字" onkeydown="if(event.key==='Enter'){event.preventDefault();submitTaskPuzzle()}"><p id="taskPuzzleFeedback" class="taskPuzzleFeedback"></p><div class="actions"><button onclick="closeTaskPuzzle()">中断</button><button class="primary" onclick="submitTaskPuzzle()">解読する</button></div></div></div>
  <div class="modal" id="seerResultModal"><div class="modalbox"><h2>占い結果</h2><p id="seerTargetName" class="muted"></p><div id="seerFactionValue" class="seerFaction"></div><p class="muted">占いで分かるのは役職名ではなく、陣営（白・黒・第三）です。</p><button class="primary" style="width:100%" onclick="closeSeerResult()">閉じる</button></div></div>
@@ -221,7 +221,7 @@ let loop=null,clock=null;
 const colorNames=["赤","青","黄色","紫","緑","オレンジ","ピンク","水色","黄緑","茶色","紺","マゼンタ","青緑","金","サーモン","ライム","群青","ラベンダー","朱色","ターコイズ","黄土","ローズ","エメラルド","コバルト","レモン","ワイン","ミント","藤色","銅色","白"];
 const colors=["#e53935","#1e88e5","#fdd835","#8e24aa","#43a047","#fb8c00","#ec407a","#00acc1","#7cb342","#8d6e63","#3949ab","#d81b60","#00897b","#c0a000","#ff7043","#c0ca33","#283593","#9575cd","#f4511e","#26a69a","#b08d00","#ad1457","#00a152","#1565c0","#f9a825","#6d1b3b","#66bb6a","#7e57c2","#a65e2e","#eeeeee"];
 const naturalAINames=["ねこもち","もちもち","しろくま","くろまめ","ぽてと","ぷりん","たこやき","しらす","ぺんぎん","からあげ","こむぎ","みたらし","ねむねむ","うさぎもち","わたあめ","めんだこ","ましゅまろ","こんぺいとう","ほっとけーき","おにぎり","きなこもち","すいか","りんごあめ","ぽんず","ふわり","もちぱん","しおこんぶ","だいふく","ちくわ","くりーむ"];let gameNameDeck=[];function fallbackAIName(index){return gameNameDeck[index-1]||naturalAINames[(index-1)%naturalAINames.length]}function playerTag(p){return `#${String(p.number||p.id+1).padStart(2,"0")} ${p.name}`}
-function show(id){document.querySelectorAll(".screen").forEach(s=>s.classList.remove("active"));$(id).classList.add("active")}
+function show(id){document.querySelectorAll(".screen").forEach(s=>s.classList.remove("active"));$(id).classList.add("active");if(id==="home")renderUpdateLog($("updateVersionSelect")?.value||"0.25")}
 function log(t){}
 function rand(a,b){return Math.random()*(b-a)+a}
 function shuffle(items){let a=[...items];for(let i=a.length-1;i>0;i--){let j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a}
@@ -944,7 +944,7 @@ function drawOverview(canvasId="overviewCanvas",meetingMode=false){
   state.tasks.forEach(t=>{if(!t.done){ctx.fillStyle="#ffd34f";ctx.beginPath();ctx.arc(t.x,t.y,17,0,Math.PI*2);ctx.fill();ctx.fillStyle="#173047";ctx.font="bold 15px system-ui";ctx.fillText(String(t.remaining),t.x-5,t.y+5)}});ctx.fillStyle="#ff514b";ctx.fillRect(860,480,80,80);state.dead.forEach(d=>{ctx.fillStyle="#fff";ctx.fillText("×",d.x-12,d.y+12)});ctx.fillStyle="#62f1df";ctx.beginPath();ctx.arc(state.me.x,state.me.y,24,0,Math.PI*2);ctx.fill();ctx.strokeStyle="#fff";ctx.lineWidth=7;ctx.stroke();
   if(!meetingMode&&state.me.role==="恋人"&&state.me.partnerId!==null){const partner=state.players.find(p=>p.id===state.me.partnerId);if(partner){ctx.fillStyle="#ff8ad4";ctx.beginPath();ctx.arc(partner.x,partner.y,24,0,Math.PI*2);ctx.fill();ctx.strokeStyle="#fff";ctx.lineWidth=5;ctx.stroke();ctx.fillStyle="#fff";ctx.font="bold 24px system-ui";ctx.fillText("♥",partner.x-10,partner.y+8)}}
   if(!meetingMode&&state.bountyIds.length){ctx.fillStyle="#d8a7f4";ctx.beginPath();ctx.arc(1344,494,22,0,Math.PI*2);ctx.fill();ctx.fillStyle="#21142b";ctx.font="bold 23px system-ui";ctx.fillText("!",1337,503)}
-  (meetingMode?[state.me]:state.players.filter(p=>p.alive)).filter(Boolean).forEach(p=>{ctx.fillStyle=p.color;ctx.beginPath();ctx.arc(p.x,p.y,18,0,Math.PI*2);ctx.fill();ctx.strokeStyle="#101820";ctx.lineWidth=6;ctx.stroke();ctx.strokeStyle="#fff";ctx.lineWidth=2;ctx.stroke()});ctx.restore();
+  [state.me].filter(Boolean).forEach(p=>{ctx.fillStyle=p.color;ctx.beginPath();ctx.arc(p.x,p.y,18,0,Math.PI*2);ctx.fill();ctx.strokeStyle="#101820";ctx.lineWidth=6;ctx.stroke();ctx.strokeStyle="#fff";ctx.lineWidth=2;ctx.stroke()});ctx.restore();
 }
 function toggleMeetingMap(force){const panel=$("meetingMapPanel"),button=$("meetingMapToggle");const open=typeof force==="boolean"?force:panel.hidden;panel.hidden=!open;if(open){drawOverview("meetingOverviewCanvas",true);button.textContent="🗺 マップを閉じる"}else button.textContent="🗺 マップを表示"}
 function renderMeetingAliveList(){const alive=state.players.filter(p=>p.alive),dead=state.players.filter(p=>!p.alive);$("meetingAliveSummary").textContent=`生存：${alive.length}人　／　死亡：${dead.length}人　／　合計：${state.players.length}人`;$("meetingAliveList").innerHTML=[...alive.map(p=>`<div class="meetingAliveItem"><span class="dot" style="background:${p.color}"></span><span>${playerTag(p)}</span><small style="color:#8de2c5">生存</small></div>`),...dead.map(p=>`<div class="meetingAliveItem" style="opacity:.78"><span class="dot" style="background:${p.color}"></span><span style="text-decoration:line-through">${playerTag(p)}</span><small style="color:#ff9299">死亡</small></div>`)].join("")}
@@ -1048,6 +1048,15 @@ function endGame(msg,winners={teams:[]}){
  $("gameOverModal").classList.add("show");
 }
 function endToHome(){if(state.running)saveAILongTermMemories({teams:[]},true);state.running=false;clearInterval(loop);clearInterval(clock);stopMove();stopBGM();document.querySelectorAll(".modal").forEach(m=>m.classList.remove("show"));show("home")}
+function renderUpdateLog(version="0.25"){
+ const logs={
+  "0.25":{date:"2026年11月8日",items:["通常マップでも自分以外のプレイヤー位置を非表示に変更（恋人の相手の位置も表示しません）。","アップデートログにバージョン選択機能を追加。","v0.24までの更新履歴を選択して確認できるように整理。"]},
+  "0.24":{date:"2026年11月8日",items:["会議マップは自分の位置だけを表示。","会議画面に生存者・死亡者の一覧を追加。","AIの役職発言・推理・会話パターンを拡充。","AIプロフィール通信が止まっても4.5秒でローカル設定に切替。"]},
+  "0.23":{date:"2026年11月8日",items:["試合開始後に移動とタイマーが進む安定版を復元。","タスクを暗号解読方式に整理。","AIプロフィール取得に失敗した場合もローカル設定で試合を進行。"]}
+ };
+ const entry=logs[version]||logs["0.25"],root=$("updateLogContent");
+ if(root)root.innerHTML='<strong>'+("v"+version)+' · '+entry.date+'</strong><ul>'+entry.items.map(item=>'<li>'+item+'</li>').join('')+'</ul>';
+}
 function setHelpTab(tab){const roles=tab==="roles";$("helpRulesPanel").hidden=roles;$("helpRolesPanel").hidden=!roles;$("helpRulesTab").classList.toggle("primary",!roles);$("helpRolesTab").classList.toggle("primary",roles)}
 function openHelp(){setHelpTab("rules");$("helpModal").classList.add("show")}function closeHelp(){$("helpModal").classList.remove("show")}
 </script>
