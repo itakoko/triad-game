@@ -143,7 +143,7 @@ canvas#mapCanvas{aspect-ratio:16/10;background:#0b1522}
  <div class="modal" id="meetingModal"><div class="modalbox">
   <h2 id="meetingTitle">会議</h2><p id="meetingInfo" class="muted">話し合いを行い、投票先を選んでください。</p>
   <div class="pill" id="meetingPhaseLabel">議論フェーズ</div>
-  <button id="meetingMapToggle" class="meetingMapToggle" type="button" onclick="toggleMeetingMap()">🗺 マップを表示</button><div class="meetingMapPanel" id="meetingMapPanel" hidden><strong>研究施設マップ</strong><canvas id="meetingOverviewCanvas" width="900" height="600"></canvas><div class="mapLegend">● 生存者の現在位置（各自の色）</div><button type="button" onclick="toggleMeetingMap(false)">マップを閉じる</button></div>
+  <button id="meetingMapToggle" class="meetingMapToggle" type="button" onclick="toggleMeetingMap()">🗺 マップを表示</button><div class="meetingMapPanel" id="meetingMapPanel" hidden><strong>研究施設マップ</strong><canvas id="meetingOverviewCanvas" width="900" height="600"></canvas><div class="mapLegend">● あなたの会議開始時の位置　× 死亡した場所（位置は本人以外表示されません）</div><button type="button" onclick="toggleMeetingMap(false)">マップを閉じる</button></div>
   <div class="meetingAlivePanel"><strong id="meetingAliveSummary">生存者</strong><div id="meetingAliveList" class="meetingAliveList"></div></div>
   <div id="meetingChat" class="meetingChat" aria-live="polite"></div>
   <div id="meetingComposer" class="meetingComposer"><input id="meetingChatInput" maxlength="180" placeholder="手掛かりや見た情報を共有" onkeydown="if(event.key==='Enter'){event.preventDefault();sendMeetingMessage()}"><button onclick="sendMeetingMessage()">発言</button></div>
