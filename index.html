@@ -224,7 +224,7 @@ canvas#mapCanvas{aspect-ratio:16/10;background:#0b1522}
     <div class="field"><label>第三陣営人数</label><select id="roomThirdCount"><option>0</option><option selected>1</option><option>2</option><option>3</option><option>4</option></select></div>
    </div>
    <div class="field"><label><input id="roomSpecialMode" type="checkbox" style="width:auto;margin-right:8px">特別モード（同じ役職の複数出現を許可）</label></div>
-   <p class="muted">特別モードでは役職重複を許可する設定として保存します。通常モードでは重複なしを基本にします。</p>
+   <p class="muted">特別モードでは役職重複を許可する設定として保存します。通常モードでは重複なしを基本にします。公開ルームは作成から10分以内に試合が始まらない場合、自動的に削除されます。</p>
    <button class="primary" style="width:100%" onclick="createOnlineRoom()">部屋を作成</button>
   </div>
  </div>
@@ -2188,8 +2188,9 @@ async function leaveOnlineRoom(){
  activeRoomId=null;activeRoomSnapshot=null;await disconnectRoomChannel();show("socialHub");await loadSocialHub();
 }
 
-function renderUpdateLog(version="0.46"){
+function renderUpdateLog(version="0.47"){
  const logs={
+  "0.47":{date:"2026年11月8日",items:["公開ルームは作成から10分以内に試合が開始されない場合、自動削除するよう変更。","サーバー側で毎分期限切れの公開待機ルームを削除し、公開ルーム一覧にも残らないように修正。"]},
   "0.46":{date:"2026年11月8日",items:["役職ごとの登場ON/OFFを追加。","固定人数とは別に、自動補充時の役職出現重みを追加。","全体の特別モードに加え、役職ごとの重複許可を追加。","オンライン同期の案内文を実装状況に合わせて更新。"]},
   "0.45":{date:"2026年11月8日",items:["オンライン参加者の初期接続中に送られた移動・能力・会議・投票入力を一時キューに保存し、接続後に順番に送信。","公開状態スナップショットと個人用役職情報を分離し、古い個人情報パケットで自分の位置や生死状態が巻き戻る問題を修正。","オンライン参加者から届く対象指定をホスト側で役職・能力回数・クールダウン・距離に基づいて検証。"]},
   "0.44":{date:"2026年11月8日",items:["オンライン試合の操作入力をプレイヤー別の認証チャンネルへ分離。送信元のアカウントをチャンネル権限で確認し、他人になりすました操作を防止。","試合状態・役職情報・試合結果を参加者ごとの専用チャンネルへ配信。","オンライン同期チャンネルの初期化漏れを修正し、試合開始時の役職情報と状態配信を安定化。","役職人数の入力に陣営別内訳と自動補充人数のプレビューを追加。"]},
