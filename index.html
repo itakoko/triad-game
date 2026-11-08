@@ -147,6 +147,7 @@ canvas#mapCanvas{aspect-ratio:16/10;background:#0b1522}
 <main>
 <section id="home" class="screen active">
  <div class="hero"><div class="pill">研究施設マップ・探索型推理ゲーム</div><h1>閉鎖された研究所。<br>見えない場所に誰かがいる。</h1><p>部屋と通路を自分で探索し、タスクを進めながら状況を判断します。視界はプレイヤーの周囲に限られます。</p></div>
+ <div id="resumeGameCard" class="card" hidden style="margin:14px 0;border:1px solid #55c8a4"><h3>▶️ 中断した試合があります</h3><p class="muted">前回の続きから再開できます。</p><button class="primary" style="width:100%" onclick="resumeSavedGame()">試合を再開する</button><button style="width:100%;margin-top:8px" onclick="discardSavedGame()">保存データを削除する</button></div>
  <div class="grid">
   <div class="card"><h3>🎮 ゲームを始める</h3><p class="muted">AIと対戦するオフライン試合を開始します。</p><button class="primary" style="width:100%" onclick="show('setup')">試合設定へ</button></div>
   <div class="card"><h3>📘 遊び方</h3><p class="muted">試作版のルールと操作方法を確認します。</p><button style="width:100%" onclick="openHelp()">ルールを見る</button></div>
@@ -468,11 +469,96 @@ const ROLE_POOLS={
  third:["放浪者","暗殺者","てるてる","狂人"]
 };
 let state={players:[],me:null,map:null,tasks:[],done:0,total:0,seconds:0,move:{x:0,y:0},lastDirection:{x:1,y:0},running:false,meeting:false,meetingPhase:"",selectedVote:null,lastBallots:[],meetingClaims:[],meetingEvents:[],aiTurnCount:0,aiTurnTimer:null,meetingTimer:null,meetingSecondsLeft:90,meetingDuration:90,sightTick:0,killEvents:[],dead:[],log:[],camera:{x:0,y:0},worldWidth:2000,worldHeight:1320,nearTask:null,nearBody:null,nearEmergency:false,bountyIds:[],scentedIds:new Set(),sabotageUntil:0,targetAction:null};
-let loop=null,clock=null;
+let loop=null,clock=null,autosaveTimer=null;
+const MATCH_SAVE_KEY="triad_active_match_v1";
 const colorNames=["赤","青","黄色","紫","緑","オレンジ","ピンク","水色","黄緑","茶色","紺","マゼンタ","青緑","金","サーモン","ライム","群青","ラベンダー","朱色","ターコイズ","黄土","ローズ","エメラルド","コバルト","レモン","ワイン","ミント","藤色","銅色","白"];
 const colors=["#e53935","#1e88e5","#fdd835","#8e24aa","#43a047","#fb8c00","#ec407a","#00acc1","#7cb342","#8d6e63","#3949ab","#d81b60","#00897b","#c0a000","#ff7043","#c0ca33","#283593","#9575cd","#f4511e","#26a69a","#b08d00","#ad1457","#00a152","#1565c0","#f9a825","#6d1b3b","#66bb6a","#7e57c2","#a65e2e","#eeeeee"];
 const naturalAINames=["ねこもち","もちもち","しろくま","くろまめ","ぽてと","ぷりん","たこやき","しらす","ぺんぎん","からあげ","こむぎ","みたらし","ねむねむ","うさぎもち","わたあめ","めんだこ","ましゅまろ","こんぺいとう","ほっとけーき","おにぎり","きなこもち","すいか","りんごあめ","ぽんず","ふわり","もちぱん","しおこんぶ","だいふく","ちくわ","くりーむ"];let gameNameDeck=[];function fallbackAIName(index){return gameNameDeck[index-1]||naturalAINames[(index-1)%naturalAINames.length]}function playerTag(p){return `#${String(p.number||p.id+1).padStart(2,"0")} ${p.name}`}
 function meetingNameColor(p){return state.meeting&&state.me?.team==="black"&&p?.team==="black"&&p.id!==state.me.id?"#ff777e":"";}
+
+function saveActiveMatch(){
+ if(!state.running||!state.me||!state.players.length)return;
+ try{
+  const snapshot={version:1,savedAt:Date.now(),state:{...state,aiTurnTimer:null,meetingTimer:null,move:{x:0,y:0}}};
+  localStorage.setItem(MATCH_SAVE_KEY,JSON.stringify(snapshot,(key,value)=>value instanceof Set?{__triadSet:[...value]}:value));
+  updateResumeGameUI();
+ }catch(error){console.warn("Match autosave failed",error)}
+}
+function readSavedMatch(){
+ try{
+  const raw=localStorage.getItem(MATCH_SAVE_KEY);if(!raw)return null;
+  const data=JSON.parse(raw);
+  if(!data||data.version!==1||!data.state||!Array.isArray(data.state.players)||!data.state.players.length)return null;
+  return data;
+ }catch(error){return null}
+}
+function updateResumeGameUI(){
+ const card=$("resumeGameCard");if(card)card.hidden=!readSavedMatch();
+}
+function discardSavedGame(){
+ try{localStorage.removeItem(MATCH_SAVE_KEY)}catch(e){}
+ updateResumeGameUI();
+}
+function startMatchAutosave(){
+ if(autosaveTimer)clearInterval(autosaveTimer);
+ saveActiveMatch();
+ autosaveTimer=setInterval(saveActiveMatch,1000);
+}
+function stopMatchAutosave(){
+ if(autosaveTimer){clearInterval(autosaveTimer);autosaveTimer=null}
+}
+function resumeSavedGame(){
+ const saved=readSavedMatch();if(!saved){updateResumeGameUI();alert("再開できる試合データがありません。");return}
+ try{
+  const restored=JSON.parse(JSON.stringify(saved.state),(key,value)=>value&&typeof value==="object"&&Array.isArray(value.__triadSet)?new Set(value.__triadSet):value);
+  state={...restored,map:maps.lab,aiTurnTimer:null,meetingTimer:null,move:{x:0,y:0}};
+  state.scentedIds=state.scentedIds instanceof Set?state.scentedIds:new Set(state.scentedIds||[]);
+  state.me=state.players.find(p=>p.id===0)||state.players[0];
+  state.running=true;
+  $("mapLabel").textContent="マップ：研究施設";
+  $("roleLabel").textContent="役職："+state.me.role;
+  $("myRoleText").textContent="陣営："+teamName(state.me.team)+" ／ 役職："+state.me.role+"。"+roleDescription(state.me);
+  $("myStatus").textContent=state.me.alive?"生存":"死亡";
+  $("ghostBanner").hidden=!!state.me.alive;
+  $("taskCount").textContent=state.done+" / "+state.total;
+  $("taskProgress").style.width=(state.total?Math.min(100,state.done/state.total*100):0)+"%";
+  $("timer").textContent=String(Math.floor(state.seconds/60)).padStart(2,"0")+":"+String(state.seconds%60).padStart(2,"0");
+  show("game");startAudio();updateNearbyActions();draw();
+  clearInterval(loop);clearInterval(clock);
+  loop=setInterval(tick,70);
+  clock=setInterval(()=>{if(!state.running)return;state.seconds++;$("timer").textContent=String(Math.floor(state.seconds/60)).padStart(2,"0")+":"+String(state.seconds%60).padStart(2,"0");aiAction();checkWin()},1000);
+  if(state.meeting){
+   $("meetingTitle").textContent="会議";
+   $("meetingInfo").textContent="保存された会議を再開しました。";
+   $("meetingChat").textContent="";
+   $("meetingSummaryContent").textContent="会議を再開しました。";
+   $("meetingMapPanel").hidden=true;
+   $("meetingMapToggle").textContent="🗺 マップを表示";
+   renderMeetingAliveList();
+   $("meetingComposer").hidden=state.meetingPhase!=="discussion"||!state.me.alive;
+   $("beginVoteAction").hidden=state.meetingPhase!=="discussion";
+   $("meetingVotePanel").hidden=state.meetingPhase!=="voting";
+   $("meetingChatInput").value="";
+   (state.meetingClaims||[]).forEach(c=>{const p=state.players.find(x=>x.id===c.speakerId);appendMeetingMessage(p?playerTag(p):"会議",c.text,c.speakerId===0?"self":"ai",p)});
+   $("meetingModal").classList.add("show");
+   if(state.meetingPhase==="voting"){
+    state.meetingPhase="discussion";beginVoting(false);state.meetingPhase="voting";
+    if(state.selectedVote!==null&&state.selectedVote!=="ghost"){
+     if(state.selectedVote==="skip")skipVote();else castVote(state.selectedVote);
+    }
+   }else{
+    const remaining=Math.max(1,Number(state.meetingSecondsLeft)||30);
+    state.meetingDuration=remaining;startMeetingTimer();
+    scheduleAITurn(2500);
+   }
+  }
+  startMatchAutosave();
+  updateResumeGameUI();
+ }catch(error){console.error("Match restore failed",error);alert("試合データを復元できませんでした。");}
+}
+window.addEventListener("pagehide",saveActiveMatch);
+window.addEventListener("beforeunload",saveActiveMatch);
+
 function activateScreen(id){
  document.querySelectorAll(".screen").forEach(screen=>screen.classList.remove("active"));
  const target=document.getElementById(id);
@@ -481,7 +567,7 @@ function activateScreen(id){
 }
 function show(id){
  if(!activateScreen(id))return;
- if(id==="home")renderUpdateLog($("updateVersionSelect")?.value||"0.36");
+ if(id==="home"){renderUpdateLog($("updateVersionSelect")?.value||"0.39");updateResumeGameUI()}
  if(id==="accounts")loadAccountDirectoryData();
 }
 function openAccountsScreen(){
@@ -534,7 +620,7 @@ async function startGame(){
   state.tasks=state.map.tasks.map((p,i)=>{const quota=Math.floor(state.total/state.map.tasks.length)+(i<state.total%state.map.tasks.length?1:0),spec=taskKinds[i%taskKinds.length];return {id:i,x:p[0],y:p[1],done:false,quota,remaining:quota,completedBy:[],label:spec.label,room:spec.room,kind:spec.kind}});
   $("mapLabel").textContent="マップ：研究施設";$("roleLabel").textContent="役職："+state.me.role;$("myRoleText").textContent="陣営："+teamName(state.me.team)+" ／ 役職："+state.me.role+"。"+roleDescription(state.me);
   $("myStatus").textContent="生存";$("ghostBanner").hidden=true;$("taskCount").textContent="0 / "+state.total;$("taskProgress").style.width="0%";log("研究施設に到着。");
-  show("game");state.running=true;updateNearbyActions();draw();clearInterval(loop);clearInterval(clock);loop=setInterval(tick,70);clock=setInterval(()=>{if(!state.running)return;state.seconds++;$("timer").textContent=String(Math.floor(state.seconds/60)).padStart(2,"0")+":"+String(state.seconds%60).padStart(2,"0");aiAction();checkWin()},1000);
+  show("game");state.running=true;updateNearbyActions();draw();clearInterval(loop);clearInterval(clock);loop=setInterval(tick,70);clock=setInterval(()=>{if(!state.running)return;state.seconds++;$("timer").textContent=String(Math.floor(state.seconds/60)).padStart(2,"0")+":"+String(state.seconds%60).padStart(2,"0");aiAction();checkWin()},1000);startMatchAutosave();
 }
 function randomSpawn(){
  const areas=[[250,250],[600,250],[1180,250],[1540,260],[250,800],[670,800],[1160,800],[1540,800],[900,520]];
@@ -1508,6 +1594,7 @@ function loadHumanStats(){try{return JSON.parse(localStorage.getItem("triad_huma
 function saveHumanStats(won,interrupted=false){if(interrupted||!state.me)return;const old=loadHumanStats(),role=state.me.role,roleStats={...(old.roleStats||{})},rs={...(roleStats[role]||{})};rs.matches=(rs.matches||0)+1;rs.wins=(rs.wins||0)+(won?1:0);rs.survived=(rs.survived||0)+(state.me.alive?1:0);roleStats[role]=rs;const next={...old,matchesPlayed:(old.matchesPlayed||0)+1,wins:(old.wins||0)+(won?1:0),losses:(old.losses||0)+(won?0:1),survived:(old.survived||0)+(state.me.alive?1:0),roleStats,lastRole:role,lastFaction:state.me.team,lastResult:won?"勝利":"敗北",lastPlayedAt:Date.now()};try{localStorage.setItem("triad_human_stats_v1",JSON.stringify(next))}catch(e){console.warn("Player stats save failed",e)}if(authUser)syncOnlinePlayerStats(next)}
 
 function endGame(msg,winners={teams:[]}){
+ stopMatchAutosave();discardSavedGame();
  saveAILongTermMemories(winners);
  const humanWon=(winners.roles||[]).includes(state.me.role)||(winners.teams||[]).includes(state.me.team);saveHumanStats(humanWon);
  state.running=false;clearInterval(loop);clearInterval(clock);$("abilityAction").disabled=true;$("killAction").disabled=true;$("sabotageAction").disabled=true;
@@ -1521,7 +1608,7 @@ function endGame(msg,winners={teams:[]}){
  $("roleReveal").innerHTML=state.players.map(p=>`<div class="pill"><span class="dot" style="background:${p.color}"></span> ${playerTag(p)} — ${teamName(p.team)}「${p.role}」${p.alive?"":"（死亡）"}</div>`).join("");
  $("gameOverModal").classList.add("show");
 }
-function endToHome(){if(state.running)saveAILongTermMemories({teams:[]},true);state.running=false;clearInterval(loop);clearInterval(clock);stopMove();stopBGM();document.querySelectorAll(".modal").forEach(m=>m.classList.remove("show"));show("home")}
+function endToHome(){stopMatchAutosave();discardSavedGame();if(state.running)saveAILongTermMemories({teams:[]},true);state.running=false;clearInterval(loop);clearInterval(clock);stopMove();stopBGM();document.querySelectorAll(".modal").forEach(m=>m.classList.remove("show"));show("home")}
 let accountDirectoryLoadId=0;
 function openAccounts(){openAccountsScreen()}
 function showAccountLoading(){const list=$("accountList");if(list)list.innerHTML='<div class="muted">アカウント情報を読み込んでいます…</div>'}
