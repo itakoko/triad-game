@@ -67,7 +67,7 @@ canvas#mapCanvas{aspect-ratio:16/10;background:#0b1522}
 #mapModal .modalbox{width:min(900px,100%)}#overviewCanvas,#meetingOverviewCanvas{width:100%;height:auto;aspect-ratio:3/2;background:#0b1522;border:1px solid #536a82;border-radius:10px}.meetingMapPanel,.meetingAlivePanel{margin:10px 0;padding:10px;border:1px solid #40566d;border-radius:10px;background:#101e2c}.meetingMapPanel strong,.meetingAlivePanel strong{display:block;margin-bottom:7px}.meetingAliveList{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:5px;max-height:150px;overflow:auto}.meetingAliveItem{display:flex;align-items:center;gap:6px;min-width:0;font-size:12px;padding:4px;background:#1a2a3b;border-radius:6px}.meetingAliveItem span:nth-child(2){overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.meetingAliveItem small{white-space:nowrap}
 .mapLegend{display:flex;gap:12px;flex-wrap:wrap;font-size:12px;color:var(--muted);margin:8px 0}
 @media(max-width:760px){#gameLayout{grid-template-columns:1fr}.side{display:grid;grid-template-columns:1fr 1fr}.side .wide{grid-column:1/-1}.actionPanel{grid-template-columns:1fr 1fr}.gamebox{width:100%}}
-</style>
+\n.meetingMapToggle{width:100%;margin:8px 0;background:#294b70;border:2px solid #82b9e8;font-weight:800}.meetingMapPanel[hidden]{display:none!important}\n@media (orientation:landscape) and (min-width:600px){main{max-width:1500px;padding:10px 16px}#gameLayout{grid-template-columns:minmax(0,1fr) 250px;gap:14px}.gamebox{max-width:none;width:100%}.side{display:flex;flex-direction:column}.side .wide{grid-column:auto}.actionPanel{grid-template-columns:1fr 1fr}#meetingModal .modalbox{width:min(1120px,96vw);max-height:94vh}.meetingChat{max-height:28vh}.meetingAliveList{grid-template-columns:repeat(3,minmax(0,1fr));max-height:110px}}\n</style>
 </head>
 <body>
 <header><div class="logo">TRI<span>AD</span></div><div class="tag">オフライン試作 · v0.23</div></header>
@@ -143,7 +143,7 @@ canvas#mapCanvas{aspect-ratio:16/10;background:#0b1522}
  <div class="modal" id="meetingModal"><div class="modalbox">
   <h2 id="meetingTitle">会議</h2><p id="meetingInfo" class="muted">話し合いを行い、投票先を選んでください。</p>
   <div class="pill" id="meetingPhaseLabel">議論フェーズ</div>
-  <div class="meetingMapPanel"><strong>研究施設マップ</strong><canvas id="meetingOverviewCanvas" width="900" height="600"></canvas><div class="mapLegend">● 生存者の現在位置（各自の色）</div></div>
+  <button id="meetingMapToggle" class="meetingMapToggle" type="button" onclick="toggleMeetingMap()">🗺 マップを表示</button><div class="meetingMapPanel" id="meetingMapPanel" hidden><strong>研究施設マップ</strong><canvas id="meetingOverviewCanvas" width="900" height="600"></canvas><div class="mapLegend">● 生存者の現在位置（各自の色）</div><button type="button" onclick="toggleMeetingMap(false)">マップを閉じる</button></div>
   <div class="meetingAlivePanel"><strong id="meetingAliveSummary">生存者</strong><div id="meetingAliveList" class="meetingAliveList"></div></div>
   <div id="meetingChat" class="meetingChat" aria-live="polite"></div>
   <div id="meetingComposer" class="meetingComposer"><input id="meetingChatInput" maxlength="180" placeholder="手掛かりや見た情報を共有" onkeydown="if(event.key==='Enter'){event.preventDefault();sendMeetingMessage()}"><button onclick="sendMeetingMessage()">発言</button></div>
@@ -213,10 +213,9 @@ const ROLE_POOLS={
 };
 let state={players:[],me:null,map:null,tasks:[],done:0,total:0,seconds:0,move:{x:0,y:0},lastDirection:{x:1,y:0},running:false,meeting:false,meetingPhase:"",selectedVote:null,lastBallots:[],meetingClaims:[],meetingEvents:[],aiTurnCount:0,aiTurnTimer:null,sightTick:0,killEvents:[],dead:[],log:[],camera:{x:0,y:0},worldWidth:2000,worldHeight:1320,nearTask:null,nearBody:null,nearEmergency:false,bountyIds:[],scentedIds:new Set(),sabotageUntil:0,targetAction:null};
 let loop=null,clock=null;
-const colorNames=["赤","赤橙","朱色","橙","黄橙","金","黄","黄緑","若草","緑","深緑","青緑","碧","水色","空色","青","瑠璃","藍","紺","青紫","紫","菫","赤紫","桃","桜","珊瑚","紅","栗","茶","灰白"];
-function hueColor(h){const a=document.createElement("canvas").getContext("2d");a.fillStyle=`hsl(${h},78%,62%)`;return a.fillStyle}
-const colors=Array.from({length:30},(_,i)=>hueColor(i*12));
-const naturalAINames=["あおい","れん","みなと","そら","ゆう","はる","りく","なぎ","しおん","りつ","こはく","つむぎ","ひなた","ゆず","すず","とうま","せな","あさひ","ましろ","かい","いおり","さくら","かなで","るか","あき","なお","みお","あん","ふう","けい"];let gameNameDeck=[];function fallbackAIName(index){return gameNameDeck[index-1]||naturalAINames[(index-1)%naturalAINames.length]}function playerTag(p){return `#${String(p.number||p.id+1).padStart(2,"0")} ${p.name}`}
+const colorNames=["赤","青","黄色","紫","緑","オレンジ","ピンク","水色","黄緑","茶色","紺","マゼンタ","青緑","金","サーモン","ライム","群青","ラベンダー","朱色","ターコイズ","黄土","ローズ","エメラルド","コバルト","レモン","ワイン","ミント","藤色","銅色","白"];
+const colors=["#e53935","#1e88e5","#fdd835","#8e24aa","#43a047","#fb8c00","#ec407a","#00acc1","#7cb342","#8d6e63","#3949ab","#d81b60","#00897b","#c0a000","#ff7043","#c0ca33","#283593","#9575cd","#f4511e","#26a69a","#b08d00","#ad1457","#00a152","#1565c0","#f9a825","#6d1b3b","#66bb6a","#7e57c2","#a65e2e","#eeeeee"];
+const naturalAINames=["ねこもち","もちもち","しろくま","くろまめ","ぽてと","ぷりん","たこやき","しらす","ぺんぎん","からあげ","こむぎ","みたらし","ねむねむ","うさぎもち","わたあめ","めんだこ","ましゅまろ","こんぺいとう","ほっとけーき","おにぎり","きなこもち","すいか","りんごあめ","ぽんず","ふわり","もちぱん","しおこんぶ","だいふく","ちくわ","くりーむ"];let gameNameDeck=[];function fallbackAIName(index){return gameNameDeck[index-1]||naturalAINames[(index-1)%naturalAINames.length]}function playerTag(p){return `#${String(p.number||p.id+1).padStart(2,"0")} ${p.name}`}
 function show(id){document.querySelectorAll(".screen").forEach(s=>s.classList.remove("active"));$(id).classList.add("active")}
 function log(t){}
 function rand(a,b){return Math.random()*(b-a)+a}
@@ -885,7 +884,7 @@ function callMeeting(message="会議が招集されました。",caller=state.me
  const emergencyHold=Date.now()+45000;state.players.filter(p=>p.id!==0&&p.alive).forEach(p=>p.emergencyReadyAt=Math.max(p.emergencyReadyAt||0,emergencyHold));
  state.players.forEach(p=>p.charging=false);stopMove();
  $("meetingTitle").textContent="会議";$("meetingInfo").textContent=message+" まずは話し合ってください。";
- $("meetingPhaseLabel").textContent="議論フェーズ";$("meetingChat").textContent="";drawOverview("meetingOverviewCanvas");renderMeetingAliveList();
+ $("meetingPhaseLabel").textContent="議論フェーズ";$("meetingChat").textContent="";$("meetingMapPanel").hidden=true;$("meetingMapToggle").textContent="🗺 マップを表示";renderMeetingAliveList();
  $("meetingComposer").hidden=false;$("meetingChatInput").value="";$("beginVoteAction").hidden=false;
  $("meetingVotePanel").hidden=true;$("closeMeetingAction").disabled=true;$("voteResult").textContent="";$("voteBreakdown").textContent="";$("ballotBreakdown").textContent="";
  appendMeetingMessage("会議",message,"system");
@@ -917,6 +916,7 @@ function drawOverview(canvasId="overviewCanvas"){
   if(state.bountyIds.length){ctx.fillStyle="#d8a7f4";ctx.beginPath();ctx.arc(1344,494,22,0,Math.PI*2);ctx.fill();ctx.fillStyle="#21142b";ctx.font="bold 23px system-ui";ctx.fillText("!",1337,503)}
   state.players.filter(p=>p.alive).forEach(p=>{ctx.fillStyle=p.color;ctx.beginPath();ctx.arc(p.x,p.y,18,0,Math.PI*2);ctx.fill();ctx.strokeStyle="#101820";ctx.lineWidth=6;ctx.stroke();ctx.strokeStyle="#fff";ctx.lineWidth=2;ctx.stroke()});ctx.restore();
 }
+function toggleMeetingMap(force){const panel=$("meetingMapPanel"),button=$("meetingMapToggle");const open=typeof force==="boolean"?force:panel.hidden;panel.hidden=!open;if(open){drawOverview("meetingOverviewCanvas");button.textContent="🗺 マップを閉じる"}else button.textContent="🗺 マップを表示"}
 function renderMeetingAliveList(){const alive=state.players.filter(p=>p.alive);$("meetingAliveSummary").textContent=`生存者：${alive.length}人 / ${state.players.length}人`;$("meetingAliveList").innerHTML=alive.map(p=>`<div class="meetingAliveItem"><span class="dot" style="background:${p.color}"></span><span>${playerTag(p)}</span><small style="color:${p.color}">(${p.colorName||"色"})</small></div>`).join("")}
 function castVote(id){
  if(!state.meeting||state.meetingPhase!=="voting"||!state.me.alive)return;
