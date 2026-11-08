@@ -67,7 +67,60 @@ canvas#mapCanvas{aspect-ratio:16/10;background:#0b1522}
 #mapModal .modalbox{width:min(900px,100%)}#overviewCanvas,#meetingOverviewCanvas{width:100%;height:auto;aspect-ratio:3/2;background:#0b1522;border:1px solid #536a82;border-radius:10px}.meetingMapPanel,.meetingAlivePanel{margin:10px 0;padding:10px;border:1px solid #40566d;border-radius:10px;background:#101e2c}.meetingMapPanel strong,.meetingAlivePanel strong{display:block;margin-bottom:7px}.meetingAliveList{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:5px;max-height:150px;overflow:auto}.meetingAliveItem{display:flex;align-items:center;gap:6px;min-width:0;font-size:12px;padding:4px;background:#1a2a3b;border-radius:6px}.meetingAliveItem span:nth-child(2){overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.meetingAliveItem small{white-space:nowrap}
 .mapLegend{display:flex;gap:12px;flex-wrap:wrap;font-size:12px;color:var(--muted);margin:8px 0}
 @media(max-width:760px){#gameLayout{grid-template-columns:1fr}.side{display:grid;grid-template-columns:1fr 1fr}.side .wide{grid-column:1/-1}.actionPanel{grid-template-columns:1fr 1fr}.gamebox{width:100%}}
-\n.meetingMapToggle{width:100%;margin:8px 0;background:#294b70;border:2px solid #82b9e8;font-weight:800}.meetingMapPanel[hidden]{display:none!important}\n@media (orientation:landscape) and (min-width:600px){main{max-width:1500px;padding:10px 16px}#gameLayout{grid-template-columns:minmax(0,1fr) 250px;gap:14px}.gamebox{max-width:none;width:100%}.side{display:flex;flex-direction:column}.side .wide{grid-column:auto}.actionPanel{grid-template-columns:1fr 1fr}#meetingModal .modalbox{width:min(1120px,96vw);max-height:94vh}.meetingChat{max-height:28vh}.meetingAliveList{grid-template-columns:repeat(3,minmax(0,1fr));max-height:110px}}\n</style>
+\n.meetingMapToggle{width:100%;margin:8px 0;background:#294b70;border:2px solid #82b9e8;font-weight:800}.meetingMapPanel[hidden]{display:none!important}\n@media (orientation:landscape) and (min-width:600px){main{max-width:1500px;padding:10px 16px}#gameLayout{grid-template-columns:minmax(0,1fr) 250px;gap:14px}.gamebox{max-width:none;width:100%}.side{display:flex;flex-direction:column}.side .wide{grid-column:auto}.actionPanel{grid-template-columns:1fr 1fr}#meetingModal .modalbox{width:min(1120px,96vw);max-height:94vh}.meetingChat{max-height:28vh}.meetingAliveList{grid-template-columns:repeat(3,minmax(0,1fr));max-height:110px}}\n
+/* v0.26: smartphone-specific play layout; tablet layout remains unchanged */
+@media screen and (max-width:600px) and (orientation:portrait){
+  html,body{width:100%;min-height:100%;overflow-x:hidden}
+  body{padding-bottom:0}
+  header{min-height:48px;padding:8px 12px}
+  .logo{font-size:17px}
+  header .tag{font-size:10px;padding:4px 7px}
+  main{width:100%;max-width:none;margin:0;padding:8px 8px 210px}
+  #gameLayout{display:block;width:100%}
+  .gamebox{width:100%;max-width:none;margin:0;border-radius:12px}
+  canvas#mapCanvas{display:block;width:100%;height:auto;aspect-ratio:16/10}
+  .hud{top:6px;left:6px;right:6px;gap:4px}
+  .hud span{font-size:10px;padding:4px 6px;border-radius:7px}
+  .stickZone{left:5px;bottom:5px;width:100px;height:100px}
+  .stickBase{width:88px;height:88px}
+  .stickKnob{width:40px;height:40px}
+  .stickHint{left:7px;bottom:106px;font-size:10px;padding:4px 6px}
+  #ghostBanner{top:40px;font-size:10px;padding:5px 9px}
+  .side{display:contents}
+  .side .card:not(.wide){display:none}
+  .side .wide:not(:last-child){
+    position:fixed;left:8px;right:8px;bottom:max(8px,env(safe-area-inset-bottom));
+    z-index:8;width:auto;margin:0;padding:8px 9px 9px;
+    border-radius:14px;background:#142238f5;border:1px solid #7890ad;
+    box-shadow:0 5px 24px #0009;display:block
+  }
+  .side .wide:last-child{display:none}
+  #audioToggle,.nearHint,.side .wide p{display:none!important}
+  .actionPanel{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}
+  .actionPanel button{min-width:0;min-height:43px;height:43px;padding:6px 3px;font-size:12px;line-height:1.15;border-radius:10px}
+  #mapAction{grid-column:auto}
+  footer{display:none}
+  .modal{padding:8px}
+  .modalbox{padding:13px;max-height:94dvh}
+  #mapModal .modalbox{width:100%}
+}
+@media screen and (max-width:380px) and (orientation:portrait){
+  .actionPanel{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .actionPanel button{height:41px;min-height:41px;font-size:11px}
+  main{padding-left:6px;padding-right:6px}
+}
+@media screen and (max-height:500px) and (orientation:landscape) and (max-width:950px){
+  header{padding:5px 10px;min-height:38px}
+  main{padding:5px}
+  #gameLayout{grid-template-columns:minmax(0,1fr) 205px;gap:7px}
+  .gamebox{max-height:calc(100dvh - 52px)}
+  canvas#mapCanvas{max-height:calc(100dvh - 52px);width:100%;height:auto;object-fit:contain}
+  .side .card{padding:7px}
+  .actionPanel{gap:5px}
+  .actionPanel button{min-height:40px;height:40px;padding:5px;font-size:11px}
+}
+
+</style>
 </head>
 <body>
 <header><div class="logo">TRI<span>AD</span></div><div class="tag">オフライン試作 · v0.25</div></header>
