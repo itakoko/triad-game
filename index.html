@@ -27,6 +27,7 @@ main{max-width:1100px;margin:auto;padding:18px}.screen{display:none}.screen.acti
 .roleStatRow{display:grid;grid-template-columns:1fr 55px 55px;gap:6px;padding:7px 0;border-bottom:1px solid #ffffff12;font-size:12px}.roleStatRow span:not(:first-child){text-align:right;color:var(--muted)}
 @media(max-width:760px){.accountLayout{grid-template-columns:1fr}.accountList{max-height:38vh}.accountToolbar{display:grid;grid-template-columns:1fr 1fr}.accountToolbar .field:first-child{grid-column:1/-1}.accountStats{gap:6px}.accountStat{padding:8px}.parameter{grid-template-columns:100px 1fr 26px}}
 
+.rankedTierList{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:7px}.rankedTierList>div{display:flex;justify-content:space-between;gap:8px;padding:9px 10px;border:1px solid var(--line);border-radius:10px;background:#15263b;font-size:13px}.rankedTierList span{color:var(--muted);white-space:nowrap}@media(max-width:520px){.rankedTierList{grid-template-columns:1fr}}
 #gameLayout{display:grid;grid-template-columns:minmax(0,1fr) 270px;gap:12px}.gamebox{position:relative;background:#101c2d;border:1px solid var(--line);border-radius:18px;overflow:hidden;min-height:0;max-width:720px;margin:auto}canvas{width:100%;height:auto;display:block;touch-action:none;background:#14253a;aspect-ratio:16/10}.gamebox{touch-action:none} .stickZone{position:absolute;left:10px;bottom:10px;width:126px;height:126px;display:grid;place-items:center;touch-action:none;z-index:3}.stickBase{width:108px;height:108px;border-radius:50%;background:#0b1527aa;border:2px solid #9bb4d477;display:grid;place-items:center;box-shadow:0 4px 18px #0005;touch-action:none}.stickKnob{width:48px;height:48px;border-radius:50%;background:#72e3dfcc;border:2px solid #eaffff;box-shadow:0 2px 10px #0008;transform:translate(0,0);pointer-events:none}.stickHint{position:absolute;left:10px;bottom:140px;background:#101827cc;padding:5px 8px;border-radius:8px;font-size:11px;color:#dcecff;pointer-events:none}
 .hud{position:absolute;top:10px;left:10px;right:10px;display:flex;justify-content:space-between;pointer-events:none;gap:8px}.hud span{background:#101827dd;border:1px solid #ffffff22;border-radius:9px;padding:6px 9px;font-size:12px}
 .side{display:flex;flex-direction:column;gap:10px}.side .card{padding:13px}.stat{font-size:22px;font-weight:900}.taskbar{height:9px;background:#0e1928;border-radius:9px;overflow:hidden;margin-top:7px}.taskbar div{height:100%;background:var(--cyan);width:0%}
@@ -189,10 +190,51 @@ canvas#mapCanvas{aspect-ratio:16/10;background:#0b1522}
  <div class="grid">
   <div class="card"><h3>🎮 ゲームを始める</h3><p class="muted">AIと対戦するオフライン試合を開始します。</p><button class="primary" style="width:100%" onclick="show('setup')">試合設定へ</button></div>
   <div class="card"><h3>🌐 オンライン対戦</h3><p class="muted">フレンドと遊ぶ・公開ルームを探す・AI人数や特別ルールを設定。</p><button class="primary" style="width:100%" onclick="openSocialHub()">オンラインロビーへ</button></div>
+  <div class="card"><h3>🏆 ランク戦</h3><p class="muted">ランクポイントと戦績を確認できます。10人戦・12人戦の準備を進めています。</p><button class="primary" style="width:100%" onclick="openRankedScreen()">ランク戦を見る</button></div>
   <div class="card"><h3>📘 遊び方</h3><p class="muted">試作版のルールと操作方法を確認します。</p><button style="width:100%" onclick="openHelp()">ルールを見る</button></div>
   <div class="card"><h3>👥 アカウント図鑑</h3><p class="muted">プレイヤーとAIアカウント全員の能力・成績・得意な役職を確認できます。</p><button style="width:100%" onclick="openAccountsScreen()">アカウントを見る</button></div>
-  <div class="card"><h3>📋 アップデートログ</h3><p class="muted">見たいバージョンを選択してください。</p><div class="field"><label for="updateVersionSelect">バージョン</label><select id="updateVersionSelect" onchange="renderUpdateLog(this.value)"><option value="0.56">v0.57（最新）</option><option value="0.55">v0.55（最新）</option><option value="0.54">v0.54（最新）</option><option value="0.53">v0.53</option><option value="0.52">v0.52</option><option value="0.51">v0.51</option><option value="0.49">v0.49</option><option value="0.48">v0.48</option><option value="0.44">v0.44</option><option value="0.43">v0.43</option><option value="0.42">v0.42</option><option value="0.41">v0.41</option><option value="0.40">v0.40</option><option value="0.39">v0.39</option><option value="0.38">v0.38</option><option value="0.37">v0.37</option><option value="0.36">v0.36</option><option value="0.35">v0.35</option><option value="0.34">v0.34</option><option value="0.33">v0.33</option><option value="0.32">v0.32</option><option value="0.31">v0.31</option><option value="0.29">v0.29</option><option value="0.28">v0.28</option><option value="0.27">v0.27</option><option value="0.26">v0.26</option><option value="0.25">v0.25</option><option value="0.23">v0.23</option></select></div><div id="updateLogContent" class="updateLogContent" aria-live="polite"></div></div>
+  <div class="card"><h3>📋 アップデートログ</h3><p class="muted">見たいバージョンを選択してください。</p><div class="field"><label for="updateVersionSelect">バージョン</label><select id="updateVersionSelect" onchange="renderUpdateLog(this.value)"><option value="0.58">v0.58（最新）</option><option value="0.56">v0.57</option><option value="0.55">v0.55（最新）</option><option value="0.54">v0.54（最新）</option><option value="0.53">v0.53</option><option value="0.52">v0.52</option><option value="0.51">v0.51</option><option value="0.49">v0.49</option><option value="0.48">v0.48</option><option value="0.44">v0.44</option><option value="0.43">v0.43</option><option value="0.42">v0.42</option><option value="0.41">v0.41</option><option value="0.40">v0.40</option><option value="0.39">v0.39</option><option value="0.38">v0.38</option><option value="0.37">v0.37</option><option value="0.36">v0.36</option><option value="0.35">v0.35</option><option value="0.34">v0.34</option><option value="0.33">v0.33</option><option value="0.32">v0.32</option><option value="0.31">v0.31</option><option value="0.29">v0.29</option><option value="0.28">v0.28</option><option value="0.27">v0.27</option><option value="0.26">v0.26</option><option value="0.25">v0.25</option><option value="0.23">v0.23</option></select></div><div id="updateLogContent" class="updateLogContent" aria-live="polite"></div></div>
  </div>
+</section>
+
+
+<section id="ranked" class="screen">
+ <div class="hero"><div class="pill">RANKED MATCH</div><h1>🏆 ランク戦</h1><p>ポイントが近いプレイヤーを優先してマッチングし、足りない席はAIが補充するランクモードです。</p></div>
+ <div class="grid">
+  <div class="card">
+   <h3>現在のランク</h3>
+   <div id="rankedTier" style="font-size:26px;font-weight:900;margin:8px 0">読み込み中…</div>
+   <div id="rankedPoints" style="font-size:34px;font-weight:950;color:var(--gold)">— pt</div>
+   <p class="muted" id="rankedProfileMessage">ランク情報を取得しています。</p>
+  </div>
+  <div class="card">
+   <h3>ランク戦績</h3>
+   <div class="stats">
+    <div class="stat"><strong id="rankedMatches">—</strong><span>試合数</span></div>
+    <div class="stat"><strong id="rankedWins">—</strong><span>勝利</span></div>
+    <div class="stat"><strong id="rankedLosses">—</strong><span>敗北</span></div>
+   </div>
+  </div>
+ </div>
+ <div class="card">
+  <h3>対戦形式</h3>
+  <div class="grid">
+   <div class="card" style="background:#15263b"><h3>10人戦</h3><p>白6人・黒2人・第三2人</p><span class="pill">準備中</span></div>
+   <div class="card" style="background:#15263b"><h3>12人戦</h3><p>白6人・黒3人・第三3人</p><span class="pill">準備中</span></div>
+  </div>
+  <p class="muted">マッチング用のサーバー基盤は追加済みです。試合中の移動・会議・能力・勝敗をサーバーで処理するゲームエンジンは、まだ接続していません。安全に遊べる状態になるまでは、参加ボタンを公開しません。</p>
+  <button onclick="loadRankedProfile()">ランク情報を更新</button>
+ </div>
+ <div class="card">
+  <h3>ランク帯</h3>
+  <div class="rankedTierList">
+   <div>ビギナー <span>0〜199 pt</span></div><div>ブロンズ <span>200〜499 pt</span></div>
+   <div>シルバー <span>500〜899 pt</span></div><div>ゴールド <span>900〜1,399 pt</span></div>
+   <div>プラチナ <span>1,400〜1,999 pt</span></div><div>ダイヤモンド <span>2,000〜2,699 pt</span></div>
+   <div>マスター <span>2,700〜3,499 pt</span></div><div>グランドマスター <span>3,500 pt以上</span></div>
+  </div>
+ </div>
+ <div class="actions"><button onclick="show('home')">ホームへ戻る</button></div>
 </section>
 
 <section id="setup" class="screen">
@@ -338,7 +380,7 @@ canvas#mapCanvas{aspect-ratio:16/10;background:#0b1522}
 </section>
 
 </main>
-<footer>TRIAD v0.57 · 陣営ランダム・おすすめプリセット</footer>
+<footer>TRIAD v0.58 · ランク戦準備</footer>
 
   <div id="onlineConnectionBanner" role="status">オンライン接続が不安定です。<button type="button" onclick="retryOnlineConnection()">再接続</button></div>
   <div class="modal" id="offlineRoleSettingsModal"><div class="modalbox"><h2>通常対戦・役職詳細設定</h2><p class="muted">固定人数を指定した役職は必ず登場します。残りの枠はONになっている役職から出現重みに応じて抽選します。</p>
@@ -690,9 +732,51 @@ function activateScreen(id){
  if(!target){console.error("Screen not found:",id);return false}
  target.classList.add("active");return true;
 }
+function rankedTier(points){
+ const p=Math.max(0,Number(points)||0);
+ if(p>=3500)return "グランドマスター";
+ if(p>=2700)return "マスター";
+ if(p>=2000)return "ダイヤモンド";
+ if(p>=1400)return "プラチナ";
+ if(p>=900)return "ゴールド";
+ if(p>=500)return "シルバー";
+ if(p>=200)return "ブロンズ";
+ return "ビギナー";
+}
+function openRankedScreen(){
+ if(!activateScreen("ranked"))return;
+ loadRankedProfile();
+}
+async function loadRankedProfile(){
+ const message=$("rankedProfileMessage");
+ if(message)message.textContent="ランク情報を取得しています…";
+ try{
+  if(!supabaseClient)supabaseClient=window.supabase.createClient(SUPABASE_URL,SUPABASE_PUBLISHABLE_KEY);
+  if(!authUser){
+   const {data,error}=await supabaseClient.auth.getSession();
+   if(error)throw error;
+   authUser=data.session?.user||null;
+  }
+  if(!authUser)throw new Error("オンライン接続がまだ完了していません。少し待って再試行してください。");
+  await ensureOwnPlayerProfile();
+  const {data,error}=await supabaseClient.functions.invoke("triad-ranked",{body:{action:"profile"}});
+  if(error)throw error;
+  const p=data?.profile||{};
+  const points=Math.max(0,Number(p.points)||0);
+  $("rankedTier").textContent=rankedTier(points);
+  $("rankedPoints").textContent=points.toLocaleString("ja-JP")+" pt";
+  $("rankedMatches").textContent=String(Number(p.matches_played)||0);
+  $("rankedWins").textContent=String(Number(p.wins)||0);
+  $("rankedLosses").textContent=String(Number(p.losses)||0);
+  if(message)message.textContent=authUser.is_anonymous?"ゲストアカウントのランク情報です。この端末のゲストIDに保存されます。":"ログイン中のアカウントにランク情報を保存しています。";
+ }catch(error){
+  if(message)message.textContent="ランク情報を取得できませんでした："+(error?.message||String(error));
+ }
+}
+
 function show(id){
  if(!activateScreen(id))return;
- if(id==="home"){renderUpdateLog($("updateVersionSelect")?.value||"0.56");updateResumeGameUI()}
+ if(id==="home"){renderUpdateLog($("updateVersionSelect")?.value||"0.58");updateResumeGameUI()}
  if(id==="accounts")loadAccountDirectoryData();
  if(id==="socialHub")loadSocialHub();
 }
@@ -2631,8 +2715,9 @@ async function leaveOnlineRoom(){
  activeRoomId=null;activeRoomSnapshot=null;await disconnectRoomChannel();show("socialHub");await loadSocialHub();
 }
 
-function renderUpdateLog(version="0.57"){
+function renderUpdateLog(version="0.58"){
  const logs={
+  "0.58":{date:"2026年11月9日",items:["ランク戦のプロフィール画面を追加。現在のランクポイント・ランク帯・戦績をサーバーから取得して表示。","ランク戦用のサーバー側マッチング基盤と10人戦・12人戦の陣営／役職割り当てを追加。試合エンジン接続前のため、マッチング参加はまだ公開していません。"]},
   "0.57":{date:"2026年11月9日",items:["ランダム設定でAI人数に加え、白・黒・第三の陣営人数も毎回抽選するよう明示的に改善。","通常対戦の役職設定に公式おすすめプリセット「基準」「カオス」「第三陣営祭り」「推理重視」「少人数戦」を追加。陣営バランスと役職構成をまとめて適用できます。"]},
   "0.56":{date:"2026年11月9日",items:["通常対戦の役職詳細設定に「標準設定に戻す」「人数・役職をすべてランダム」を追加。AI人数・各陣営人数・役職固定人数・重複許可・出現重みをまとめて初期化／抽選できます。"]},
   "0.55":{date:"2026年11月9日",items:["ギャンブラーの予想をブラウザの入力ダイアログからゲーム内の専用ボタン選択に変更。試合開始時と会議終了後に画面内で1〜3／4〜6を選択できます。","役職一覧のギャンブラー説明を実際のダイス6面・JACKPOTキル能力・予想勝利条件・大凶3回脱落に合わせて修正。"]},
