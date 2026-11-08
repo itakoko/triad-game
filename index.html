@@ -1950,7 +1950,7 @@ async function retryOnlineConnection(){
  onlineReconnectBusy=true;setOnlineConnectionStatus(false,"オンライン接続を再確立しています…");
  try{
   const roomId=activeRoomId,wasRunning=!!state.running,wasHost=!!onlineGame?.isHost;
-  onlineGame=null;await disconnectRoomChannel();await enterOnlineRoom(roomId);
+  onlineGame=wasHost?{roomId,isHost:true,userId:authUser.id}:null;await disconnectRoomChannel();await enterOnlineRoom(roomId);
   if(wasRunning&&activeRoomSnapshot?.status==="playing"){
    if(activeRoomSnapshot.host_user_id===authUser.id){onlineGame={roomId,isHost:true,userId:authUser.id};await startOnlineHostSync()}
    else{onlineGame=null;startOnlineClient()}
