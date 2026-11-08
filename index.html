@@ -1353,7 +1353,6 @@ function selectTarget(id){if(isOnlineClient()){const kind=state.targetAction?.ki
  if(action.kind==="seer"){actor.abilityUsed=true;showSeerResult(target)}
  else if(action.kind==="gamblerKill"){if(actor.role==="ギャンブラー"&&actor.gamblerKillReady&&Math.hypot(target.x-actor.x,target.y-actor.y)<=100&&hasLineOfSight(actor,target)){actor.gamblerKillReady=false;performKill(target,actor,"ギャンブラーのJACKPOTキル")}}
  else if(action.kind==="roleKill"){actor.abilityUsed=true;performKill(target,actor,actor.role==="狩人"?"狩人の攻撃":"保安官の攻撃")}
- else if(action.kind==="gamblerKill"){if(actor.role==="ギャンブラー"&&actor.gamblerKillReady&&Math.hypot(target.x-actor.x,target.y-actor.y)<=100&&hasLineOfSight(actor,target)){actor.gamblerKillReady=false;performKill(target,actor,"ギャンブラーのJACKPOTキル")}}
  else if(action.kind==="protect"){actor.abilityUsed=true;target.protected=true;alert(`${target.name} に加護を与えました。次の攻撃を1度防ぎます。`)}
  else if(action.kind==="disguise"){actor.disguiseId=target.id;actor.disguiseUntil=now+10000;actor.roleReadyAt=now+35000;alert(`${target.name} の姿に10秒間変身しました。`)}
  else if(action.kind==="scent"){target.scented=true;state.scentedIds.add(target.id);actor.roleReadyAt=now+15000;alert("匂いを移しました。相手には知られていません。");checkWin()}
