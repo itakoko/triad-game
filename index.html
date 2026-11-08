@@ -1024,7 +1024,7 @@ function updateNearbyActions(){
  if(dead&&!ghost&&!state.players.some(p=>p.id===spectatorTargetId&&p.alive)){spectatorTargetId=state.players.find(p=>p.alive)?.id??null;}
  $("ghostBanner").textContent=dead?(ghost?"👻 幽霊モード：自由に移動できます":"👁 観戦モード：生存者の視点を見ています"):"";
  $("deathChoice").hidden=!dead||!deathChoicePending;
- state.nearTask=alive?state.tasks.find(t=>!t.done&&!t.completedBy?.includes(me.id)&&Math.hypot(t.x-me.x,t.y-me.y)<72)||null:null;
+ state.nearTask=alive?state.tasks.find(t=>(me.team!=="white"||!t.done)&&!t.completedBy?.includes(me.id)&&Math.hypot(t.x-me.x,t.y-me.y)<72)||null:null;
  state.nearBody=alive?state.dead.find(d=>Math.hypot(d.x-me.x,d.y-me.y)<82)||null:null;
  state.nearEmergency=alive&&Math.hypot(900-me.x,520-me.y)<82;const emergencyWait=Math.max(0,Math.ceil(((state.emergencyMeetingReadyAt||0)-now)/1000));const emergencyAvailable=state.nearEmergency&&!me.emergencyMeetingUsed&&emergencyWait===0;
   $("taskAction").textContent=ghost?"👻 タスクを解読":state.nearTask?`🔧 ${state.nearTask.label}を解析（残り${state.nearTask.remaining}件）`:"🔧 タスクを行う";
@@ -1109,7 +1109,7 @@ function taskPuzzleShell(title,desc,content){
  box.innerHTML='<h2>'+title+'</h2><p id="taskPuzzleLabel" class="muted">'+desc+'</p><div id="taskPuzzleArea">'+content+'</div><p id="taskPuzzleFeedback" class="taskPuzzleFeedback"></p><div class="actions"><button onclick="closeTaskPuzzle()">中断</button><button class="primary" onclick="submitTaskPuzzle()">決定</button></div>';
 }
 function openTaskPuzzle(task){
- if(!state.running||!task||task.done||task.remaining<=0||!state.me||task.completedBy?.includes(state.me.id))return;
+ if(!state.running||!task||(state.me?.team==="white"&&(task.done||task.remaining<=0))||!state.me||task.completedBy?.includes(state.me.id))return;
  activeTaskPuzzle=task;
  const data=taskKinds[task.id%taskKinds.length];activeTaskData={...data,progress:0,selected:[],matches:{},chosen:null};
  if(data.kind==="sort"){
@@ -1194,7 +1194,7 @@ function submitTaskPuzzle(){
  if(completeSharedTask(task,state.me)){updateNearbyActions();draw()}
 }
 function completeSharedTask(task,actor){if(isOnlineClient()){sendOnlineInput({kind:"action",action:"task",taskId:task?.id});return true}
- if(!state.running||!task||task.done||task.remaining<=0||!actor?.alive)return false;
+ if(!state.running||!task||!actor?.alive||(actor.team==="white"&&(task.done||task.remaining<=0)))return false;
  task.completedBy=task.completedBy||[];
  if(task.completedBy.includes(actor.id))return false;
  task.completedBy.push(actor.id);actor.taskCount=(actor.taskCount||0)+1;
