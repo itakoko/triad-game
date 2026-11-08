@@ -380,7 +380,7 @@ canvas#mapCanvas{aspect-ratio:16/10;background:#0b1522}
 </section>
 
 </main>
-<footer>TRIAD v0.59 · ランク戦サーバー接続準備</footer>
+<footer>TRIAD v0.60 · 会議・投票接続</footer>
 
   <div id="onlineConnectionBanner" role="status">オンライン接続が不安定です。<button type="button" onclick="retryOnlineConnection()">再接続</button></div>
   <div class="modal" id="offlineRoleSettingsModal"><div class="modalbox"><h2>通常対戦・役職詳細設定</h2><p class="muted">固定人数を指定した役職は必ず登場します。残りの枠はONになっている役職から出現重みに応じて抽選します。</p>
@@ -636,6 +636,8 @@ const ROLE_POOLS={
 let state={players:[],me:null,map:null,tasks:[],done:0,total:0,seconds:0,move:{x:0,y:0},lastDirection:{x:1,y:0},running:false,meeting:false,meetingPhase:"",meetingId:null,selectedVote:null,lastBallots:[],meetingClaims:[],meetingEvents:[],aiTurnCount:0,aiTurnTimer:null,meetingTimer:null,meetingSecondsLeft:90,meetingDuration:90,sightTick:0,killEvents:[],dead:[],log:[],camera:{x:0,y:0},worldWidth:2000,worldHeight:1320,nearTask:null,nearBody:null,nearEmergency:false,emergencyMeetingReadyAt:0,bountyIds:[],scentedIds:new Set(),sabotageUntil:0,targetAction:null};
 let loop=null,clock=null,autosaveTimer=null;
 let rankedServerMode=false,rankedServerBusy=false,rankedLastMoveAt=0,rankedLastTickAt=0,rankedLastStateAt=0;
+let rankedMeetingWasActive=false;
+
 async function rankedEngineCall(action,extra={}){
  if(!supabaseClient)supabaseClient=window.supabase.createClient(SUPABASE_URL,SUPABASE_PUBLISHABLE_KEY);
  if(!authUser){const {data,error}=await supabaseClient.auth.getSession();if(error)throw error;authUser=data.session?.user||null}
@@ -660,15 +662,50 @@ async function enterRankedServerMatch(snap){
  state.me=state.players.find(p=>p.number===ownSeat);if(!state.me)throw new Error("自分の参加情報が見つかりません。");
  $("mapLabel").textContent="マップ：研究施設（サーバー試験）";$("roleLabel").textContent="役職："+state.me.role;$("myRoleText").textContent="陣営："+teamName(state.me.team)+" ／ 役職："+state.me.role+"。サーバー試験モードです。";
  $("myStatus").textContent=state.me.alive?"生存":"死亡";$("taskCount").textContent=state.done+" / "+state.total;$("taskProgress").style.width=(state.total?state.done/state.total*100:0)+"%";
- show("game");state.running=true;startAudio();updateNearbyActions();draw();clearInterval(loop);clearInterval(clock);loop=setInterval(tick,70);$("nearHint").textContent="サーバー試験：移動とタスク進行をサーバーに送信しています。";
+ show("game");state.running=true;startAudio();syncRankedMeetingUI(snap.meeting);updateNearbyActions();draw();clearInterval(loop);clearInterval(clock);loop=setInterval(tick,70);$("nearHint").textContent="サーバー試験：移動とタスク進行をサーバーに送信しています。";
+}
+function syncRankedMeetingUI(meeting){
+ const active=!!meeting?.active,phase=meeting?.phase||"";
+ if(!active){
+  if(rankedMeetingWasActive){$("meetingModal").classList.remove("show");state.meeting=false;state.meetingPhase="";state.emergencyMeetingReadyAt=Number(meeting?.cooldown_until)||Date.now()+25000;updateNearbyActions()}
+  rankedMeetingWasActive=false;return;
+ }
+ rankedMeetingWasActive=true;state.meeting=true;state.meetingPhase=phase;state.move={x:0,y:0};
+ $("meetingTitle").textContent="ランク戦会議";$("meetingPhaseLabel").textContent=phase==="discussion"?"議論フェーズ":phase==="voting"?"投票フェーズ":"投票結果";
+ $("meetingComposer").hidden=true;$("meetingChat").textContent="";$("meetingSummaryContent").textContent="ランク戦のサーバー会議です。発言機能はまだ未対応です。";
+ $("beginVoteAction").hidden=phase!=="discussion";$("meetingVotePanel").hidden=phase==="discussion";
+ $("closeMeetingAction").hidden=true;$("meetingMapPanel").hidden=true;
+ const end=meeting.ends_at?Date.parse(meeting.ends_at):Date.now(),left=Math.max(0,Math.ceil((end-Date.now())/1000));
+ $("meetingTimeLeft").textContent=phase==="discussion"?"投票開始まで "+left+"秒":phase==="voting"?"投票終了まで "+left+"秒":"結果確定";
+ $("meetingInfo").textContent=phase==="discussion"?"議論時間です。終了すると投票に進みます。":phase==="voting"?(state.me.alive?"投票先を選んで投票を確定してください。":"あなたは投票できません。"):"投票結果を確定しました。";
+ renderMeetingAliveList();
+ if(phase==="discussion"){$("meetingVotePanel").hidden=true;$("beginVoteAction").hidden=false}
+ if(phase==="voting"){
+  $("beginVoteAction").hidden=true;$("meetingVotePanel").hidden=false;
+  const alive=state.players.filter(p=>p.alive);
+  $("voteList").innerHTML=alive.map(p=>'<button data-vote-id="'+p.id+'" onclick="castVote('+p.id+')"><span class="dot" style="background:'+p.color+'"></span><span>'+escapeMeetingText(p.name)+'</span></button>').join("");
+  $("voteList").querySelectorAll("button").forEach(b=>{b.disabled=!state.me.alive});
+  $("submitVoteAction").disabled=!state.me.alive||state.selectedVote===null;
+  $("selectedVoteText").textContent=state.selectedVote==="skip"?"投票先：スキップ":state.selectedVote!==null?"投票先："+(state.players.find(p=>p.id===Number(state.selectedVote))?.name||"選択済み"):"投票先：未選択";
+ }
+ if(phase==="results"){
+  $("beginVoteAction").hidden=true;$("meetingVotePanel").hidden=false;$("submitVoteAction").disabled=true;
+  $("voteList").querySelectorAll("button").forEach(b=>b.disabled=true);
+  const result=meeting.result||{},seat=Number(result.ejected_seat||0),out=state.players.find(p=>p.number===seat);
+  $("voteResult").textContent=result.tie?"同数票のため、追放者はいません。":out?out.name+" が投票で追放されました。":"スキップが最多票。追放者はいません。";
+  const counts=result.counts||{};
+  $("voteBreakdown").innerHTML=state.players.filter(p=>p.alive||p.number===seat).map(p=>'<div class="voteTally">'+escapeMeetingText(p.name)+'<br><strong>'+(counts[String(p.number)]||0)+' 票</strong></div>').join("")+'<div class="voteTally">スキップ<br><strong>'+(counts.skip||0)+' 票</strong></div>';
+  $("ballotBreakdown").textContent="投票結果はサーバーで確定しました。";
+ }
+ $("meetingModal").classList.add("show");
 }
 function applyRankedServerSnapshot(snap){
- if(!rankedServerMode||snap?.status!=="ok")return;const ownSeat=Number(snap.self?.seat);
+ if(!rankedServerMode||snap?.status!=="ok")return;const ownSeat=Number(snap.self?.seat);state.serverPhase=snap.phase;state.emergencyMeetingReadyAt=Number(snap.meeting_cooldown_until)||state.emergencyMeetingReadyAt;
  (snap.players||[]).forEach(v=>{const p=state.players.find(x=>x.number===Number(v.seat));if(p){p.x=Number(v.x);p.y=Number(v.y);p.alive=!!v.alive}});
  const me=state.players.find(p=>p.number===ownSeat);if(me){me.team=snap.self.faction;me.role=snap.self.role;me.alive=!!snap.self.alive;state.me=me}
  state.tasks=(snap.tasks||[]).map(t=>{const old=state.tasks.find(x=>x.id===Number(t.id))||{},spec=taskKinds[Number(t.id)%taskKinds.length];return{...old,id:Number(t.id),x:Number(t.x),y:Number(t.y),done:!!t.done,remaining:Number(t.remaining),label:spec.label,room:spec.room,kind:spec.kind}});
  state.done=state.tasks.reduce((n,t)=>n+(4-Math.max(0,Number(t.remaining)||0)),0);state.total=state.tasks.length*4;state.seconds=Number(snap.elapsed_seconds)||state.seconds;
- $("taskCount").textContent=state.done+" / "+state.total;$("taskProgress").style.width=(state.total?state.done/state.total*100:0)+"%";$("timer").textContent=String(Math.floor(state.seconds/60)).padStart(2,"0")+":"+String(state.seconds%60).padStart(2,"0");$("myStatus").textContent=state.me.alive?"生存":"死亡";updateNearbyActions();draw();
+ $("taskCount").textContent=state.done+" / "+state.total;$("taskProgress").style.width=(state.total?state.done/state.total*100:0)+"%";$("timer").textContent=String(Math.floor(state.seconds/60)).padStart(2,"0")+":"+String(state.seconds%60).padStart(2,"0");$("myStatus").textContent=state.me.alive?"生存":"死亡";syncRankedMeetingUI(snap.meeting);updateNearbyActions();draw();
 }
 async function rankedServerPulse(){
  if(!rankedServerMode||!state.running||rankedServerBusy)return;rankedServerBusy=true;
@@ -826,7 +863,7 @@ async function loadRankedProfile(){
 
 function show(id){
  if(!activateScreen(id))return;
- if(id==="home"){renderUpdateLog($("updateVersionSelect")?.value||"0.59");updateResumeGameUI()}
+ if(id==="home"){renderUpdateLog($("updateVersionSelect")?.value||"0.60");updateResumeGameUI()}
  if(id==="accounts")loadAccountDirectoryData();
  if(id==="socialHub")loadSocialHub();
 }
@@ -1166,14 +1203,14 @@ function updateNearbyActions(){
  if(dead&&!ghost&&!state.players.some(p=>p.id===spectatorTargetId&&p.alive)){spectatorTargetId=state.players.find(p=>p.alive)?.id??null;}
  $("ghostBanner").textContent=dead?(ghost?"👻 幽霊モード：自由に移動できます":"👁 観戦モード：生存者の視点を見ています"):"";
  $("deathChoice").hidden=!dead||!deathChoicePending;
- if(rankedServerMode){$("killAction").hidden=true;$("sabotageAction").hidden=true;$("reportAction").hidden=true;$("emergencyAction").hidden=true;$("abilityAction").disabled=true;$("abilityAction").textContent="能力（試験版では未対応）"}
+ if(rankedServerMode){$("killAction").hidden=true;$("sabotageAction").hidden=true;$("reportAction").hidden=true;$("emergencyAction").hidden=false;$("abilityAction").disabled=true;$("abilityAction").textContent="能力（試験版では未対応）"}
  state.nearTask=alive?state.tasks.find(t=>(me.team!=="white"||!t.done)&&!t.completedBy?.includes(me.id)&&Math.hypot(t.x-me.x,t.y-me.y)<72)||null:null;
  state.nearBody=alive?state.dead.find(d=>Math.hypot(d.x-me.x,d.y-me.y)<82)||null:null;
  state.nearEmergency=alive&&Math.hypot(900-me.x,520-me.y)<82;const emergencyWait=Math.max(0,Math.ceil(((state.emergencyMeetingReadyAt||0)-now)/1000));const emergencyAvailable=state.nearEmergency&&!me.emergencyMeetingUsed&&emergencyWait===0;
   $("taskAction").textContent=ghost?"👻 タスクを解読":state.nearTask?`🔧 ${state.nearTask.label}を解析（残り${state.nearTask.remaining}件）`:"🔧 タスクを行う";
- $("taskAction").hidden=!state.nearTask;
+ $("taskAction").hidden=!state.nearTask||state.meeting;
  $("reportAction").hidden=!alive||!state.nearBody;
- $("emergencyAction").hidden=!emergencyAvailable;$("emergencyAction").textContent=emergencyWait>0?`🆘 緊急会議（${emergencyWait}秒）`:me.emergencyMeetingUsed?"🆘 使用済み":"🆘 緊急会議";
+ $("emergencyAction").hidden=!emergencyAvailable||state.meeting;$("emergencyAction").textContent=emergencyWait>0?`🆘 緊急会議（${emergencyWait}秒）`:me.emergencyMeetingUsed?"🆘 使用済み":"🆘 緊急会議";
  $("mapAction").disabled=dead;
  const canKill=me.team==="black"||["暗殺者","狂人"].includes(me.role);
  if(canKill){const rem=remainingText(me.killReadyAt);setButton("killAction",rem?`🔪 キル（${rem}秒）`:"🔪 キル",!alive||rem>0,!alive)}
@@ -1598,7 +1635,7 @@ function aiAction(){
  updateNearbyActions();draw();
 }
 function report(){if(isOnlineClient()){if(state.me.alive&&state.nearBody)sendOnlineInput({kind:"action",action:"report"});return}if(!state.running||!state.me.alive||!state.nearBody)return;callMeeting("近くの死体を発見しました。");}
-function callEmergency(){if(isOnlineClient()){if(state.me.alive&&state.nearEmergency&&!state.me.emergencyMeetingUsed&&Date.now()>=(state.emergencyMeetingReadyAt||0))sendOnlineInput({kind:"action",action:"emergency"});return}if(!state.running||!state.me.alive||!state.nearEmergency||state.me.emergencyMeetingUsed||Date.now()<(state.emergencyMeetingReadyAt||0))return;callMeeting("研究所中央の緊急会議ボタンが押されました。");}
+function callEmergency(){if(rankedServerMode){rankedEngineCall("meeting_call").then(()=>rankedEngineCall("state")).then(applyRankedServerSnapshot).catch(e=>{$("nearHint").textContent=e.message==="too_far"?"中央の緊急会議ボタンに近づいてください。":"会議を開始できません："+(e.message||String(e))});return}if(isOnlineClient()){if(state.me.alive&&state.nearEmergency&&!state.me.emergencyMeetingUsed&&Date.now()>=(state.emergencyMeetingReadyAt||0))sendOnlineInput({kind:"action",action:"emergency"});return}if(!state.running||!state.me.alive||!state.nearEmergency||state.me.emergencyMeetingUsed||Date.now()<(state.emergencyMeetingReadyAt||0))return;callMeeting("研究所中央の緊急会議ボタンが押されました。");}
 function appendMeetingMessage(name,text,kind="ai",player=null){if(onlineGame?.isHost)onlineMeetingLog.push({name,text,kind,player:player?{id:player.id,team:player.team}:null});
  const box=$("meetingChat"),message=document.createElement("div"),speaker=document.createElement("span"),body=document.createElement("span");
  message.className="chatMessage "+kind;speaker.className="chatName";speaker.textContent=name;
@@ -1954,7 +1991,7 @@ function callMeeting(message="会議が招集されました。",caller=state.me
  if(first)makeAITakeTurn(first).finally(()=>{if(state.meeting&&state.meetingPhase==="discussion")scheduleAITurn(2400)});
  else scheduleAITurn(2400);
 }
-function beginVoting(auto=false){if(isOnlineClient()){sendOnlineInput({kind:"action",action:"begin_vote"});return}
+function beginVoting(auto=false){if(rankedServerMode){rankedEngineCall("begin_vote").then(()=>rankedEngineCall("state")).then(applyRankedServerSnapshot).catch(e=>{$("meetingInfo").textContent="投票を開始できません："+(e.message||String(e))});return}if(isOnlineClient()){sendOnlineInput({kind:"action",action:"begin_vote"});return}
  if(!state.meeting||state.meetingPhase!=="discussion")return;
  if(state.aiTurnTimer)clearTimeout(state.aiTurnTimer);state.aiTurnTimer=null;stopMeetingTimer();
  state.meetingPhase="voting";playMeetingTransition("投票開始","議論を終了し、投票してください");$("meetingPhaseLabel").textContent="投票フェーズ";$("meetingTimeLeft").textContent=auto?"時間終了":"議論終了";
@@ -2019,7 +2056,7 @@ function chooseAIVote(voter,alive){
  for(let i=0;i<shortlist.length;i++){roll-=weights[i];if(roll<=0)return shortlist[i].target.id}
  return shortlist[0].target.id;
 }
-function submitVote(){if(isOnlineClient()){if(state.selectedVote!==null&&!state.onlineVoteSubmitted){state.onlineVoteSubmitted=true;sendOnlineInput({kind:"action",action:"vote",target:state.selectedVote});$("submitVoteAction").disabled=true;$("meetingInfo").textContent="投票を送信しました。他の参加者の投票を待っています。"}return}if(onlineGame?.isHost){if(state.selectedVote!==null){onlineVotes.set(state.me.id,state.selectedVote);resolveOnlineVotes()}return}
+function submitVote(){if(rankedServerMode){if(state.selectedVote===null)return;const target=state.selectedVote==="skip"?"skip":Number(state.selectedVote)+1;rankedEngineCall("vote",{target}).then(()=>rankedEngineCall("state")).then(snap=>{applyRankedServerSnapshot(snap);$("meetingInfo").textContent="投票を受け付けました。集計を待っています。"}).catch(e=>{$("meetingInfo").textContent=e.message==="already_voted"?"投票済みです。":"投票できません："+(e.message||String(e))});$("submitVoteAction").disabled=true;return}if(isOnlineClient()){if(state.selectedVote!==null&&!state.onlineVoteSubmitted){state.onlineVoteSubmitted=true;sendOnlineInput({kind:"action",action:"vote",target:state.selectedVote});$("submitVoteAction").disabled=true;$("meetingInfo").textContent="投票を送信しました。他の参加者の投票を待っています。"}return}if(onlineGame?.isHost){if(state.selectedVote!==null){onlineVotes.set(state.me.id,state.selectedVote);resolveOnlineVotes()}return}
  if(!state.meeting||state.meetingPhase!=="voting"||(state.me.alive&&state.selectedVote===null)||(!state.me.alive&&state.selectedVote!=="ghost"))return;
  const alive=state.players.filter(p=>p.alive),ballots=state.me.alive?[{voter:state.me.id,target:state.selectedVote}]:[];
  playSfx("vote");
@@ -2768,8 +2805,9 @@ async function leaveOnlineRoom(){
  activeRoomId=null;activeRoomSnapshot=null;await disconnectRoomChannel();show("socialHub");await loadSocialHub();
 }
 
-function renderUpdateLog(version="0.59"){
+function renderUpdateLog(version="0.60"){
  const logs={
+  "0.60":{date:"2026年11月9日",items:["ランク戦の緊急会議・議論終了・投票送信・投票結果表示をサーバーエンジンに接続。","投票中の個別投票を非公開にし、サーバー側でAI投票と集計を処理。"],},
   "0.59":{date:"2026年11月9日",items:["ランク戦画面に進行中の試合への再接続を追加。サーバー移動・AI更新・タスク進行を画面側から同期する処理を実装。","会議・役職能力・勝敗判定・ランク確定が未完成のため、新規マッチングは引き続き停止。"],},
   "0.58":{date:"2026年11月9日",items:["ランク戦のプロフィール画面を追加。現在のランクポイント・ランク帯・戦績をサーバーから取得して表示。","ランク戦用のサーバー側マッチング基盤と10人戦・12人戦の陣営／役職割り当てを追加。試合エンジン接続前のため、マッチング参加はまだ公開していません。"]},
   "0.57":{date:"2026年11月9日",items:["ランダム設定でAI人数に加え、白・黒・第三の陣営人数も毎回抽選するよう明示的に改善。","通常対戦の役職設定に公式おすすめプリセット「基準」「カオス」「第三陣営祭り」「推理重視」「少人数戦」を追加。陣営バランスと役職構成をまとめて適用できます。"]},
