@@ -154,7 +154,7 @@ canvas#mapCanvas{aspect-ratio:16/10;background:#0b1522}
   <div class="card"><h3>🌐 オンライン対戦</h3><p class="muted">フレンドと遊ぶ・公開ルームを探す・AI人数や特別ルールを設定。</p><button class="primary" style="width:100%" onclick="openSocialHub()">オンラインロビーへ</button></div>
   <div class="card"><h3>📘 遊び方</h3><p class="muted">試作版のルールと操作方法を確認します。</p><button style="width:100%" onclick="openHelp()">ルールを見る</button></div>
   <div class="card"><h3>👥 アカウント図鑑</h3><p class="muted">プレイヤーとAIアカウント全員の能力・成績・得意な役職を確認できます。</p><button style="width:100%" onclick="openAccountsScreen()">アカウントを見る</button></div>
-  <div class="card"><h3>📋 アップデートログ</h3><p class="muted">見たいバージョンを選択してください。</p><div class="field"><label for="updateVersionSelect">バージョン</label><select id="updateVersionSelect" onchange="renderUpdateLog(this.value)"><option value="0.44">v0.44（最新）</option><option value="0.43">v0.43</option><option value="0.42">v0.42</option><option value="0.41">v0.41</option><option value="0.40">v0.40</option><option value="0.39">v0.39</option><option value="0.38">v0.38</option><option value="0.37">v0.37</option><option value="0.36">v0.36</option><option value="0.35">v0.35</option><option value="0.34">v0.34</option><option value="0.33">v0.33</option><option value="0.32">v0.32</option><option value="0.31">v0.31</option><option value="0.29">v0.29</option><option value="0.28">v0.28</option><option value="0.27">v0.27</option><option value="0.26">v0.26</option><option value="0.25">v0.25</option><option value="0.23">v0.23</option></select></div><div id="updateLogContent" class="updateLogContent" aria-live="polite"></div></div>
+  <div class="card"><h3>📋 アップデートログ</h3><p class="muted">見たいバージョンを選択してください。</p><div class="field"><label for="updateVersionSelect">バージョン</label><select id="updateVersionSelect" onchange="renderUpdateLog(this.value)"><option value="0.49">v0.49（最新）</option><option value="0.48">v0.48</option><option value="0.44">v0.44</option><option value="0.43">v0.43</option><option value="0.42">v0.42</option><option value="0.41">v0.41</option><option value="0.40">v0.40</option><option value="0.39">v0.39</option><option value="0.38">v0.38</option><option value="0.37">v0.37</option><option value="0.36">v0.36</option><option value="0.35">v0.35</option><option value="0.34">v0.34</option><option value="0.33">v0.33</option><option value="0.32">v0.32</option><option value="0.31">v0.31</option><option value="0.29">v0.29</option><option value="0.28">v0.28</option><option value="0.27">v0.27</option><option value="0.26">v0.26</option><option value="0.25">v0.25</option><option value="0.23">v0.23</option></select></div><div id="updateLogContent" class="updateLogContent" aria-live="polite"></div></div>
  </div>
 </section>
 
@@ -294,7 +294,7 @@ canvas#mapCanvas{aspect-ratio:16/10;background:#0b1522}
 </section>
 
 </main>
-<footer>TRIAD v0.46 · 役職選択・出現確率・重複設定</footer>
+<footer>TRIAD v0.49 · 再接続・観戦機能</footer>
 
   <div id="onlineConnectionBanner" role="status">オンライン接続が不安定です。<button type="button" onclick="retryOnlineConnection()">再接続</button></div>
   <div class="modal" id="mapModal"><div class="modalbox"><h2>研究施設マップ</h2><canvas id="overviewCanvas" width="900" height="600"></canvas><div class="mapLegend"><span>● あなた　♥ 恋人の相手（恋人のみ）</span><span>● タスク端末</span><span>■ 緊急会議ボタン</span><span>！ 手配書端末</span><span>■ 遮蔽物・チェイスカバー</span><span>× 死体</span></div><button class="primary" style="width:100%" onclick="closeMap()">閉じる</button></div></div>
@@ -330,7 +330,7 @@ canvas#mapCanvas{aspect-ratio:16/10;background:#0b1522}
   <button class="primary" style="width:100%;margin-top:12px" onclick="endToHome()">ホームへ戻る</button>
  </div></div>
  <div id="personalEffect"><div class="effectCard"><strong id="personalEffectTitle"></strong><span id="personalEffectText"></span></div></div>
-   <div class="modal" id="helpModal"><div class="modalbox"><h2>遊び方・ルール</h2><div class="helpTabs"><button id="helpRulesTab" class="primary" onclick="setHelpTab('rules')">遊び方</button><button id="helpRolesTab" onclick="setHelpTab('roles')">役職一覧</button></div><section id="helpRulesPanel"><ul><li>黄色い端末の近くでタスクボタンを押し、暗号解読を成功させると共有タスクが1件進みます。</li><li>白陣営の共有タスク目標は試合ごとに53〜57件。白陣営のAIも作業し、全員の合計が目標に達すると白陣営が勝利します。</li><li>同じ役職は原則として重複しません。恋人は特殊役職で、必ず2人1組で登場します。</li><li>同じ端末は、同じプレイヤーが1回の会議サイクルで1回だけ使用できます。会議終了後に再使用でき、全体のタスク進捗は保持されます。</li><li>死体の近くで通報、または研究所中央の緊急会議ボタンで会議を開始できます。会議終了後、生存者は研究所内に再配置され、死体と端末の使用制限がリセットされます。</li><li>遮蔽物の向こう側にいる相手は見えず、能力の対象にも選べません。</li><li>死亡後は幽霊となり、移動とタスクのみ行えます。</li><li>AIは周囲の状況や目撃情報をもとに行動し、死体の通報や緊急会議、会議での発言・投票を行います。</li></ul><p class="muted">AIとプレイヤーは、キル・役職能力・移動の基本速度・タスク端末の使用制限を共通ルールで処理します。AIは暗号入力の代わりに、端末で解読作業を行う時間を取ります。</p></section><section id="helpRolesPanel" hidden><div class="roleGroup"><h3>⚪ 白陣営</h3><article class="roleCard"><b>クルー</b><p>固有能力はありません。タスクを進め、会議で情報を共有し、黒陣営を見つける役職です。</p></article><article class="roleCard"><b>サイエンティスト</b><p>能力ボタンから生存者一覧を確認できます。現在生きているプレイヤーを確認する能力で、使用回数の制限やクールタイムはありません。</p></article><article class="roleCard"><b>恋人（2人1組）</b><p>恋人は必ず2人で登場します。お互いの現在位置をマップ上で確認できます。固有の攻撃能力はありません。</p></article><article class="roleCard"><b>占い師</b><p>近く（約100ワールド単位）の生存者1人を一度だけ占えます。結果は相手の役職ではなく、白・黒・第三のどの陣営かです。</p></article><article class="roleCard"><b>狩人</b><p>近く（約100ワールド単位）の生存者1人を一度だけ攻撃できます。能力を使うと使用済みになり、再使用できません。</p></article><article class="roleCard"><b>保安官</b><p>狩人と同様に、近くの生存者1人を一度だけ攻撃できます。ただし白陣営を誤って倒すと、自分も死亡します。</p></article><article class="roleCard"><b>僧侶</b><p>生存者1人を選んで一度だけ加護を与えます。対象は次に受ける攻撃を1回防ぎます。加護は攻撃を防ぐと消えます。</p></article><article class="roleCard"><b>ライトキーパー</b><p>暗闇による視界制限を受けない常時能力を持ちます。攻撃能力はありません。</p></article></div><div class="roleGroup"><h3>⚫ 黒陣営</h3><article class="roleCard"><b>インポスター</b><p>近くの相手をキルできます。キルの初回待機は試合開始から30秒、その後のクールタイムは30秒です。停電サボタージュを使うと、黒陣営以外の視界を10秒間狭めます。サボタージュの初回待機は35秒、その後も35秒ごとに使用できます。</p></article><article class="roleCard"><b>イノシシ</b><p>向いている方向へ突進し、進路上の相手に接触すると攻撃します。壁にぶつかると突進が終了し、次の突進まで20秒の待機が発生します。</p></article><article class="roleCard"><b>百面相</b><p>生存者1人を選び、その姿に10秒間変身できます。変身終了後のクールタイムは35秒です。</p></article></div><div class="roleGroup"><h3>🟣 第三陣営</h3><article class="roleCard"><b>放浪者</b><p>近く（約90ワールド単位）の相手1人に気づかれず匂いを移します。次の使用まで15秒待つ必要があります。生存者全員に匂いを移すと単独勝利します。</p></article><article class="roleCard"><b>暗殺者</b><p>試合開始時に白陣営から手配対象が3人選ばれます。手配書で対象を確認し、対象3人全員を倒すと単独勝利します。キル後の待機は20秒です。手配対象以外を倒すと、自分も死亡します。</p></article><article class="roleCard"><b>てるてる</b><p>会議で投票により追放されると、その時点で単独勝利します。通常のキル能力はありません。</p></article><article class="roleCard"><b>狂人</b><p>キルボタンから近くの相手を攻撃できます。攻撃後のクールタイムは30秒です。生存中の白陣営と他の第三陣営の合計人数が、黒陣営と狂人の合計人数を下回ると単独勝利します。</p></article></div></section><button class="primary" style="width:100%;margin-top:12px" onclick="closeHelp()">閉じる</button></div></div>
+   <div class="modal" id="helpModal"><div class="modalbox"><h2>遊び方・ルール</h2><div class="helpTabs"><button id="helpRulesTab" class="primary" onclick="setHelpTab('rules')">遊び方</button><button id="helpRolesTab" onclick="setHelpTab('roles')">役職一覧</button></div><section id="helpRulesPanel"><ul><li>黄色い端末の近くでタスクボタンを押し、暗号解読を成功させると共有タスクが1件進みます。</li><li>白陣営の共有タスク目標は試合ごとに53〜57件。白陣営のAIも作業し、全員の合計が目標に達すると白陣営が勝利します。</li><li>同じ役職は原則として重複しません。恋人は特殊役職で、必ず2人1組で登場します。</li><li>同じ端末は、同じプレイヤーが1回の会議サイクルで1回だけ使用できます。会議終了後に再使用でき、全体のタスク進捗は保持されます。</li><li>死体の近くで通報、または研究所中央の緊急会議ボタンで会議を開始できます。会議終了後、生存者は研究所内に再配置され、死体と端末の使用制限がリセットされます。</li><li>遮蔽物の向こう側にいる相手は見えず、能力の対象にも選べません。</li><li>死亡後は観戦モードに切り替わり、生存者を選んで視界を観戦できます。観戦中は移動・タスク・能力を使用できません。</li><li>AIは周囲の状況や目撃情報をもとに行動し、死体の通報や緊急会議、会議での発言・投票を行います。</li></ul><p class="muted">AIとプレイヤーは、キル・役職能力・移動の基本速度・タスク端末の使用制限を共通ルールで処理します。AIは暗号入力の代わりに、端末で解読作業を行う時間を取ります。</p></section><section id="helpRolesPanel" hidden><div class="roleGroup"><h3>⚪ 白陣営</h3><article class="roleCard"><b>クルー</b><p>固有能力はありません。タスクを進め、会議で情報を共有し、黒陣営を見つける役職です。</p></article><article class="roleCard"><b>サイエンティスト</b><p>能力ボタンから生存者一覧を確認できます。現在生きているプレイヤーを確認する能力で、使用回数の制限やクールタイムはありません。</p></article><article class="roleCard"><b>恋人（2人1組）</b><p>恋人は必ず2人で登場します。お互いの現在位置をマップ上で確認できます。固有の攻撃能力はありません。</p></article><article class="roleCard"><b>占い師</b><p>近く（約100ワールド単位）の生存者1人を一度だけ占えます。結果は相手の役職ではなく、白・黒・第三のどの陣営かです。</p></article><article class="roleCard"><b>狩人</b><p>近く（約100ワールド単位）の生存者1人を一度だけ攻撃できます。能力を使うと使用済みになり、再使用できません。</p></article><article class="roleCard"><b>保安官</b><p>狩人と同様に、近くの生存者1人を一度だけ攻撃できます。ただし白陣営を誤って倒すと、自分も死亡します。</p></article><article class="roleCard"><b>僧侶</b><p>生存者1人を選んで一度だけ加護を与えます。対象は次に受ける攻撃を1回防ぎます。加護は攻撃を防ぐと消えます。</p></article><article class="roleCard"><b>ライトキーパー</b><p>暗闇による視界制限を受けない常時能力を持ちます。攻撃能力はありません。</p></article></div><div class="roleGroup"><h3>⚫ 黒陣営</h3><article class="roleCard"><b>インポスター</b><p>近くの相手をキルできます。キルの初回待機は試合開始から30秒、その後のクールタイムは30秒です。停電サボタージュを使うと、黒陣営以外の視界を10秒間狭めます。サボタージュの初回待機は35秒、その後も35秒ごとに使用できます。</p></article><article class="roleCard"><b>イノシシ</b><p>向いている方向へ突進し、進路上の相手に接触すると攻撃します。壁にぶつかると突進が終了し、次の突進まで20秒の待機が発生します。</p></article><article class="roleCard"><b>百面相</b><p>生存者1人を選び、その姿に10秒間変身できます。変身終了後のクールタイムは35秒です。</p></article></div><div class="roleGroup"><h3>🟣 第三陣営</h3><article class="roleCard"><b>放浪者</b><p>近く（約90ワールド単位）の相手1人に気づかれず匂いを移します。次の使用まで15秒待つ必要があります。生存者全員に匂いを移すと単独勝利します。</p></article><article class="roleCard"><b>暗殺者</b><p>試合開始時に白陣営から手配対象が3人選ばれます。手配書で対象を確認し、対象3人全員を倒すと単独勝利します。キル後の待機は20秒です。手配対象以外を倒すと、自分も死亡します。</p></article><article class="roleCard"><b>てるてる</b><p>会議で投票により追放されると、その時点で単独勝利します。通常のキル能力はありません。</p></article><article class="roleCard"><b>狂人</b><p>キルボタンから近くの相手を攻撃できます。攻撃後のクールタイムは30秒です。生存中の白陣営と他の第三陣営の合計人数が、黒陣営と狂人の合計人数を下回ると単独勝利します。</p></article></div></section><button class="primary" style="width:100%;margin-top:12px" onclick="closeHelp()">閉じる</button></div></div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
@@ -643,7 +643,7 @@ function activateScreen(id){
 }
 function show(id){
  if(!activateScreen(id))return;
- if(id==="home"){renderUpdateLog($("updateVersionSelect")?.value||"0.43");updateResumeGameUI()}
+ if(id==="home"){renderUpdateLog($("updateVersionSelect")?.value||"0.49");updateResumeGameUI()}
  if(id==="accounts")loadAccountDirectoryData();
  if(id==="socialHub")loadSocialHub();
 }
@@ -886,7 +886,7 @@ function tick(){
    const hit=state.players.find(v=>v.alive&&v.id!==a.id&&Math.hypot(v.x-a.x,v.y-a.y)<20&&!(a.team==="black"&&v.team==="black"));
    if(hit){killPlayer(hit,a,"突進");if(!a.alive){a.charging=false;return}}
   });
-   if(onlineGame?.isHost){state.players.filter(h=>h.isHuman&&(h.alive||h.ghost)&&!h.charging).forEach(h=>{const mv=h.id===state.me.id?state.move:(h.remoteMove||{x:0,y:0}),mag=Math.hypot(mv.x,mv.y)||1,speed=3.5,nx=h.x+(mv.x/mag)*speed,ny=h.y+(mv.y/mag)*speed;if(isWalkable(nx,h.y))h.x=nx;if(isWalkable(h.x,ny))h.y=ny})}else if((p.alive||p.ghost)&&!p.charging){let mag=Math.hypot(state.move.x,state.move.y)||1,speed=3.5,nx=p.x+(state.move.x/mag)*speed,ny=p.y+(state.move.y/mag)*speed;if(isWalkable(nx,p.y))p.x=nx;if(isWalkable(p.x,ny))p.y=ny}
+   if(onlineGame?.isHost){state.players.filter(h=>h.isHuman&&h.alive&&!h.charging).forEach(h=>{const mv=h.id===state.me.id?state.move:(h.remoteMove||{x:0,y:0}),mag=Math.hypot(mv.x,mv.y)||1,speed=3.5,nx=h.x+(mv.x/mag)*speed,ny=h.y+(mv.y/mag)*speed;if(isWalkable(nx,h.y))h.x=nx;if(isWalkable(h.x,ny))h.y=ny})}else if((p.alive||p.ghost)&&!p.charging){let mag=Math.hypot(state.move.x,state.move.y)||1,speed=3.5,nx=p.x+(state.move.x/mag)*speed,ny=p.y+(state.move.y/mag)*speed;if(isWalkable(nx,p.y))p.x=nx;if(isWalkable(p.x,ny))p.y=ny}
    state.players.filter(p=>p.id!==state.me.id&&!p.isHuman).forEach(a=>{
     if(!a.alive||!a.aiGoal)return;
     while(a.aiPath.length&&Math.hypot(a.aiPath[0][0]-a.x,a.aiPath[0][1]-a.y)<12)a.aiPath.shift();
@@ -929,19 +929,19 @@ function draw(){
  ctx.fillStyle="#7d292e";ctx.fillRect(860,480,80,80);ctx.strokeStyle="#ffaaa0";ctx.lineWidth=5;ctx.strokeRect(860,480,80,80);ctx.fillStyle="#fff0e8";ctx.font="bold 15px system-ui";ctx.fillText("会議ボタン",852,475);ctx.fillStyle="#ff5b55";ctx.beginPath();ctx.arc(900,520,13,0,Math.PI*2);ctx.fill();
   if(state.bountyIds.length){ctx.fillStyle="#5d426d";ctx.fillRect(1320,470,48,48);ctx.strokeStyle="#d2a8ed";ctx.lineWidth=4;ctx.strokeRect(1320,470,48,48);ctx.fillStyle="#f3d8ff";ctx.font="bold 12px system-ui";ctx.fillText("手配書端末",1305,465)}
  // visible corpses at their last positions
-  state.dead.forEach(d=>{if(!hasLineOfSight(state.me,d))return;ctx.save();ctx.translate(d.x,d.y);ctx.rotate(-.35);ctx.fillStyle="#b9c5d0";ctx.fillRect(-18,-9,36,18);ctx.fillStyle="#7d3037";ctx.fillRect(-4,-9,8,18);ctx.restore()});
-     state.players.forEach(p=>{if((!p.alive&&p.id!==state.me.id)||(p.id!==state.me.id&&!hasLineOfSight(state.me,p)))return;let look=p;if(p.disguiseId!==null&&p.disguiseUntil>Date.now()){look=state.players.find(x=>x.id===p.disguiseId)||p}ctx.save();ctx.globalAlpha=p.alive?1:.38;ctx.translate(p.x,p.y);ctx.fillStyle=p.alive?look.color:"#d9c7ff";ctx.strokeStyle=p.id===0?"#ffffff":"#0c1726";ctx.lineWidth=p.id===0?4:2;ctx.beginPath();if(look.shape===0)ctx.ellipse(0,0,9,11,0,0,Math.PI*2);else if(look.shape===1)ctx.ellipse(0,0,11,8,0,0,Math.PI*2);else if(look.shape===2){ctx.moveTo(0,-11);ctx.quadraticCurveTo(12,-8,9,5);ctx.quadraticCurveTo(0,14,-9,5);ctx.quadraticCurveTo(-12,-8,0,-11)}else ctx.roundRect(-9,-10,18,20,5);ctx.fill();ctx.stroke();ctx.fillStyle="#13243a";ctx.beginPath();ctx.arc(-3,-2,1.5,0,7);ctx.arc(3,-2,1.5,0,7);ctx.fill();if(!p.alive){ctx.fillStyle="#f2e5ff";ctx.font="bold 11px system-ui";ctx.fillText("幽霊", -13, -16)}ctx.restore();
-  const allyView=state.me.team==="black"&&(p.team==="black"||p.role==="狂人");ctx.save();ctx.font="bold 12px system-ui";ctx.textAlign="center";ctx.lineWidth=3.5;ctx.strokeStyle="rgba(0,0,0,.95)";const label=playerTag(p),nw=ctx.measureText(label).width,ct=`(${p.colorName||"色"})`,cw=ctx.measureText(ct).width,sx=p.x-(nw+cw)/2;ctx.fillStyle=allyView?"#ff4545":"#fff";ctx.strokeText(label,sx+nw/2,p.y-19);ctx.fillText(label,sx+nw/2,p.y-19);ctx.fillStyle=p.color;ctx.strokeText(ct,sx+nw+cw/2,p.y-19);ctx.fillText(ct,sx+nw+cw/2,p.y-19);ctx.restore();});
-   if(state.me.team==="black")state.players.filter(p=>p.alive&&p.role==="狂人"&&hasLineOfSight(state.me,p)).forEach(p=>{ctx.strokeStyle="#ffc857";ctx.lineWidth=3;ctx.beginPath();ctx.arc(p.x,p.y,16,0,Math.PI*2);ctx.stroke();ctx.fillStyle="#ffe7a8";ctx.font="bold 12px system-ui";ctx.fillText("味方",p.x-13,p.y-19)});
+  state.dead.forEach(d=>{if(!hasLineOfSight(watchTarget,d))return;ctx.save();ctx.translate(d.x,d.y);ctx.rotate(-.35);ctx.fillStyle="#b9c5d0";ctx.fillRect(-18,-9,36,18);ctx.fillStyle="#7d3037";ctx.fillRect(-4,-9,8,18);ctx.restore()});
+     state.players.forEach(p=>{if((!p.alive&&p.id!==watchTarget.id)||(p.id!==watchTarget.id&&!hasLineOfSight(watchTarget,p)))return;let look=p;if(p.disguiseId!==null&&p.disguiseUntil>Date.now()){look=state.players.find(x=>x.id===p.disguiseId)||p}ctx.save();ctx.globalAlpha=p.alive?1:.38;ctx.translate(p.x,p.y);ctx.fillStyle=p.alive?look.color:"#d9c7ff";ctx.strokeStyle=p.id===0?"#ffffff":"#0c1726";ctx.lineWidth=p.id===0?4:2;ctx.beginPath();if(look.shape===0)ctx.ellipse(0,0,9,11,0,0,Math.PI*2);else if(look.shape===1)ctx.ellipse(0,0,11,8,0,0,Math.PI*2);else if(look.shape===2){ctx.moveTo(0,-11);ctx.quadraticCurveTo(12,-8,9,5);ctx.quadraticCurveTo(0,14,-9,5);ctx.quadraticCurveTo(-12,-8,0,-11)}else ctx.roundRect(-9,-10,18,20,5);ctx.fill();ctx.stroke();ctx.fillStyle="#13243a";ctx.beginPath();ctx.arc(-3,-2,1.5,0,7);ctx.arc(3,-2,1.5,0,7);ctx.fill();if(!p.alive){ctx.fillStyle="#f2e5ff";ctx.font="bold 11px system-ui";ctx.fillText("幽霊", -13, -16)}ctx.restore();
+  const allyView=!spectating&&state.me.team==="black"&&(p.team==="black"||p.role==="狂人");ctx.save();ctx.font="bold 12px system-ui";ctx.textAlign="center";ctx.lineWidth=3.5;ctx.strokeStyle="rgba(0,0,0,.95)";const label=playerTag(p),nw=ctx.measureText(label).width,ct=`(${p.colorName||"色"})`,cw=ctx.measureText(ct).width,sx=p.x-(nw+cw)/2;ctx.fillStyle=allyView?"#ff4545":"#fff";ctx.strokeText(label,sx+nw/2,p.y-19);ctx.fillText(label,sx+nw/2,p.y-19);ctx.fillStyle=p.color;ctx.strokeText(ct,sx+nw+cw/2,p.y-19);ctx.fillText(ct,sx+nw+cw/2,p.y-19);ctx.restore();});
+   if(!spectating&&state.me.team==="black")state.players.filter(p=>p.alive&&p.role==="狂人"&&hasLineOfSight(state.me,p)).forEach(p=>{ctx.strokeStyle="#ffc857";ctx.lineWidth=3;ctx.beginPath();ctx.arc(p.x,p.y,16,0,Math.PI*2);ctx.stroke();ctx.fillStyle="#ffe7a8";ctx.font="bold 12px system-ui";ctx.fillText("味方",p.x-13,p.y-19)});
  ctx.restore();
  // v0.11: 暗闇はプレイヤーの視界の外側だけに描画する。
  // 重要：本体の描画キャンバスを destination-out で消さず、別キャンバス上で
  // 暗闇マスクを作ってから重ねる。これによりプレイヤー周辺の床・壁・キャラは
  // 元の明るさのまま残り、視界外だけが暗くなる。
- const px=(state.me.x-state.camera.x)*cameraZoom,py=(state.me.y-state.camera.y)*cameraZoom;
+ const px=(watchTarget.x-state.camera.x)*cameraZoom,py=(watchTarget.y-state.camera.y)*cameraZoom;
  // v0.14: 視界半径をv0.13から約55%縮小（135→61）。
-   if(state.me.ghost||state.me.role==="ライトキーパー")return;
-  const blackVision=state.me.team==="black";
+   if(!spectating&&state.me.role==="ライトキーパー")return;
+  const blackVision=!spectating&&state.me.team==="black";
   const visibleRadius=(state.sabotageUntil>Date.now()&&!blackVision?25:61)*cameraZoom,fadeWidth=13*cameraZoom,outerRadius=visibleRadius+fadeWidth;
  const fogCanvas=document.createElement("canvas");
  fogCanvas.width=W;fogCanvas.height=H;
@@ -974,7 +974,7 @@ function updateNearbyActions(){
  $("stickZone").style.display=ghost?"none":"grid";
  if(ghost&&!state.players.some(p=>p.id===spectatorTargetId&&p.alive)){spectatorTargetId=state.players.find(p=>p.alive)?.id??null;}
  $("ghostBanner").textContent=ghost?"👻 観戦モード：生存者を観戦できます":"";
- state.nearTask=(alive||ghost)&&me.team==="white"?state.tasks.find(t=>!t.done&&!t.completedBy?.includes(me.id)&&Math.hypot(t.x-me.x,t.y-me.y)<72)||null:null;
+ state.nearTask=alive&&me.team==="white"?state.tasks.find(t=>!t.done&&!t.completedBy?.includes(me.id)&&Math.hypot(t.x-me.x,t.y-me.y)<72)||null:null;
  state.nearBody=alive?state.dead.find(d=>Math.hypot(d.x-me.x,d.y-me.y)<82)||null:null;
  state.nearEmergency=alive&&Math.hypot(900-me.x,520-me.y)<82;const emergencyWait=Math.max(0,Math.ceil(((state.emergencyMeetingReadyAt||0)-now)/1000));const emergencyAvailable=state.nearEmergency&&!me.emergencyMeetingUsed&&emergencyWait===0;
   $("taskAction").textContent=ghost?"👻 タスクを解読":state.nearTask?`🔧 ${state.nearTask.label}を解析（残り${state.nearTask.remaining}件）`:"🔧 タスクを行う";
@@ -1132,7 +1132,7 @@ function completeSharedTask(task,actor){if(isOnlineClient()){sendOnlineInput({ki
  return true;
 }
 function doTask(){
- if(!state.running||!(state.me.alive||state.me.ghost)||state.me.team!=="white"||!state.nearTask)return;
+ if(!state.running||!state.me.alive||state.me.team!=="white"||!state.nearTask)return;
  openTaskPuzzle(state.nearTask);
 }
 function targetCandidates(actor,range,allowSelf=false,filter=()=>true){return state.players.filter(p=>p.alive&&(allowSelf||p.id!==actor.id)&&Math.hypot(p.x-actor.x,p.y-actor.y)<=range&&hasLineOfSight(actor,p)&&filter(p))}
@@ -1165,6 +1165,7 @@ function markPlayerDead(victim,source="死亡",attacker=null){
   state.killEvents.push({victimId:victim.id,killerId:attacker.id,room:roomNameAt(victim.x,victim.y),at:Date.now(),witnessIds:nearby.filter(p=>Math.hypot(p.x-victim.x,p.y-victim.y)<=88).map(p=>p.id),nearbyIds:nearby.map(p=>p.id)});
  }
  victim.alive=false;victim.ghost=victim.id===state.me?.id;state.dead.push({...victim,alive:false});
+ if(victim.id===state.me?.id){state.move={x:0,y:0};stopMove();spectatorTargetId=state.players.find(p=>p.alive&&p.id!==victim.id)?.id??null;}
  if(victim.id===state.me?.id){$("myStatus").textContent="幽霊";$("ghostBanner").hidden=false;showPersonalEffect("death","幽霊になりました",`${source}されました。移動とタスクのみ行えます。`);playSfx("death")}
  else if(attacker?.id===state.me?.id){showPersonalEffect("kill","キル成功",`${victim.name} を倒しました。`);playSfx("kill")}
  return true;
@@ -1860,7 +1861,7 @@ async function ensureOnlineHostInputChannel(userId){
 }
 function sendOnlineInput(payload){
  if(!isOnlineClient()||!payload)return;
- if(!onlineInputChannel){if(onlinePendingInputs.length<40)onlinePendingInputs.push(payload);ensureOnlineInputChannel().catch(e=>socialMessage(e.message||String(e),true));return}
+ if(!onlineInputChannel){if(onlinePendingInputs.length<40)onlinePendingInputs.push(payload);ensureOnlineInputChannel().then(()=>setOnlineConnectionStatus(true)).catch(e=>{setOnlineConnectionStatus(false,e.message||String(e));socialMessage(e.message||String(e),true)});return}
  onlineInputChannel.send({type:"broadcast",event:"game_input",payload}).catch(e=>console.warn("online input",e));
 }
 function handleOnlineInputForUser(userId,payload){
@@ -1966,7 +1967,7 @@ function predictOnlineLocalMovement(){
  const p=state.me;if(!isOnlineClient()||!p)return;
  const now=performance.now(),dt=Math.min(50,onlinePredictionLastAt?now-onlinePredictionLastAt:33);onlinePredictionLastAt=now;
  // Match the host's 3.5-unit / 70ms movement step instead of moving 3.5 units on every 33ms render.
- if((p.alive||p.ghost)&&!p.charging){
+ if(p.alive&&!p.charging){
   const m=state.move||{x:0,y:0},mag=Math.hypot(m.x,m.y);
   if(mag>=.015){const step=3.5*(dt/70),nx=p.x+(m.x/mag)*step,ny=p.y+(m.y/mag)*step;if(isWalkable(nx,p.y))p.x=nx;if(isWalkable(p.x,ny))p.y=ny}
  }
@@ -2297,8 +2298,9 @@ async function leaveOnlineRoom(){
  activeRoomId=null;activeRoomSnapshot=null;await disconnectRoomChannel();show("socialHub");await loadSocialHub();
 }
 
-function renderUpdateLog(version="0.48"){
+function renderUpdateLog(version="0.49"){
  const logs={
+  "0.49":{date:"2026年11月9日",items:["通信が一時切断された場合に接続状態を案内し、復帰後にオンラインルームへ再接続する操作を追加。","脱落後は生存者を切り替えて観戦できるよう変更。観戦カメラと視界は選択中の生存者を基準にし、幽霊の移動・タスク操作を停止。","一度きりの役職能力に残り回数・使用済み状態を明示。オンライン退出時に確認を追加。","勝敗判定の重複実行を防止。"],
   "0.48":{date:"2026年11月8日",items:["待機室でホスト以外の参加者も部屋ルールと役職構成を確認できる表示欄を追加。","固定人数・自動補充の出現重み・重複可否を陣営別に表示し、ホスト専用の編集欄とは分離。"]},
   "0.47":{date:"2026年11月8日",items:["公開ルームは作成から10分以内に試合が開始されない場合、自動削除するよう変更。","サーバー側で毎分期限切れの公開待機ルームを削除し、公開ルーム一覧にも残らないように修正。"]},
   "0.46":{date:"2026年11月8日",items:["役職ごとの登場ON/OFFを追加。","固定人数とは別に、自動補充時の役職出現重みを追加。","全体の特別モードに加え、役職ごとの重複許可を追加。","オンライン同期の案内文を実装状況に合わせて更新。"]},
