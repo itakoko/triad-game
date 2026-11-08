@@ -232,7 +232,7 @@ function startGame(){
  let teams=shuffle(Array(black).fill("black").concat(Array(third).fill("third"),Array(white).fill("white")));
  const roleQueues={white:[...roleAssignments.white],black:[...roleAssignments.black],third:[...(roleAssignments.third||[])]};
   const startedAt=Date.now();
-     for(let i=0;i<ai+1;i++){let spawn=i===0?[250,250]:randomSpawn();let team=teams[i];let p={id:i,name:i===0?"あなた":"プレイヤー"+(i+1),team,role:roleQueues[team].pop(),alive:true,ghost:false,x:spawn[0],y:spawn[1],color:colors[i%colors.length],shape:i%4,taskCount:0,partnerId:null,protected:false,abilityUsed:false,roleReadyAt:startedAt,killReadyAt:startedAt+(team==="black"?30000:0),sabotageReadyAt:startedAt+(team==="black"?35000:0),emergencyReadyAt:startedAt+rand(30000,65000),aiNextGoalAt:startedAt+rand(2500,8000),aiNextTaskAt:startedAt+rand(3500,6500),aiCombatReadyAt:startedAt+60000,aiTaskIndex:null;aiGoal:null,aiPath:[],disguiseId:null,disguiseUntil:0,charging:false,charge:{x:0,y:0},scented:false,aiMemory:{suspicion:{},trust:{},sightings:{}}};state.players.push(p)}
+     for(let i=0;i<ai+1;i++){let spawn=i===0?[250,250]:randomSpawn();let team=teams[i];let p={id:i,name:i===0?"あなた":"プレイヤー"+(i+1),team,role:roleQueues[team].pop(),alive:true,ghost:false,x:spawn[0],y:spawn[1],color:colors[i%colors.length],shape:i%4,taskCount:0,partnerId:null,protected:false,abilityUsed:false,roleReadyAt:startedAt,killReadyAt:startedAt+(team==="black"?30000:0),sabotageReadyAt:startedAt+(team==="black"?35000:0),emergencyReadyAt:startedAt+rand(30000,65000),aiNextGoalAt:startedAt+rand(2500,8000),aiNextTaskAt:startedAt+rand(3500,6500),aiCombatReadyAt:startedAt+60000,aiTaskIndex:null,aiGoal:null,aiPath:[],disguiseId:null,disguiseUntil:0,charging:false,charge:{x:0,y:0},scented:false,aiMemory:{suspicion:{},trust:{},sightings:{}}};state.players.push(p)}
  state.me=state.players[0];
   const lovers=state.players.filter(p=>p.role==="恋人");
   if(lovers.length===2){lovers[0].partnerId=lovers[1].id;lovers[1].partnerId=lovers[0].id}
@@ -546,7 +546,7 @@ function closeTaskPuzzle(){
 function submitTaskPuzzle(){
  if(!activeTaskPuzzle||!state.running)return;
  const answer=$("taskPuzzleInput").value.trim();
- if(!/^\\d{4}$/.test(answer)){$("taskPuzzleFeedback").textContent="4桁の数字を入力してください。";return}
+ if(!/^\d{4}$/.test(answer)){$("taskPuzzleFeedback").textContent="4桁の数字を入力してください。";return}
  if(answer!==activeTaskAnswer){$("taskPuzzleFeedback").textContent="不正解です。対応表を確認してもう一度！";$("taskPuzzleInput").value="";return}
  const task=activeTaskPuzzle;closeTaskPuzzle();
  if(completeSharedTask(task,state.me)){updateNearbyActions();draw()}
