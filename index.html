@@ -284,6 +284,116 @@ async function loadAIProfiles(){
 }
 
 const $=id=>document.getElementById(id);
+
+let authUser=null,authSubscription=null,onlinePlayerProfiles=[];
+function setAccountAuthMessage(message,isError=false){
+ const el=$("accountAuthMessage");if(el){el.textContent=message;el.style.color=isError?"#ff9aa2":"var(--muted)"}
+}
+function updateAccountAuthUI(){
+ const signedIn=!!authUser;
+ if($("accountAuthStatus"))$("accountAuthStatus").textContent=signedIn?"ログイン中":"未ログイン";
+ if($("accountSignedOut"))$("accountSignedOut").hidden=signedIn;
+ if($("accountSignedIn"))$("accountSignedIn").hidden=!signedIn;
+ if(signedIn){
+  const profile=onlinePlayerProfiles.find(p=>p.user_id===authUser.id);
+  if($("accountSignedInText"))$("accountSignedInText").textContent="ログイン中："+(profile?.display_name||authUser.user_metadata?.display_name||"プレイヤー")+"（"+authUser.email+"）";
+  if($("accountNewDisplayName"))$("accountNewDisplayName").value=profile?.display_name||authUser.user_metadata?.display_name||"";
+ }
+}
+async function initializeOnlineAccounts(){
+ try{
+  if(!window.supabase?.createClient)throw new Error("Supabase SDK unavailable");
+  supabaseClient=supabaseClient||window.supabase.createClient(SUPABASE_URL,SUPABASE_PUBLISHABLE_KEY);
+  const {data,error}=await supabaseClient.auth.getSession();if(error)throw error;
+  authUser=data.session?.user||null;
+  if(!authSubscription){
+   const result=supabaseClient.auth.onAuthStateChange((_event,session)=>{
+    authUser=session?.user||null;updateAccountAuthUI();
+    if(authUser)setTimeout(()=>ensureOwnPlayerProfile().then(loadOnlinePlayerProfiles).catch(console.warn),0);
+    else {loadOnlinePlayerProfiles().catch(console.warn)}
+   });
+   authSubscription=result.data.subscription;
+  }
+  updateAccountAuthUI();
+  if(authUser)await ensureOwnPlayerProfile();
+  await loadOnlinePlayerProfiles();
+ }catch(error){console.warn("Online account initialization failed",error);setAccountAuthMessage("オンラインアカウントに接続できません。通信状態を確認して更新してください。",true)}
+}
+async function loadOnlinePlayerProfiles(){
+ try{
+  if(!supabaseClient)throw new Error("Supabase client unavailable");
+  const {data,error}=await supabaseClient.from("player_profiles").select("user_id,display_name,matches_played,wins,losses,survived,role_stats,created_at").order("wins",{ascending:false}).limit(500);
+  if(error)throw error;
+  onlinePlayerProfiles=Array.isArray(data)?data:[];
+  updateAccountAuthUI();
+ }catch(error){console.warn("Player directory load failed",error);onlinePlayerProfiles=[]}
+}
+async function ensureOwnPlayerProfile(){
+ if(!authUser)return;
+ const nickname=String(authUser.user_metadata?.display_name||"プレイヤー").trim().slice(0,20)||"プレイヤー";
+ const {error}=await supabaseClient.from("player_profiles").upsert({user_id:authUser.id,display_name:nickname},{onConflict:"user_id",ignoreDuplicates:true});
+ if(error)throw error;
+}
+async function registerOnlineAccount(){
+ const displayName=String($("accountDisplayName")?.value||"").trim(),email=String($("accountEmail")?.value||"").trim(),password=String($("accountPassword")?.value||"");
+ if(!displayName||displayName.length>20){setAccountAuthMessage("公開ニックネームを1〜20文字で入力してください。",true);return}
+ if(!email||password.length<8){setAccountAuthMessage("メールアドレスと8文字以上のパスワードを入力してください。",true);return}
+ try{
+  if(!supabaseClient)supabaseClient=window.supabase.createClient(SUPABASE_URL,SUPABASE_PUBLISHABLE_KEY);
+  setAccountAuthMessage("アカウントを作成しています…");
+  const {data,error}=await supabaseClient.auth.signUp({email,password,options:{data:{display_name:displayName}}});
+  if(error)throw error;
+  if(data.session){
+   authUser=data.user;await ensureOwnPlayerProfile();await loadOnlinePlayerProfiles();updateAccountAuthUI();
+   setAccountAuthMessage("登録が完了しました。オンラインアカウントにログインしています。");renderAccountList();
+  }else{
+   setAccountAuthMessage("登録申請を受け付けました。メール確認が必要な設定です。受信メールの案内に従って確認後、ログインしてください。");
+  }
+ }catch(error){setAccountAuthMessage(error.message||"登録できませんでした。入力内容を確認してください。",true)}
+}
+async function loginOnlineAccount(){
+ const email=String($("accountEmail")?.value||"").trim(),password=String($("accountPassword")?.value||"");
+ if(!email||!password){setAccountAuthMessage("メールアドレスとパスワードを入力してください。",true);return}
+ try{
+  if(!supabaseClient)supabaseClient=window.supabase.createClient(SUPABASE_URL,SUPABASE_PUBLISHABLE_KEY);
+  setAccountAuthMessage("ログインしています…");
+  const {data,error}=await supabaseClient.auth.signInWithPassword({email,password});
+  if(error)throw error;
+  authUser=data.user;await ensureOwnPlayerProfile();await loadOnlinePlayerProfiles();updateAccountAuthUI();
+  setAccountAuthMessage("ログインしました。オンライン戦績を利用できます。");renderAccountList();
+ }catch(error){setAccountAuthMessage(error.message||"ログインできませんでした。",true)}
+}
+async function logoutOnlineAccount(){
+ try{const {error}=await supabaseClient.auth.signOut();if(error)throw error;authUser=null;updateAccountAuthUI();await loadOnlinePlayerProfiles();renderAccountList();setAccountAuthMessage("ログアウトしました。")}
+ catch(error){setAccountAuthMessage(error.message||"ログアウトできませんでした。",true)}
+}
+async function updateOnlineDisplayName(){
+ if(!authUser)return;
+ const name=String($("accountNewDisplayName")?.value||"").trim();
+ if(!name||name.length>20){setAccountAuthMessage("ニックネームは1〜20文字で入力してください。",true);return}
+ try{
+  const {error}=await supabaseClient.from("player_profiles").update({display_name:name,updated_at:new Date().toISOString()}).eq("user_id",authUser.id);
+  if(error)throw error;
+  await supabaseClient.auth.updateUser({data:{display_name:name}});
+  await loadOnlinePlayerProfiles();renderAccountList();setAccountAuthMessage("ニックネームを更新しました。");
+ }catch(error){setAccountAuthMessage(error.message||"名前を更新できませんでした。",true)}
+}
+async function syncOnlinePlayerStats(stats){
+ if(!authUser||!supabaseClient)return;
+ try{
+  const profile=onlinePlayerProfiles.find(p=>p.user_id===authUser.id);
+  const displayName=profile?.display_name||authUser.user_metadata?.display_name||"プレイヤー";
+  const {error}=await supabaseClient.from("player_profiles").upsert({
+   user_id:authUser.id,display_name:displayName,
+   matches_played:Number(stats.matchesPlayed||0),wins:Number(stats.wins||0),
+   losses:Number(stats.losses||0),survived:Number(stats.survived||0),
+   role_stats:stats.roleStats||{},updated_at:new Date().toISOString()
+  },{onConflict:"user_id"});
+  if(error)throw error;
+  await loadOnlinePlayerProfiles();
+ }catch(error){console.warn("Online player stats sync failed",error);setAccountAuthMessage("戦績のオンライン保存に失敗しました。次回アカウント画面で更新してください。",true)}
+}
+
 const maps={
  lab:{name:"研究施設",width:2000,height:1320,rooms:[
   ["入口",110,130,300,250],["受付",470,130,280,250],["生体研究室",1030,100,330,300],["観測室",1430,150,250,230],
@@ -1351,7 +1461,7 @@ function endGame(msg,winners={teams:[]}){
  $("gameOverModal").classList.add("show");
 }
 function endToHome(){if(state.running)saveAILongTermMemories({teams:[]},true);state.running=false;clearInterval(loop);clearInterval(clock);stopMove();stopBGM();document.querySelectorAll(".modal").forEach(m=>m.classList.remove("show"));show("home")}
-function openAccounts(){showAccountLoading();loadAIProfiles().then(()=>{renderAccountList();const detail=$("accountDetail");if(detail&&!detail.dataset.selected)renderAccountDetail("player")}).catch(()=>{renderAccountList()})}
+function openAccounts(){showAccountLoading();Promise.all([initializeOnlineAccounts(),loadAIProfiles()]).then(()=>{renderAccountList();const detail=$("accountDetail");if(detail&&!detail.dataset.selected)renderAccountDetail(authUser?.id||"player")}).catch(error=>{console.warn(error);renderAccountList()})}
 function showAccountLoading(){const list=$("accountList");if(list)list.innerHTML='<div class="muted">AIプロフィールを読み込んでいます…</div>'}
 function refreshAccounts(){aiProfilesLoaded=false;openAccounts()}
 function escapeAccountText(value){return String(value??"").replace(/[&<>"']/g,ch=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[ch]))}
