@@ -237,7 +237,6 @@ const SUPABASE_URL="https://tzkukbybggqfuzlevged.supabase.co";
 const SUPABASE_PUBLISHABLE_KEY="sb_publishable_79x6YIEy9SYlaoiiDFoDQA_eP37cFfQ";
 let supabaseClient=null,aiProfilePool=[],aiProfilesLoaded=false;
 async function loadAIProfiles(){
- if(aiProfilesLoaded)return;
  let timeoutId=null;
  try{
   if(!window.supabase?.createClient)throw new Error("Supabase SDK unavailable");
