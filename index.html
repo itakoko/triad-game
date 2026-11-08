@@ -380,7 +380,7 @@ canvas#mapCanvas{aspect-ratio:16/10;background:#0b1522}
 </section>
 
 </main>
-<footer>TRIAD v0.68 · 変身表示同期</footer>
+<footer>TRIAD v0.69 · ランク戦会議チャット</footer>
 
   <div id="onlineConnectionBanner" role="status">オンライン接続が不安定です。<button type="button" onclick="retryOnlineConnection()">再接続</button></div>
   <div class="modal" id="offlineRoleSettingsModal"><div class="modalbox"><h2>通常対戦・役職詳細設定</h2><p class="muted">固定人数を指定した役職は必ず登場します。残りの枠はONになっている役職から出現重みに応じて抽選します。</p>
@@ -664,6 +664,23 @@ async function enterRankedServerMatch(snap){
  $("myStatus").textContent=state.me.alive?"生存":"死亡";$("taskCount").textContent=state.done+" / "+state.total;$("taskProgress").style.width=(state.total?state.done/state.total*100:0)+"%";
  show("game");state.running=true;startAudio();syncRankedMeetingUI(snap.meeting);updateNearbyActions();draw();clearInterval(loop);clearInterval(clock);loop=setInterval(tick,70);$("nearHint").textContent="サーバー試験：移動とタスク進行をサーバーに送信しています。";
 }
+function renderRankedMeetingMessages(messages){
+ const list=Array.isArray(messages)?messages:[];
+ const signature=list.map(m=>String(m.seat)+":"+String(m.at)+":"+String(m.text)).join("|");
+ if(state.rankedChatSignature===signature)return;
+ state.rankedChatSignature=signature;
+ const box=$("meetingChat");box.textContent="";
+ if(!list.length){const empty=document.createElement("div");empty.className="chatMessage system";empty.textContent="まだ発言はありません。";box.appendChild(empty);return}
+ list.forEach(m=>{
+  const row=document.createElement("div"),name=document.createElement("span"),body=document.createElement("span");
+  const player=state.players.find(p=>Number(p.number)===Number(m.seat));
+  row.className="chatMessage"+(Number(m.seat)===Number(state.me?.number)?" self":"");
+  name.className="chatName";name.textContent=player?.name||("プレイヤー "+m.seat);
+  body.textContent=String(m.text||"");
+  row.appendChild(name);row.appendChild(body);box.appendChild(row);
+ });
+ box.scrollTop=box.scrollHeight;
+}
 function syncRankedMeetingUI(meeting){
  const active=!!meeting?.active,phase=meeting?.phase||"";
  if(active&&!rankedMeetingWasActive)state.selectedVote=null;
@@ -673,7 +690,7 @@ function syncRankedMeetingUI(meeting){
  }
  rankedMeetingWasActive=true;state.meeting=true;state.meetingPhase=phase;state.move={x:0,y:0};
  $("meetingTitle").textContent="ランク戦会議";$("meetingPhaseLabel").textContent=phase==="discussion"?"議論フェーズ":phase==="voting"?"投票フェーズ":"投票結果";
- $("meetingComposer").hidden=true;$("meetingChat").textContent="";$("meetingSummaryContent").textContent="ランク戦のサーバー会議です。発言機能はまだ未対応です。";
+ $("meetingComposer").hidden=phase!=="discussion"||!state.me?.alive;$("meetingChatInput").disabled=phase!=="discussion"||!state.me?.alive;$("meetingComposer").querySelector("button").disabled=phase!=="discussion"||!state.me?.alive;$("meetingSummaryContent").textContent="サーバー同期された会議チャットです。発言は全参加者に共有されます。";renderRankedMeetingMessages(meeting.messages);
  $("beginVoteAction").hidden=phase!=="discussion";$("meetingVotePanel").hidden=phase==="discussion";
  $("closeMeetingAction").hidden=true;$("meetingMapPanel").hidden=true;
  const end=meeting.ends_at?Date.parse(meeting.ends_at):Date.now(),left=Math.max(0,Math.ceil((end-Date.now())/1000));
@@ -866,7 +883,7 @@ async function loadRankedProfile(){
 
 function show(id){
  if(!activateScreen(id))return;
- if(id==="home"){renderUpdateLog($("updateVersionSelect")?.value||"0.68");updateResumeGameUI()}
+ if(id==="home"){renderUpdateLog($("updateVersionSelect")?.value||"0.69");updateResumeGameUI()}
  if(id==="accounts")loadAccountDirectoryData();
  if(id==="socialHub")loadSocialHub();
 }
@@ -1981,7 +1998,16 @@ function scheduleAITurn(delay=2200){
   });
  },delay);
 }
-function sendMeetingMessage(){if(isOnlineClient()){const text=$("meetingChatInput").value.trim();if(text){sendOnlineInput({kind:"action",action:"chat",text});$("meetingChatInput").value=""}return}
+function sendMeetingMessage(){if(rankedServerMode){
+ const input=$("meetingChatInput"),text=input.value.trim();if(!text||state.rankedChatSending)return;
+ if(text.length>180){$("meetingInfo").textContent="発言は180文字以内にしてください。";return}
+ state.rankedChatSending=true;$("meetingComposer").querySelector("button").disabled=true;
+ rankedEngineCall("chat",{text}).then(async result=>{
+  if(result.status==="sent"){input.value="";applyRankedServerSnapshot(await rankedEngineCall("state"))}
+  else $("meetingInfo").textContent=result.status==="chat_throttled"?"少し待ってから発言してください。":"発言できません："+result.status;
+ }).catch(e=>{$("meetingInfo").textContent="発言エラー："+(e.message||String(e))}).finally(()=>{state.rankedChatSending=false;$("meetingComposer").querySelector("button").disabled=state.meetingPhase!=="discussion"||!state.me?.alive});
+ return;
+ }if(isOnlineClient()){const text=$("meetingChatInput").value.trim();if(text){sendOnlineInput({kind:"action",action:"chat",text});$("meetingChatInput").value=""}return}
  if(!state.meeting||state.meetingPhase!=="discussion"||!state.me.alive)return;
  const input=$("meetingChatInput"),text=input.value.trim();if(!text)return;
  appendMeetingMessage(playerTag(state.me),text,"self",state.me);recordMeetingClaim(state.me.id,text);input.value="";
@@ -2837,8 +2863,9 @@ async function leaveOnlineRoom(){
  activeRoomId=null;activeRoomSnapshot=null;await disconnectRoomChannel();show("socialHub");await loadSocialHub();
 }
 
-function renderUpdateLog(version="0.68"){
+function renderUpdateLog(version="0.69"){
  const logs={
+  "0.69":{date:"2026年11月9日",items:["ランク戦会議でサーバー同期チャットを実装。生存者の議論フェーズのみ発言可能、180文字制限・連投制限・最大80件保持をサーバー側で検証。"],},
   "0.68":{date:"2026年11月9日",items:["百面相の変身中に、他プレイヤーの色・形・表示名を画面上で再現し、変身終了後に本人の表示へ戻す処理を追加。"],},
   "0.67":{date:"2026年11月9日",items:["ランク戦の実装状況を更新。対応済みの5役職能力、タスク／陣営／個人目標の勝利確定、ランク更新を明記。"],},
   "0.66":{date:"2026年11月9日",items:["能力の使用済み状態・再使用待機を再接続時に復元。対象の遮蔽物チェックをサーバー側に追加し、未対応能力はランク戦画面で無効化。"],},
