@@ -853,6 +853,28 @@ function buildAIStatement(ai){
   const sight=recent[Math.floor(Math.random()*recent.length)];
   return {text:pickDialogue([`さっき${sight.room}で${sight.target.name}を見かけました。その後どこへ行ったかは分かりません。`,`少し前に${sight.room}で${sight.target.name}とすれ違いました。見たのはそこまでです。`,`私が直接見たのは${sight.target.name}が${sight.room}にいたことだけです。決めつけは避けたいです。`,`さっき${sight.room}にいたのは${sight.target.name}です。時間が合う人はいますか？`]),kind:"witness",truth:true,subjectIds:[sight.target.id]};
  }
+ const roleTalk={
+  "クルー":["私はクルーです。特殊能力はありませんが、タスクと目撃情報を頼りに考えます。","役職はクルーです。能力で調べられないので、証言の矛盾を見ています。","クルーなので派手な情報はありません。移動経路を照らし合わせましょう。","私に特別な調査能力はありません。だからこそ、誰が何を見たか確認したいです。"],
+  "サイエンティスト":["サイエンティストです。生存状況を確認できる役職です。","私はサイエンティスト。生存者の数に関する情報なら出せます。","役職はサイエンティストです。人数の変化も推理材料にしてください。"],
+  "恋人":["恋人の片割れです。相手の位置を把握できるので、必要なら情報を出します。","私は恋人です。相方のこともあるので、慎重に投票したいです。","恋人陣営ではありません、ではなく恋人です。位置情報を手掛かりにしています。"],
+  "占い師":["占い師です。近くの人を一度だけ調べられます。","私は占い師。まだ能力を使う相手を見極めています。","役職は占い師です。結果が出たら陣営情報を共有します。"],
+  "狩人":["狩人です。近距離で一度だけ行動できる能力があります。","私は狩人。能力を使うタイミングを慎重に選んでいます。","役職は狩人です。むやみに動かず、怪しい相手を見ています。"],
+  "保安官":["保安官です。対象を間違えると危険なので、証拠を重視します。","私は保安官。確信がない相手には能力を使いません。","役職は保安官です。発言だけでなく行動も確認しています。"],
+  "僧侶":["僧侶です。誰かを一度だけ守れる能力があります。","私は僧侶。守る相手を選ぶ必要があるので情報を集めています。","役職は僧侶です。危険な状況があれば教えてください。"],
+  "ライトキーパー":["ライトキーパーです。暗闇の影響を受けにくい役職です。","私はライトキーパー。停電中の動きも見ていました。","役職はライトキーパーです。視界を頼りに証言できます。"],
+  "インポスター":["インポスターです……と言うと思いましたか？ まずは証言を聞きましょう。","私はタスクを進めていました。誰か一緒だった人はいますか？","能力の話より、現場と時間を整理するのが先だと思います。"],
+  "イノシシ":["イノシシです。突進能力があるので、移動経路を見てください。","私はイノシシ。能力を使った場所と時間なら説明できます。","役職はイノシシです。直線的な移動を見た人はいますか？"],
+  "百面相":["百面相です。変身能力があるので、見た目だけで判断しないでください。","私は百面相。誰かの姿を見ても本人とは限りません。","役職は百面相です。目撃証言は色や姿だけで決めない方がいいです。"],
+  "放浪者":["放浪者です。独自の勝利条件があるので、皆さんとは目的が違います。","私は放浪者。誰がどこにいたかを観察しています。","役職は放浪者です。白黒どちらかに協力するとは限りません。"],
+  "暗殺者":["暗殺者です。手配対象を追う役職ですが、今は情報を集めています。","私は暗殺者。自分の目的があるので、全員の動きを見ています。","役職は暗殺者です。誰が手配対象かは言えません。"],
+  "てるてる":["てるてるです。追放されることが勝利条件です。……今のは冗談です。","私は普通に議論したいだけです。投票先は慎重に決めましょう。","役職のことは秘密です。まず怪しい人の話を聞きたいです。"],
+  "狂人":["狂人です。黒陣営とは違う勝利条件を持っています。","私は狂人。場をかき回すより、状況を見て動きます。","役職は秘密ですが、皆さんの推理を聞かせてください。"]
+ };
+ if(Math.random()<.34){
+  const truthful=ai.team==="white"&&Math.random()<.78;
+  const lines=truthful?(roleTalk[ai.role]||[]):Object.entries(roleTalk).filter(([r])=>r!==ai.role).flatMap(([r,lines])=>lines.map(line=>line.replaceAll(r,"クルー")));
+  if(lines.length)return {text:pickDialogue(lines),kind:"roleclaim",truth:truthful,subjectIds:[ai.id]};
+ }
  const suspect=chooseAISuspect(ai);
  if(suspect&&Math.random()<lieChance){
   const room=state.meetingEvents[0]?.room||roomNameAt(ai.x,ai.y);
@@ -861,10 +883,12 @@ function buildAIStatement(ai){
  const top=chooseAISuspect(ai);
  if(top&&(ai.aiMemory.suspicion[top.id]||0)>1)
   return {text:pickDialogue([`${top.name}への疑いはありますが、まだ決め手が足りません。ほかの人の情報も聞きたいです。`,`今のところ${top.name}の行動が気になります。直接見た人はいますか？`,`${top.name}に票を集める前に、もう一度アリバイを確認したいです。`,`私は${top.name}を少し疑っています。ただ、証言が増えるまでは保留でもいいと思います。`]),kind:"accusation",truth:null,subjectIds:[top.id]};
- const room=roomNameAt(ai.x,ai.y);
- return {text:pickDialogue([`私は${room}側にいました。見た情報をもう少し整理してから投票したいです。`,`今は決め手がありません。誰か、直前に一緒にいた人を覚えていますか？`,`証言が少ないうちに票を割るのは危険です。まず場所と順番を整理しましょう。`,`まだ迷っています。最後に見かけた相手と場所を一人ずつ出してもらえますか？`,`情報が足りません。確実に見たことと、推測を分けて話しませんか？`,`投票を急がず、今出た話に食い違いがないか確認したいです。`]),kind:"general",truth:true,subjectIds:[]};
+ const room=roomNameAt(ai.x,ai.y),generalLines=[`私は${room}側にいました。見た情報をもう少し整理してから投票したいです。`,`今は決め手がありません。誰か、直前に一緒にいた人を覚えていますか？`,`証言が少ないうちに票を割るのは危険です。まず場所と順番を整理しましょう。`,`まだ迷っています。最後に見かけた相手と場所を一人ずつ出してもらえますか？`,`情報が足りません。確実に見たことと、推測を分けて話しませんか？`,`投票を急がず、今出た話に食い違いがないか確認したいです。`,`一度、全員の行動を時系列で並べませんか？`,`その発言には根拠がありますか？ 直接見たのか、誰かから聞いたのか知りたいです。`,`私はまだ投票先を決めていません。あと一人、証言を聞いてから判断します。`,`今のところ、発言の多さより内容の一貫性を重視しています。`,`タスクをしていた人は、どの端末で何をしていたか説明できますか？`,`同じ部屋にいた人同士で、互いの行動を確認してほしいです。`,`誰か一人に疑いを集める前に、別の可能性も考えたいです。`,`その時間にそこへ行けたのか、移動距離も考えてみましょう。`,`私は${room}で行動していました。見かけた人がいれば補足してください。`,`証言が食い違っていますね。どちらかが勘違いしている可能性もあります。`,`今の話を聞いて少し考えが変わりました。追加情報があればお願いします。`,`早い段階で断定するのは避けたいです。`,`誰が最初に死体を見つけたのかも重要だと思います。`,`会議直前に一緒にいた相手を教えてください。`];
+ return {text:pickDialogue(generalLines),kind:"general",truth:true,subjectIds:[]};
 }
 function makeAITakeTurn(ai){
+ if(!ai||state.aiSpokenIds?.includes(ai.id))return;
+ (state.aiSpokenIds||(state.aiSpokenIds=[])).push(ai.id);
  const statement=buildAIStatement(ai);
  appendMeetingMessage(playerTag(ai),statement.text,"ai");
  recordMeetingClaim(ai.id,statement.text,statement.kind,statement.truth,statement.subjectIds);
@@ -872,11 +896,11 @@ function makeAITakeTurn(ai){
 }
 function scheduleAITurn(delay=2400){
  if(state.aiTurnTimer)clearTimeout(state.aiTurnTimer);
- if(!state.meeting||state.meetingPhase!=="discussion"||state.aiTurnCount>=8)return;
+ if(!state.meeting||state.meetingPhase!=="discussion"||state.aiTurnCount>=16)return;
  state.aiTurnTimer=setTimeout(()=>{
   state.aiTurnTimer=null;
   if(!state.meeting||state.meetingPhase!=="discussion")return;
-  const speakers=shuffle(state.players.filter(p=>p.alive&&p.id!==state.me.id));
+  const speakers=shuffle(state.players.filter(p=>p.alive&&p.id!==state.me.id&&!state.aiSpokenIds?.includes(p.id)));
   if(speakers.length)makeAITakeTurn(speakers[0]);
   scheduleAITurn(2600+Math.floor(Math.random()*2400));
  },delay);
@@ -891,7 +915,7 @@ function callMeeting(message="会議が招集されました。",caller=state.me
  if(!state.running||state.meeting||!caller?.alive)return;
  playSfx("meeting");
  if(state.aiTurnTimer)clearTimeout(state.aiTurnTimer);
- state.meeting=true;state.meetingPhase="discussion";state.selectedVote=null;state.lastBallots=[];state.meetingClaims=[];state.aiTurnCount=0;
+ state.meeting=true;state.meetingPhase="discussion";state.selectedVote=null;state.lastBallots=[];state.meetingClaims=[];state.aiTurnCount=0;state.aiSpokenIds=[];
  state.meetingEvents=state.killEvents.filter(e=>state.dead.some(d=>d.id===e.victimId));
  const emergencyHold=Date.now()+45000;state.players.filter(p=>p.id!==0&&p.alive).forEach(p=>p.emergencyReadyAt=Math.max(p.emergencyReadyAt||0,emergencyHold));
  state.players.forEach(p=>p.charging=false);stopMove();
@@ -925,11 +949,11 @@ function drawOverview(canvasId="overviewCanvas",meetingMode=false){
   state.map.props.forEach(p=>{ctx.fillStyle=p.type==="crate"?"#a8895b":p.type==="module"?"#68d9dc":"#8ab5c4";ctx.fillRect(p.x,p.y,p.w,p.h);ctx.strokeStyle="#192d3c";ctx.lineWidth=4;ctx.strokeRect(p.x,p.y,p.w,p.h)});
   state.tasks.forEach(t=>{if(!t.done){ctx.fillStyle="#ffd34f";ctx.beginPath();ctx.arc(t.x,t.y,17,0,Math.PI*2);ctx.fill();ctx.fillStyle="#173047";ctx.font="bold 15px system-ui";ctx.fillText(String(t.remaining),t.x-5,t.y+5)}});ctx.fillStyle="#ff514b";ctx.fillRect(860,480,80,80);state.dead.forEach(d=>{ctx.fillStyle="#fff";ctx.fillText("×",d.x-12,d.y+12)});ctx.fillStyle="#62f1df";ctx.beginPath();ctx.arc(state.me.x,state.me.y,24,0,Math.PI*2);ctx.fill();ctx.strokeStyle="#fff";ctx.lineWidth=7;ctx.stroke();
   if(!meetingMode&&state.me.role==="恋人"&&state.me.partnerId!==null){const partner=state.players.find(p=>p.id===state.me.partnerId);if(partner){ctx.fillStyle="#ff8ad4";ctx.beginPath();ctx.arc(partner.x,partner.y,24,0,Math.PI*2);ctx.fill();ctx.strokeStyle="#fff";ctx.lineWidth=5;ctx.stroke();ctx.fillStyle="#fff";ctx.font="bold 24px system-ui";ctx.fillText("♥",partner.x-10,partner.y+8)}}
-  if(state.bountyIds.length){ctx.fillStyle="#d8a7f4";ctx.beginPath();ctx.arc(1344,494,22,0,Math.PI*2);ctx.fill();ctx.fillStyle="#21142b";ctx.font="bold 23px system-ui";ctx.fillText("!",1337,503)}
+  if(!meetingMode&&state.bountyIds.length){ctx.fillStyle="#d8a7f4";ctx.beginPath();ctx.arc(1344,494,22,0,Math.PI*2);ctx.fill();ctx.fillStyle="#21142b";ctx.font="bold 23px system-ui";ctx.fillText("!",1337,503)}
   (meetingMode?[state.me]:state.players.filter(p=>p.alive)).filter(Boolean).forEach(p=>{ctx.fillStyle=p.color;ctx.beginPath();ctx.arc(p.x,p.y,18,0,Math.PI*2);ctx.fill();ctx.strokeStyle="#101820";ctx.lineWidth=6;ctx.stroke();ctx.strokeStyle="#fff";ctx.lineWidth=2;ctx.stroke()});ctx.restore();
 }
 function toggleMeetingMap(force){const panel=$("meetingMapPanel"),button=$("meetingMapToggle");const open=typeof force==="boolean"?force:panel.hidden;panel.hidden=!open;if(open){drawOverview("meetingOverviewCanvas",true);button.textContent="🗺 マップを閉じる"}else button.textContent="🗺 マップを表示"}
-function renderMeetingAliveList(){const alive=state.players.filter(p=>p.alive);$("meetingAliveSummary").textContent=`生存者：${alive.length}人 / ${state.players.length}人`;$("meetingAliveList").innerHTML=alive.map(p=>`<div class="meetingAliveItem"><span class="dot" style="background:${p.color}"></span><span>${playerTag(p)}</span><small style="color:${p.color}">(${p.colorName||"色"})</small></div>`).join("")}
+function renderMeetingAliveList(){const alive=state.players.filter(p=>p.alive),dead=state.players.filter(p=>!p.alive);$("meetingAliveSummary").textContent=`生存：${alive.length}人　／　死亡：${dead.length}人　／　合計：${state.players.length}人`;$("meetingAliveList").innerHTML=[...alive.map(p=>`<div class="meetingAliveItem"><span class="dot" style="background:${p.color}"></span><span>${playerTag(p)}</span><small style="color:#8de2c5">生存</small></div>`),...dead.map(p=>`<div class="meetingAliveItem" style="opacity:.78"><span class="dot" style="background:${p.color}"></span><span style="text-decoration:line-through">${playerTag(p)}</span><small style="color:#ff9299">死亡</small></div>`)].join("")}
 function castVote(id){
  if(!state.meeting||state.meetingPhase!=="voting"||!state.me.alive)return;
  const target=state.players.find(p=>p.id===Number(id)&&p.alive);if(!target)return;
