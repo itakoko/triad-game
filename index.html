@@ -673,7 +673,7 @@ function resumeSavedGame(){
     scheduleAITurn(2500);
    }
   }
-  startMatchAutosave();
+  startMatchAutosave();if(state.me.role==="ギャンブラー")chooseGamblerPrediction(state.me);
   updateResumeGameUI();
  }catch(error){console.error("Match restore failed",error);alert("試合データを復元できませんでした。\n原因："+(error&&error.message?error.message:String(error)));}
 }
@@ -1401,7 +1401,7 @@ function aiAction(){
    const wanted=nearby.filter(p=>state.bountyIds.includes(p.id));
    if(wanted.length){actor.killReadyAt=now+20000;performKill(wanted[0],actor,"暗殺")}
   }else if(actor.role==="狂人"&&now>=actor.killReadyAt&&nearby.length&&Math.random()<.25){actor.killReadyAt=now+30000;performKill(nearby[0],actor,"狂人の攻撃")}
-  else if(actor.role==="ギャンブラー"&&now>=actor.roleReadyAt&&Math.random()<.035){resolveGamblerRoll(actor,now)}
+  else if(actor.role==="ギャンブラー"&&actor.gamblerKillReady){const targets=targetCandidates(actor,100,false,p=>p.team!==actor.team);if(targets.length){const target=targets[Math.floor(Math.random()*targets.length)];actor.gamblerKillReady=false;performKill(target,actor,"ギャンブラーのJACKPOTキル")}}else if(actor.role==="ギャンブラー"&&now>=actor.roleReadyAt&&Math.random()<.035){resolveGamblerRoll(actor,now)}
   else if((actor.role==="狩人"||actor.role==="保安官")&&!actor.abilityUsed&&roleNearby.length){
    const suspect=chooseAICombatSuspect(actor,roleNearby);
    if(suspect){const suspicion=actor.aiMemory?.suspicion?.[suspect.id]||0;const witnessed=(state.killEvents||[]).some(e=>e.killerId===suspect.id&&e.witnessIds?.includes(actor.id));const chance=witnessed?.92:Math.min(.78,.30+suspicion*.055);if(Math.random()<chance){actor.abilityUsed=true;performKill(suspect,actor,actor.role==="狩人"?"狩人の攻撃":"保安官の攻撃")}}
