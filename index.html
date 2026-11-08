@@ -130,14 +130,14 @@ canvas#mapCanvas{aspect-ratio:16/10;background:#0b1522}
 </style>
 </head>
 <body>
-<header><div class="logo">TRI<span>AD</span></div><div class="tag">オフライン試作 · v0.31</div></header>
+<header><div class="logo">TRI<span>AD</span></div><div class="tag">オフライン試作 · v0.32</div></header>
 <main>
 <section id="home" class="screen active">
  <div class="hero"><div class="pill">研究施設マップ・探索型推理ゲーム</div><h1>閉鎖された研究所。<br>見えない場所に誰かがいる。</h1><p>部屋と通路を自分で探索し、タスクを進めながら状況を判断します。視界はプレイヤーの周囲に限られます。</p></div>
  <div class="grid">
   <div class="card"><h3>🎮 ゲームを始める</h3><p class="muted">AIと対戦するオフライン試合を開始します。</p><button class="primary" style="width:100%" onclick="show('setup')">試合設定へ</button></div>
   <div class="card"><h3>📘 遊び方</h3><p class="muted">試作版のルールと操作方法を確認します。</p><button style="width:100%" onclick="openHelp()">ルールを見る</button></div>
-  <div class="card"><h3>📋 アップデートログ</h3><p class="muted">見たいバージョンを選択してください。</p><div class="field"><label for="updateVersionSelect">バージョン</label><select id="updateVersionSelect" onchange="renderUpdateLog(this.value)"><option value="0.31">v0.31（最新）</option><option value="0.29">v0.29</option><option value="0.28">v0.28</option><option value="0.27">v0.27</option><option value="0.26">v0.26</option><option value="0.25">v0.25</option><option value="0.23">v0.23</option></select></div><div id="updateLogContent" class="updateLogContent" aria-live="polite"></div></div>
+  <div class="card"><h3>📋 アップデートログ</h3><p class="muted">見たいバージョンを選択してください。</p><div class="field"><label for="updateVersionSelect">バージョン</label><select id="updateVersionSelect" onchange="renderUpdateLog(this.value)"><option value="0.32">v0.32（最新）</option><option value="0.31">v0.31</option><option value="0.29">v0.29</option><option value="0.28">v0.28</option><option value="0.27">v0.27</option><option value="0.26">v0.26</option><option value="0.25">v0.25</option><option value="0.23">v0.23</option></select></div><div id="updateLogContent" class="updateLogContent" aria-live="polite"></div></div>
  </div>
 </section>
 
@@ -937,13 +937,9 @@ function updateMeetingSummary(){
  };
  claims.forEach(c=>{
   const ids=Array.isArray(c.subjectIds)?c.subjectIds:[];
-  const explicit=/怪しい|疑わしい|犯人|黒だと思う|疑って|投票|追放/.test(c.text||"");
-  if(c.kind==="accusation"||explicit){
-   if(ids.length)add(ids[0],c.kind==="accusation"?2.2:1.8,"疑いを向ける発言");
-  }else if(c.kind==="witness"&&c.truth===true){
-   if(ids.length)add(ids[0],3.8,"直接見たという証言");
-  }else if(c.kind==="witness"&&c.truth===false){
-   if(ids.length)add(ids[0],1.0,"現場付近にいたという未確認情報");
+  if(c.kind==="witness"&&c.truth===true){
+   const event=state.meetingEvents.find(e=>e.witnessIds.includes(c.speakerId)&&ids.includes(e.killerId)&&/倒す|攻撃|キル|殺害/.test(c.text||""));
+   if(event)add(event.killerId,4.0,"現場を直接目撃した証言");
   }
  });
  state.meetingEvents.forEach(e=>{
@@ -998,20 +994,24 @@ function addSuspicion(memory,id,amount){
 function recordMeetingClaim(speakerId,text,kind=claimKind(text),truth=null,subjectIds=null){
  const ids=subjectIds||mentionedPlayers(text).map(p=>p.id);
  const claim={speakerId,text,kind,truth,subjectIds:ids,at:Date.now()};state.meetingClaims.push(claim);updateMeetingSummary();
- state.players.filter(p=>p.alive&&p.id!==0).forEach(listener=>{
-  if(listener.id===speakerId)return;
-  const memory=listener.aiMemory,direct=state.meetingEvents.find(e=>e.witnessIds.includes(listener.id));
-  ids.forEach((id,index)=>addSuspicion(memory,id,kind==="witness"?(index===0?1.8:.25):kind==="accusation"?(index===0?1.2:.15):.15));
-  if(direct&&kind==="witness"&&ids.length){
-   if(ids[0]===direct.killerId){memory.trust[speakerId]=(memory.trust[speakerId]||0)+1.1;addSuspicion(memory,direct.killerId,2.5)}
-   else{addSuspicion(memory,speakerId,2.4);addSuspicion(memory,direct.killerId,2.2)}
+ // 名前が出ただけ・疑いを口にしただけでは疑いスコアを変えない。
+ // 実際のキル現場を直接見たAIだけが、目撃した犯人に確かな疑いを持つ。
+ state.players.filter(p=>p.alive&&p.id!==0&&p.id!==speakerId).forEach(listener=>{
+  const direct=state.meetingEvents.find(e=>e.witnessIds.includes(listener.id));
+  if(!direct)return;
+  if(ids.includes(direct.killerId)&&kind==="witness"&&truth===true&&/倒す|攻撃|キル|殺害/.test(text)){
+   addSuspicion(listener.aiMemory,direct.killerId,3.0);
+   listener.aiMemory.trust[speakerId]=(listener.aiMemory.trust[speakerId]||0)+1.0;
   }
  });
 }
 function chooseAISuspect(ai,exclude=[]){
  const candidates=state.players.filter(p=>p.alive&&p.id!==ai.id&&!exclude.includes(p.id)&&!(ai.team==="black"&&p.team==="black"));
  if(!candidates.length)return null;
- return candidates.sort((a,b)=>(ai.aiMemory.suspicion[b.id]||0)-(ai.aiMemory.suspicion[a.id]||0))[0];
+ candidates.sort((a,b)=>(ai.aiMemory.suspicion[b.id]||0)-(ai.aiMemory.suspicion[a.id]||0));
+ const best=candidates[0];
+ // 根拠のある情報が一定以上ない場合は、疑う相手を選ばない。
+ return (ai.aiMemory.suspicion[best.id]||0)>=2.5?best:null;
 }
 function aiLieChance(ai){
  const profile=ai.aiProfile;
@@ -1039,7 +1039,7 @@ function buildAIStatement(ai){
  const lastClaim=claims.slice().reverse().find(c=>c.subjectIds.length&&c.speakerId!==ai.id);
  if(lastClaim&&Math.random()<.52){
   const speaker=state.players.find(p=>p.id===lastClaim.speakerId),target=state.players.find(p=>p.id===lastClaim.subjectIds[0]);
-  if(target)return {text:pickDialogue([`${speaker?.name||"発言"}の話が本当なら、${target.name}の動きをもう少し聞きたいです。`,`${target.name}の名前が出ましたね。誰か同じ場所で見た人はいますか？`,`その情報は参考になります。ただ、聞いた話なのか直接見たのかを分けて考えたいです。`]),kind:"accusation",truth:null,subjectIds:[target.id]};
+  if(target)return {text:pickDialogue([`${speaker?.name||"発言"}の話は聞きました。直接見た人はいる？`,`${target.name}の名前は出たけど、まだ判断できないな。`,`それは目撃情報？それとも誰かから聞いた話？`]),kind:"general",truth:null,subjectIds:[]};
  }
  const recent=Object.entries(ai.aiMemory.sightings).map(([id,s])=>({target:state.players.find(p=>p.id===Number(id)),...s})).filter(x=>x.target&&Date.now()-x.at<45000);
  if(recent.length&&Math.random()>lieChance){
@@ -1076,8 +1076,8 @@ function buildAIStatement(ai){
   return {text:pickDialogue([`${suspect.name}が${room}の近くにいたという話を聞きました。少し気になります。`,`私の記憶では${suspect.name}は${room}側にいました。ほかの人も確認してくれませんか？`,`${suspect.name}の動きが気になります。${room}で見たという情報があります。`,`まだ確証はありませんが、${suspect.name}の話を聞いてから投票したいです。`]),kind:"accusation",truth:false,subjectIds:[suspect.id]};
  }
  const top=chooseAISuspect(ai);
- if(top&&(ai.aiMemory.suspicion[top.id]||0)>1)
-  return {text:pickDialogue([`${top.name}への疑いはありますが、まだ決め手が足りません。ほかの人の情報も聞きたいです。`,`今のところ${top.name}の行動が気になります。直接見た人はいますか？`,`${top.name}に票を集める前に、もう一度アリバイを確認したいです。`,`私は${top.name}を少し疑っています。ただ、証言が増えるまでは保留でもいいと思います。`]),kind:"accusation",truth:null,subjectIds:[top.id]};
+ if(top&&(ai.aiMemory.suspicion[top.id]||0)>=2.5)
+  return {text:pickDialogue([`${top.name}については現場を見た人の証言がある。本人の説明も聞きたい。`,`${top.name}を疑う材料はあるけど、他の目撃情報とも照らし合わせたい。`,`私は${top.name}が気になる。現場を見た人、他にもいる？`]),kind:"accusation",truth:null,subjectIds:[top.id]};
  const room=roomNameAt(ai.x,ai.y),generalLines=[`私は${room}側にいました。見た情報をもう少し整理してから投票したいです。`,`今は決め手がありません。誰か、直前に一緒にいた人を覚えていますか？`,`証言が少ないうちに票を割るのは危険です。まず場所と順番を整理しましょう。`,`まだ迷っています。最後に見かけた相手と場所を一人ずつ出してもらえますか？`,`情報が足りません。確実に見たことと、推測を分けて話しませんか？`,`投票を急がず、今出た話に食い違いがないか確認したいです。`,`一度、全員の行動を時系列で並べませんか？`,`その発言には根拠がありますか？ 直接見たのか、誰かから聞いたのか知りたいです。`,`私はまだ投票先を決めていません。あと一人、証言を聞いてから判断します。`,`今のところ、発言の多さより内容の一貫性を重視しています。`,`タスクをしていた人は、どの端末で何をしていたか説明できますか？`,`同じ部屋にいた人同士で、互いの行動を確認してほしいです。`,`誰か一人に疑いを集める前に、別の可能性も考えたいです。`,`その時間にそこへ行けたのか、移動距離も考えてみましょう。`,`私は${room}で行動していました。見かけた人がいれば補足してください。`,`証言が食い違っていますね。どちらかが勘違いしている可能性もあります。`,`今の話を聞いて少し考えが変わりました。追加情報があればお願いします。`,`早い段階で断定するのは避けたいです。`,`誰が最初に死体を見つけたのかも重要だと思います。`,`会議直前に一緒にいた相手を教えてください。`];
  return {text:pickDialogue(generalLines),kind:"general",truth:true,subjectIds:[]};
 }
@@ -1298,8 +1298,9 @@ function endGame(msg,winners={teams:[]}){
  $("gameOverModal").classList.add("show");
 }
 function endToHome(){if(state.running)saveAILongTermMemories({teams:[]},true);state.running=false;clearInterval(loop);clearInterval(clock);stopMove();stopBGM();document.querySelectorAll(".modal").forEach(m=>m.classList.remove("show"));show("home")}
-function renderUpdateLog(version="0.31"){
+function renderUpdateLog(version="0.32"){
  const logs={
+  "0.32":{date:"2026年11月8日",items:["名前が出ただけでは疑いスコアが上がらないよう修正。","実際のキル現場を直接目撃した証言を、疑いの根拠として優先。","根拠が足りない場合、AIは無理に犯人を決めず質問や確認を行うよう改善。"]},
   "0.31":{date:"2026年11月8日",items:["暗殺者を含む第三陣営・黒陣営のAIが役職COしないように修正。","役職COは白陣営のAIだけが状況に応じて行うよう変更。","会議中のAI発言を短くし、質問・反論・補足が自然に交わる会話に調整。"]},
   "0.29":{date:"2026年11月8日",items:["会議のリアルタイム要約に疑われている人の順位・疑いの強さ・理由を表示。","目撃証言と現場記録を疑い順位に反映。","10か所のタスクをすべて別々のミニゲームに変更。"]},
   "0.28":{date:"2026年11月8日",items:["会議の議論時間を設定できるように変更。","AIが会議中に継続して発言し、プレイヤーの発言に反応。","会議内容のリアルタイム要約を追加。"]},
@@ -1308,7 +1309,7 @@ function renderUpdateLog(version="0.31"){
   "0.24":{date:"2026年11月8日",items:["会議マップは自分の位置だけを表示。","会議画面に生存者・死亡者の一覧を追加。","AIの役職発言・推理・会話パターンを拡充。","AIプロフィール通信が止まっても4.5秒でローカル設定に切替。"]},
   "0.23":{date:"2026年11月8日",items:["試合開始後に移動とタイマーが進む安定版を復元。","タスクを暗号解読方式に整理。","AIプロフィール取得に失敗した場合もローカル設定で試合を進行。"]}
  };
- const entry=logs[version]||logs["0.31"],root=$("updateLogContent");
+ const entry=logs[version]||logs["0.32"],root=$("updateLogContent");
  if(root)root.innerHTML='<strong>'+("v"+version)+' · '+entry.date+'</strong><ul>'+entry.items.map(item=>'<li>'+item+'</li>').join('')+'</ul>';
 }
 function setHelpTab(tab){const roles=tab==="roles";$("helpRulesPanel").hidden=roles;$("helpRolesPanel").hidden=!roles;$("helpRulesTab").classList.toggle("primary",!roles);$("helpRolesTab").classList.toggle("primary",roles)}
