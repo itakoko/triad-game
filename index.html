@@ -1944,7 +1944,7 @@ function receiveOnlineSnapshot(payload){
  state={...restored,map:maps.lab,me:null,move:localMove,selectedVote:(previousMeeting&&restored.meeting&&previousPhase===restored.meetingPhase)?previousVote:null,aiTurnTimer:null,meetingTimer:null,onlineVoteSubmitted:(previousMeeting&&restored.meeting&&previousPhase===restored.meetingPhase)?previousVoteSubmitted:false,onlineVotedUserIds:payload.votedUserIds||[]};
  state.worldWidth=maps.lab.width;state.worldHeight=maps.lab.height;state.running=true;
  state.scentedIds=state.scentedIds instanceof Set?state.scentedIds:new Set();state.me=state.players.find(p=>p.userId===authUser.id)||null;
- if(state.me&&onlinePrivatePlayer)Object.assign(state.me,onlinePrivatePlayer);if(!state.me)return;
+ if(state.me&&onlinePrivatePlayer)applyOnlinePrivatePlayer();if(!state.me)return;
  $("mapLabel").textContent="マップ：研究施設";$("roleLabel").textContent="役職："+(state.me.role||"確認中");
  $("myRoleText").textContent=state.me.role?"陣営："+teamName(state.me.team)+" ／ 役職："+state.me.role+"。"+roleDescription(state.me):"役職情報を受信しています…";
  $("myStatus").textContent=state.me.alive?"生存":"死亡";$("ghostBanner").hidden=!!state.me.alive;
