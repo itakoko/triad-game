@@ -380,7 +380,7 @@ canvas#mapCanvas{aspect-ratio:16/10;background:#0b1522}
 </section>
 
 </main>
-<footer>TRIAD v0.61 · ランク戦会議接続改善</footer>
+<footer>TRIAD v0.62 · 会議再接続改善</footer>
 
   <div id="onlineConnectionBanner" role="status">オンライン接続が不安定です。<button type="button" onclick="retryOnlineConnection()">再接続</button></div>
   <div class="modal" id="offlineRoleSettingsModal"><div class="modalbox"><h2>通常対戦・役職詳細設定</h2><p class="muted">固定人数を指定した役職は必ず登場します。残りの枠はONになっている役職から出現重みに応じて抽選します。</p>
@@ -652,8 +652,8 @@ async function connectRankedActiveMatch(){
 }
 async function enterRankedServerMatch(snap){
  if(snap?.status!=="ok")throw new Error("試合情報を取得できません。");
- rankedServerMode=true;rankedServerBusy=false;rankedLastMoveAt=rankedLastTickAt=rankedLastStateAt=0;
- state.map=maps.lab;state.worldWidth=maps.lab.width;state.worldHeight=maps.lab.height;state.players=[];state.dead=[];state.move={x:0,y:0};state.camera={x:0,y:0};state.scentedIds=new Set();state.bountyIds=[];state.sabotageUntil=0;state.meeting=false;state.meetingPhase="";state.log=[];
+ rankedServerMode=true;rankedServerBusy=false;rankedMeetingWasActive=false;rankedLastMoveAt=rankedLastTickAt=rankedLastStateAt=0;
+ state.selectedVote=null;state.emergencyMeetingReadyAt=Number(snap.meeting_cooldown_until)||0;state.map=maps.lab;state.worldWidth=maps.lab.width;state.worldHeight=maps.lab.height;state.players=[];state.dead=[];state.move={x:0,y:0};state.camera={x:0,y:0};state.scentedIds=new Set();state.bountyIds=[];state.sabotageUntil=0;state.meeting=false;state.meetingPhase="";state.log=[];
  state.seconds=Number(snap.elapsed_seconds)||0;
  state.tasks=(snap.tasks||[]).map(t=>{const spec=taskKinds[Number(t.id)%taskKinds.length];return{id:Number(t.id),x:Number(t.x),y:Number(t.y),done:!!t.done,quota:4,remaining:Number(t.remaining),completedBy:[],label:spec.label,room:spec.room,kind:spec.kind}});
  state.total=state.tasks.length*4;state.done=state.tasks.reduce((n,t)=>n+(4-Math.max(0,Number(t.remaining)||0)),0);
@@ -666,6 +666,7 @@ async function enterRankedServerMatch(snap){
 }
 function syncRankedMeetingUI(meeting){
  const active=!!meeting?.active,phase=meeting?.phase||"";
+ if(active&&!rankedMeetingWasActive)state.selectedVote=null;
  if(!active){
   if(rankedMeetingWasActive){$("meetingModal").classList.remove("show");state.meeting=false;state.meetingPhase="";state.emergencyMeetingReadyAt=Number(meeting?.cooldown_until)||Date.now()+25000;updateNearbyActions()}
   rankedMeetingWasActive=false;return;
@@ -863,7 +864,7 @@ async function loadRankedProfile(){
 
 function show(id){
  if(!activateScreen(id))return;
- if(id==="home"){renderUpdateLog($("updateVersionSelect")?.value||"0.61");updateResumeGameUI()}
+ if(id==="home"){renderUpdateLog($("updateVersionSelect")?.value||"0.62");updateResumeGameUI()}
  if(id==="accounts")loadAccountDirectoryData();
  if(id==="socialHub")loadSocialHub();
 }
@@ -2807,8 +2808,9 @@ async function leaveOnlineRoom(){
  activeRoomId=null;activeRoomSnapshot=null;await disconnectRoomChannel();show("socialHub");await loadSocialHub();
 }
 
-function renderUpdateLog(version="0.61"){
+function renderUpdateLog(version="0.62"){
  const logs={
+  "0.62":{date:"2026年11月9日",items:["ランク戦の再接続時に投票選択状態・会議状態・緊急会議クールダウンを初期化／復元する処理を調整。"],},
   "0.61":{date:"2026年11月9日",items:["投票済み状態を本人にだけ返し、再接続後の二重投票を防止。ランク戦終了後に通常対戦へ戻る際のモード解除を追加。"],},
   "0.60":{date:"2026年11月9日",items:["ランク戦の緊急会議・議論終了・投票送信・投票結果表示をサーバーエンジンに接続。","投票中の個別投票を非公開にし、サーバー側でAI投票と集計を処理。"],},
   "0.59":{date:"2026年11月9日",items:["ランク戦画面に進行中の試合への再接続を追加。サーバー移動・AI更新・タスク進行を画面側から同期する処理を実装。","会議・役職能力・勝敗判定・ランク確定が未完成のため、新規マッチングは引き続き停止。"],},
