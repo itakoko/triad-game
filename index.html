@@ -558,8 +558,9 @@ function closeTaskPuzzle(){$("taskPuzzleModal").classList.remove("show");activeT
 function renderTaskMiniGame(){
  const root=$("taskMiniGame"),type=activeTaskPuzzle?.type;if(!activeTaskPuzzle)return;
  if(type==="wires"){
-  if(!taskMiniState.done)taskMiniState.done=[];
-  root.innerHTML='<p class="muted">表示された4色の配線ボタンをすべて接続してください。</p><div class="miniChoiceGrid">'+["赤","青","黄","緑"].map((v,i)=>'<button class="miniChoice" style="border-color:'+["#e53935","#1e88e5","#fdd835","#43a047"][i]+'" '+(taskMiniState.done.includes(i)?'disabled':'')+' onclick="connectWire('+i+')">'+v+'の配線</button>').join("")+'</div><p class="muted">接続 '+taskMiniState.done.length+'/4</p>';
+  if(!taskMiniState.done){taskMiniState.done=[];taskMiniState.right=shuffle([0,1,2,3]);taskMiniState.pick=null}
+  const names=["赤","青","黄","緑"],hex=["#e53935","#1e88e5","#fdd835","#43a047"];
+  root.innerHTML='<p class="muted">左側の端子を選び、右側の同じ色の端子を選んで配線してください。</p><div class="miniChoiceGrid"><div>'+names.map((v,i)=>'<button class="miniChoice" style="width:100%;border-color:'+hex[i]+'" '+(taskMiniState.done.includes(i)?'disabled':'')+' onclick="pickWireSide('+i+')">'+v+'側</button>').join("")+'</div><div>'+taskMiniState.right.map(i=>'<button class="miniChoice" style="width:100%;border-color:'+hex[i]+'" '+(taskMiniState.done.includes(i)?'disabled':'')+' onclick="connectWireSide('+i+')">'+names[i]+'側</button>').join("")+'</div></div><p class="muted">接続 '+taskMiniState.done.length+'/4</p>';
  }else if(type==="sort"){
   if(!taskMiniState.order){taskMiniState.order=shuffle([1,2,3,4]);taskMiniState.selected=[]}
   root.innerHTML='<p class="muted">サンプルを番号の小さい順に選んで仕分けてください。</p><div class="miniChoiceGrid">'+taskMiniState.order.map(v=>'<button class="miniChoice" '+(taskMiniState.selected.includes(v)?'disabled':'')+' onclick="chooseSample('+v+')">🧪 試料 '+v+'</button>').join("")+'</div><p class="muted">選択：'+taskMiniState.selected.join(" → ")+'</p>';
@@ -579,7 +580,7 @@ function renderTaskMiniGame(){
  }
 }
 function finishMiniTask(){const task=activeTaskPuzzle;if(!task||!state.running)return;closeTaskPuzzle();if(completeSharedTask(task,state.me)){updateNearbyActions();draw()}}
-function connectWire(v){if(!taskMiniState||taskMiniState.done.includes(v))return;taskMiniState.done.push(v);if(taskMiniState.done.length===4){finishMiniTask();return}renderTaskMiniGame()}
+function pickWireSide(v){if(!taskMiniState||taskMiniState.done.includes(v))return;taskMiniState.pick=v;$("taskPuzzleFeedback").textContent="右側の同じ色を選んでください。"}function connectWireSide(v){if(!taskMiniState||taskMiniState.pick===null)return;if(taskMiniState.pick!==v){taskMiniState.pick=null;$("taskPuzzleFeedback").textContent="色が違います。もう一度選んでください。";return}taskMiniState.done.push(v);taskMiniState.pick=null;$("taskPuzzleFeedback").textContent="接続成功！";if(taskMiniState.done.length===4){finishMiniTask();return}renderTaskMiniGame()}
 function chooseSample(v){const a=taskMiniState.selected;if(v!==a.length+1){taskMiniState.selected=[];$("taskPuzzleFeedback").textContent="順番が違います。最初からやり直してください。";renderTaskMiniGame();return}a.push(v);if(a.length===4){finishMiniTask();return}renderTaskMiniGame()}
 function choosePattern(v){const i=taskMiniState.selected.length;if(taskMiniState.pattern[i]!==v){taskMiniState.selected=[];taskMiniState.pattern=Array.from({length:4},()=>Math.floor(Math.random()*4));$("taskPuzzleFeedback").textContent="順番が違います。もう一度挑戦してください。";renderTaskMiniGame();return}taskMiniState.selected.push(v);if(taskMiniState.selected.length===4){finishMiniTask();return}renderTaskMiniGame()}
 function chooseFrequency(v){if(v===taskMiniState.target)finishMiniTask();else $("taskPuzzleFeedback").textContent="周波数が一致しません。"}
