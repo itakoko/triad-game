@@ -946,7 +946,7 @@ function addSuspicion(memory,id,amount){
 }
 function recordMeetingClaim(speakerId,text,kind=claimKind(text),truth=null,subjectIds=null){
  const ids=subjectIds||mentionedPlayers(text).map(p=>p.id);
- const claim={speakerId,text,kind,truth,subjectIds:ids,at:Date.now()};state.meetingClaims.push(claim);
+ const claim={speakerId,text,kind,truth,subjectIds:ids,at:Date.now()};state.meetingClaims.push(claim);updateMeetingSummary();
  state.players.filter(p=>p.alive&&p.id!==0).forEach(listener=>{
   if(listener.id===speakerId)return;
   const memory=listener.aiMemory,direct=state.meetingEvents.find(e=>e.witnessIds.includes(listener.id));
