@@ -875,7 +875,8 @@ function recordAISightings(){
  });
 }
 function tick(){
-  if(!state.running||state.meeting)return;let p=state.me;
+  // Online clients only render host snapshots; they never simulate movement or AI.
+  if(!state.running||state.meeting||(onlineGame&&!onlineGame.isHost))return;let p=state.me;
   state.players.filter(a=>a.alive&&a.charging).forEach(a=>{
    const step=11,nx=a.x+a.charge.x*step,ny=a.y+a.charge.y*step;
    if(!isWalkable(nx,ny)){a.charging=false;a.roleReadyAt=Date.now()+20000;return}
@@ -884,7 +885,7 @@ function tick(){
    if(hit){killPlayer(hit,a,"突進");if(!a.alive){a.charging=false;return}}
   });
    if(onlineGame?.isHost){state.players.filter(h=>h.isHuman&&(h.alive||h.ghost)&&!h.charging).forEach(h=>{const mv=h.id===state.me.id?state.move:(h.remoteMove||{x:0,y:0}),mag=Math.hypot(mv.x,mv.y)||1,speed=3.5,nx=h.x+(mv.x/mag)*speed,ny=h.y+(mv.y/mag)*speed;if(isWalkable(nx,h.y))h.x=nx;if(isWalkable(h.x,ny))h.y=ny})}else if((p.alive||p.ghost)&&!p.charging){let mag=Math.hypot(state.move.x,state.move.y)||1,speed=3.5,nx=p.x+(state.move.x/mag)*speed,ny=p.y+(state.move.y/mag)*speed;if(isWalkable(nx,p.y))p.x=nx;if(isWalkable(p.x,ny))p.y=ny}
-   state.players.filter(p=>p.id!==0&&!p.isHuman&&!p.isHuman).forEach(a=>{
+   state.players.filter(p=>p.id!==state.me.id&&!p.isHuman).forEach(a=>{
     if(!a.alive||!a.aiGoal)return;
     while(a.aiPath.length&&Math.hypot(a.aiPath[0][0]-a.x,a.aiPath[0][1]-a.y)<12)a.aiPath.shift();
     if(!a.aiPath.length){a.aiGoal=null;return}
@@ -1261,7 +1262,8 @@ function chooseAICombatSuspect(ai,candidates){
  return scores.length&&scores[0].score>=1.0?scores[0].target:null;
 }
 function aiAction(){
- if(!state.running||state.meeting)return;
+ // AI decisions and actions are authoritative on the host only during online matches.
+ if(!state.running||state.meeting||(onlineGame&&!onlineGame.isHost))return;
  const now=Date.now();
  const activeAI=state.players.filter(p=>p.id!==state.me.id&&!p.isHuman&&p.alive);
  for(const actor of activeAI){
