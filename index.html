@@ -130,14 +130,14 @@ canvas#mapCanvas{aspect-ratio:16/10;background:#0b1522}
 </style>
 </head>
 <body>
-<header><div class="logo">TRI<span>AD</span></div><div class="tag">オフライン試作 · v0.32</div></header>
+<header><div class="logo">TRI<span>AD</span></div><div class="tag">オフライン試作 · v0.33</div></header>
 <main>
 <section id="home" class="screen active">
  <div class="hero"><div class="pill">研究施設マップ・探索型推理ゲーム</div><h1>閉鎖された研究所。<br>見えない場所に誰かがいる。</h1><p>部屋と通路を自分で探索し、タスクを進めながら状況を判断します。視界はプレイヤーの周囲に限られます。</p></div>
  <div class="grid">
   <div class="card"><h3>🎮 ゲームを始める</h3><p class="muted">AIと対戦するオフライン試合を開始します。</p><button class="primary" style="width:100%" onclick="show('setup')">試合設定へ</button></div>
   <div class="card"><h3>📘 遊び方</h3><p class="muted">試作版のルールと操作方法を確認します。</p><button style="width:100%" onclick="openHelp()">ルールを見る</button></div>
-  <div class="card"><h3>📋 アップデートログ</h3><p class="muted">見たいバージョンを選択してください。</p><div class="field"><label for="updateVersionSelect">バージョン</label><select id="updateVersionSelect" onchange="renderUpdateLog(this.value)"><option value="0.32">v0.32（最新）</option><option value="0.31">v0.31</option><option value="0.29">v0.29</option><option value="0.28">v0.28</option><option value="0.27">v0.27</option><option value="0.26">v0.26</option><option value="0.25">v0.25</option><option value="0.23">v0.23</option></select></div><div id="updateLogContent" class="updateLogContent" aria-live="polite"></div></div>
+  <div class="card"><h3>📋 アップデートログ</h3><p class="muted">見たいバージョンを選択してください。</p><div class="field"><label for="updateVersionSelect">バージョン</label><select id="updateVersionSelect" onchange="renderUpdateLog(this.value)"><option value="0.33">v0.33（最新）</option><option value="0.32">v0.32</option><option value="0.31">v0.31</option><option value="0.29">v0.29</option><option value="0.28">v0.28</option><option value="0.27">v0.27</option><option value="0.26">v0.26</option><option value="0.25">v0.25</option><option value="0.23">v0.23</option></select></div><div id="updateLogContent" class="updateLogContent" aria-live="polite"></div></div>
  </div>
 </section>
 
@@ -284,6 +284,7 @@ let loop=null,clock=null;
 const colorNames=["赤","青","黄色","紫","緑","オレンジ","ピンク","水色","黄緑","茶色","紺","マゼンタ","青緑","金","サーモン","ライム","群青","ラベンダー","朱色","ターコイズ","黄土","ローズ","エメラルド","コバルト","レモン","ワイン","ミント","藤色","銅色","白"];
 const colors=["#e53935","#1e88e5","#fdd835","#8e24aa","#43a047","#fb8c00","#ec407a","#00acc1","#7cb342","#8d6e63","#3949ab","#d81b60","#00897b","#c0a000","#ff7043","#c0ca33","#283593","#9575cd","#f4511e","#26a69a","#b08d00","#ad1457","#00a152","#1565c0","#f9a825","#6d1b3b","#66bb6a","#7e57c2","#a65e2e","#eeeeee"];
 const naturalAINames=["ねこもち","もちもち","しろくま","くろまめ","ぽてと","ぷりん","たこやき","しらす","ぺんぎん","からあげ","こむぎ","みたらし","ねむねむ","うさぎもち","わたあめ","めんだこ","ましゅまろ","こんぺいとう","ほっとけーき","おにぎり","きなこもち","すいか","りんごあめ","ぽんず","ふわり","もちぱん","しおこんぶ","だいふく","ちくわ","くりーむ"];let gameNameDeck=[];function fallbackAIName(index){return gameNameDeck[index-1]||naturalAINames[(index-1)%naturalAINames.length]}function playerTag(p){return `#${String(p.number||p.id+1).padStart(2,"0")} ${p.name}`}
+function meetingNameColor(p){return state.meeting&&state.me?.team==="black"&&p?.team==="black"&&p.id!==state.me.id?"#ff777e":"";}
 function show(id){document.querySelectorAll(".screen").forEach(s=>s.classList.remove("active"));$(id).classList.add("active");if(id==="home")renderUpdateLog($("updateVersionSelect")?.value||"0.28")}
 function log(t){}
 function rand(a,b){return Math.random()*(b-a)+a}
@@ -321,7 +322,7 @@ async function startGame(){
   startAudio();
  let teams=shuffle(Array(black).fill("black").concat(Array(third).fill("third"),Array(white).fill("white")));
  const roleQueues={white:[...roleAssignments.white],black:[...roleAssignments.black],third:[...(roleAssignments.third||[])]};
-  const startedAt=Date.now(),profileDeck=shuffle([...aiProfilePool]);gameNameDeck=shuffle([...naturalAINames]);profileDeck.forEach(profile=>{profile.memory=loadAILongTermMemory(profile.id)});
+  const startedAt=Date.now(),profileDeck=shuffle([...aiProfilePool]);gameNameDeck=shuffle([...naturalAINames]);profileDeck.forEach(profile=>{profile.memory={...(profile.memory||{}),...loadAILongTermMemory(profile.id)}});
      for(let i=0;i<ai+1;i++){let spawn=i===0?[250,250]:randomSpawn();let team=teams[i],profile=i===0?null:(profileDeck[i-1]||null);let p={id:i,name:i===0?"あなた":fallbackAIName(i),number:i+1,team,role:roleQueues[team].pop(),aiProfile:profile,alive:true,ghost:false,x:spawn[0],y:spawn[1],color:colors[i%colors.length],colorName:colorNames[i%colorNames.length],shape:i%4,taskCount:0,partnerId:null,protected:false,abilityUsed:false,roleReadyAt:startedAt,killReadyAt:startedAt+(team==="black"?30000:0),sabotageReadyAt:startedAt+(team==="black"?35000:0),emergencyReadyAt:startedAt+rand(30000,65000),aiNextGoalAt:startedAt+rand(2500,8000),aiNextTaskAt:startedAt+rand(3500,6500),aiTaskIndex:null,aiGoal:null,aiPath:[],disguiseId:null,disguiseUntil:0,charging:false,charge:{x:0,y:0},scented:false,aiMemory:{suspicion:{},trust:{},sightings:{}}};state.players.push(p)}
  state.me=state.players[0];
   const lovers=state.players.filter(p=>p.role==="恋人");
@@ -918,9 +919,11 @@ function aiAction(){
 }
 function report(){if(!state.running||!state.me.alive||!state.nearBody)return;callMeeting("近くの死体を発見しました。");}
 function callEmergency(){if(!state.running||!state.me.alive||!state.nearEmergency)return;callMeeting("研究所中央の緊急会議ボタンが押されました。");}
-function appendMeetingMessage(name,text,kind="ai"){
+function appendMeetingMessage(name,text,kind="ai",player=null){
  const box=$("meetingChat"),message=document.createElement("div"),speaker=document.createElement("span"),body=document.createElement("span");
- message.className="chatMessage "+kind;speaker.className="chatName";speaker.textContent=name;body.textContent=text;
+ message.className="chatMessage "+kind;speaker.className="chatName";speaker.textContent=name;
+ const allyColor=meetingNameColor(player);if(allyColor)speaker.style.color=allyColor;
+ body.textContent=text;
  message.appendChild(speaker);message.appendChild(body);box.appendChild(message);box.scrollTop=box.scrollHeight;
  updateMeetingSummary();
 }
@@ -1085,7 +1088,23 @@ function buildAIResponseToPlayer(ai,claim){
  if(!claim)return null;
  const speaker=state.players.find(p=>p.id===claim.speakerId);
  const named=(claim.subjectIds||[]).map(id=>state.players.find(p=>p.id===id)).filter(Boolean);
- const target=named[0],speakerName=speaker?.name||"あなた",text=claim.text||"";
+ const target=named[0],speakerName=speaker?.name||"参加者",text=claim.text||"";
+ const directEvent=state.meetingEvents.find(e=>e.witnessIds.includes(ai.id));
+ const isQuestion=/[?？]|誰か|どこ|いつ|本当|教えて|説明して|なぜ|見た/.test(text);
+ if(isQuestion){
+  if(directEvent){
+   const killer=state.players.find(p=>p.id===directEvent.killerId),victim=state.players.find(p=>p.id===directEvent.victimId);
+   if(killer&&victim)return {text:`自分は現場を直接見た。${directEvent.room}で${killer.name}が${victim.name}を攻撃していた。`,kind:"witness",truth:true,subjectIds:[killer.id,victim.id]};
+  }
+  return {text:target?`${speakerName}の質問だけど、${target.name}について自分は決定的な場面を直接見ていない。ほかに目撃した人はいる？`:`${speakerName}の質問に答えると、自分が直接確認した情報はまだない。推測だけで答えず、目撃した人の話を聞きたい。`,kind:"general",truth:null,subjectIds:target?[target.id]:[]};
+ }
+ if(target&&/怪しい|疑|犯人|黒|投票|追放/.test(text)){
+  if(directEvent&&directEvent.killerId===target.id){
+   const victim=state.players.find(p=>p.id===directEvent.victimId);
+   return {text:`${speakerName}の意見について、自分も${target.name}を現場で見ている。${victim?.name||"被害者"}への行動を直接確認した。`,kind:"witness",truth:true,subjectIds:[target.id]};
+  }
+  return {text:`${speakerName}は${target.name}を疑っているんだね。理由を確認したい。直接見たことと推測を分けて説明してほしい。`,kind:"general",truth:null,subjectIds:[target.id]};
+ }
  const recent=state.meetingClaims.slice(-5).filter(c=>c.speakerId!==ai.id);
  const recentTargets=[...new Set(recent.flatMap(c=>(c.subjectIds||[]).map(id=>state.players.find(p=>p.id===id)?.name).filter(Boolean)))];
  const options=[];
@@ -1127,10 +1146,10 @@ function buildAIResponseToPlayer(ai,claim){
 }
 function makeAITakeTurn(ai){
  if(!ai||!ai.alive||!state.meeting||state.meetingPhase!=="discussion")return;
- const lastPlayer=state.meetingClaims.slice().reverse().find(c=>c.speakerId===state.me.id&&(!ai.lastRespondedClaimAt||c.at>ai.lastRespondedClaimAt));
- const statement=lastPlayer?buildAIResponseToPlayer(ai,lastPlayer):buildAIStatement(ai);
- if(lastPlayer)ai.lastRespondedClaimAt=lastPlayer.at;
- appendMeetingMessage(playerTag(ai),statement.text,"ai");
+ const pendingClaim=state.meetingClaims.slice().reverse().find(c=>c.speakerId!==ai.id&&(!ai.lastRespondedClaimAt||c.at>ai.lastRespondedClaimAt));
+ const statement=pendingClaim?buildAIResponseToPlayer(ai,pendingClaim):buildAIStatement(ai);
+ if(pendingClaim)ai.lastRespondedClaimAt=pendingClaim.at;
+ appendMeetingMessage(playerTag(ai),statement.text,"ai",ai);
  recordMeetingClaim(ai.id,statement.text,statement.kind,statement.truth,statement.subjectIds);
  state.aiTurnCount++;
 }
@@ -1142,9 +1161,8 @@ function scheduleAITurn(delay=2200){
   if(!state.meeting||state.meetingPhase!=="discussion"||state.meetingSecondsLeft<=0)return;
   let speakers=shuffle(state.players.filter(p=>p.alive&&p.id!==state.me.id));
   if(!speakers.length)return;
-  const unanswered=state.meetingClaims.some(c=>c.speakerId===state.me.id&&speakers.some(p=>!p.lastRespondedClaimAt||p.lastRespondedClaimAt<c.at));
-  let speaker=unanswered?speakers.find(p=>!p.lastRespondedClaimAt||p.lastRespondedClaimAt<state.meetingClaims.slice().reverse().find(c=>c.speakerId===state.me.id)?.at):null;
-  if(!speaker)speaker=speakers[Math.floor(Math.random()*speakers.length)];
+  const latestClaims=state.meetingClaims.slice().reverse();
+  const speaker=speakers.find(p=>latestClaims.some(c=>c.speakerId!==p.id&&(!p.lastRespondedClaimAt||c.at>p.lastRespondedClaimAt)))||speakers[Math.floor(Math.random()*speakers.length)];
   makeAITakeTurn(speaker);
   scheduleAITurn(2600+Math.floor(Math.random()*1900));
  },delay);
@@ -1152,7 +1170,7 @@ function scheduleAITurn(delay=2200){
 function sendMeetingMessage(){
  if(!state.meeting||state.meetingPhase!=="discussion"||!state.me.alive)return;
  const input=$("meetingChatInput"),text=input.value.trim();if(!text)return;
- appendMeetingMessage(playerTag(state.me),text,"self");recordMeetingClaim(state.me.id,text);input.value="";
+ appendMeetingMessage(playerTag(state.me),text,"self",state.me);recordMeetingClaim(state.me.id,text);input.value="";
  scheduleAITurn(500);
 }
 function callMeeting(message="会議が招集されました。",caller=state.me){
@@ -1182,7 +1200,7 @@ function beginVoting(auto=false){
  state.selectedVote=state.me.alive?null:"ghost";$("selectedVoteText").textContent=state.me.alive?"投票先：未選択":"👻 幽霊は投票できません";$("submitVoteAction").disabled=state.me.alive;$("submitVoteAction").textContent=state.me.alive?"投票を確定":"AIの投票結果を表示";
  $("voteResult").textContent="";$("voteBreakdown").textContent="";$("ballotBreakdown").textContent="";
  const alive=state.players.filter(p=>p.alive);
- $("voteList").innerHTML=alive.map(p=>`<button data-vote-id="${p.id}" onclick="castVote(${p.id})"><span class="dot" style="background:${p.color}"></span>${playerTag(p)}<small style="color:${p.color}">(${p.colorName||"色"})</small></button>`).join("");
+ $("voteList").innerHTML=alive.map(p=>`<button data-vote-id="${p.id}" onclick="castVote(${p.id})"><span class="dot" style="background:${p.color}"></span><span style="color:${meetingNameColor(p)||"inherit"}">${playerTag(p)}</span><small style="color:${p.color}">(${p.colorName||"色"})</small></button>`).join("");
  if(!state.me.alive)$("voteList").querySelectorAll("button").forEach(b=>b.disabled=true);
 }
 function openMap(){if(!state.running||!state.me.alive)return;drawOverview();$("mapModal").classList.add("show")}
@@ -1197,7 +1215,7 @@ function drawOverview(canvasId="overviewCanvas",meetingMode=false){
   [state.me].filter(Boolean).forEach(p=>{ctx.fillStyle=p.color;ctx.beginPath();ctx.arc(p.x,p.y,18,0,Math.PI*2);ctx.fill();ctx.strokeStyle="#101820";ctx.lineWidth=6;ctx.stroke();ctx.strokeStyle="#fff";ctx.lineWidth=2;ctx.stroke()});ctx.restore();
 }
 function toggleMeetingMap(force){const panel=$("meetingMapPanel"),button=$("meetingMapToggle");const open=typeof force==="boolean"?force:panel.hidden;panel.hidden=!open;if(open){drawOverview("meetingOverviewCanvas",true);button.textContent="🗺 マップを閉じる"}else button.textContent="🗺 マップを表示"}
-function renderMeetingAliveList(){const alive=state.players.filter(p=>p.alive),dead=state.players.filter(p=>!p.alive);$("meetingAliveSummary").textContent=`生存：${alive.length}人　／　死亡：${dead.length}人　／　合計：${state.players.length}人`;$("meetingAliveList").innerHTML=[...alive.map(p=>`<div class="meetingAliveItem"><span class="dot" style="background:${p.color}"></span><span>${playerTag(p)}</span><small style="color:#8de2c5">生存</small></div>`),...dead.map(p=>`<div class="meetingAliveItem" style="opacity:.78"><span class="dot" style="background:${p.color}"></span><span style="text-decoration:line-through">${playerTag(p)}</span><small style="color:#ff9299">死亡</small></div>`)].join("")}
+function renderMeetingAliveList(){const alive=state.players.filter(p=>p.alive),dead=state.players.filter(p=>!p.alive);$("meetingAliveSummary").textContent=`生存：${alive.length}人　／　死亡：${dead.length}人　／　合計：${state.players.length}人`;$("meetingAliveList").innerHTML=[...alive.map(p=>`<div class="meetingAliveItem"><span class="dot" style="background:${p.color}"></span><span style="color:${meetingNameColor(p)||"inherit"}">${playerTag(p)}</span><small style="color:#8de2c5">生存</small></div>`),...dead.map(p=>`<div class="meetingAliveItem" style="opacity:.78"><span class="dot" style="background:${p.color}"></span><span style="text-decoration:line-through;color:${meetingNameColor(p)||"inherit"}">${playerTag(p)}</span><small style="color:#ff9299">死亡</small></div>`)].join("")}
 function castVote(id){
  if(!state.meeting||state.meetingPhase!=="voting"||!state.me.alive)return;
  const target=state.players.find(p=>p.id===Number(id)&&p.alive);if(!target)return;
@@ -1298,8 +1316,9 @@ function endGame(msg,winners={teams:[]}){
  $("gameOverModal").classList.add("show");
 }
 function endToHome(){if(state.running)saveAILongTermMemories({teams:[]},true);state.running=false;clearInterval(loop);clearInterval(clock);stopMove();stopBGM();document.querySelectorAll(".modal").forEach(m=>m.classList.remove("show"));show("home")}
-function renderUpdateLog(version="0.32"){
+function renderUpdateLog(version="0.33"){
  const logs={
+  "0.33":{date:"2026年11月8日",items:["黒陣営で会議に参加したとき、自分の味方の名前を自分の画面だけ赤色で表示。","AIがプレイヤーだけでなく他のAIの質問・意見にも順番に反応し、確認した情報と推測を分けて回答。","AIアカウント200体が10分ごとに3回の自動練習試合を行い、個体差を保ちながら能力値を成長。"]},
   "0.32":{date:"2026年11月8日",items:["名前が出ただけでは疑いスコアが上がらないよう修正。","実際のキル現場を直接目撃した証言を、疑いの根拠として優先。","根拠が足りない場合、AIは無理に犯人を決めず質問や確認を行うよう改善。"]},
   "0.31":{date:"2026年11月8日",items:["暗殺者を含む第三陣営・黒陣営のAIが役職COしないように修正。","役職COは白陣営のAIだけが状況に応じて行うよう変更。","会議中のAI発言を短くし、質問・反論・補足が自然に交わる会話に調整。"]},
   "0.29":{date:"2026年11月8日",items:["会議のリアルタイム要約に疑われている人の順位・疑いの強さ・理由を表示。","目撃証言と現場記録を疑い順位に反映。","10か所のタスクをすべて別々のミニゲームに変更。"]},
