@@ -123,14 +123,14 @@ canvas#mapCanvas{aspect-ratio:16/10;background:#0b1522}
 </style>
 </head>
 <body>
-<header><div class="logo">TRI<span>AD</span></div><div class="tag">オフライン試作 · v0.25</div></header>
+<header><div class="logo">TRI<span>AD</span></div><div class="tag">オフライン試作 · v0.26</div></header>
 <main>
 <section id="home" class="screen active">
  <div class="hero"><div class="pill">研究施設マップ・探索型推理ゲーム</div><h1>閉鎖された研究所。<br>見えない場所に誰かがいる。</h1><p>部屋と通路を自分で探索し、タスクを進めながら状況を判断します。視界はプレイヤーの周囲に限られます。</p></div>
  <div class="grid">
   <div class="card"><h3>🎮 ゲームを始める</h3><p class="muted">AIと対戦するオフライン試合を開始します。</p><button class="primary" style="width:100%" onclick="show('setup')">試合設定へ</button></div>
   <div class="card"><h3>📘 遊び方</h3><p class="muted">試作版のルールと操作方法を確認します。</p><button style="width:100%" onclick="openHelp()">ルールを見る</button></div>
-  <div class="card"><h3>📋 アップデートログ</h3><p class="muted">見たいバージョンを選択してください。</p><div class="field"><label for="updateVersionSelect">バージョン</label><select id="updateVersionSelect" onchange="renderUpdateLog(this.value)"><option value="0.25">v0.25（最新）</option><option value="0.24">v0.25</option><option value="0.23">v0.23</option></select></div><div id="updateLogContent" class="updateLogContent" aria-live="polite"></div></div>
+  <div class="card"><h3>📋 アップデートログ</h3><p class="muted">見たいバージョンを選択してください。</p><div class="field"><label for="updateVersionSelect">バージョン</label><select id="updateVersionSelect" onchange="renderUpdateLog(this.value)"><option value="0.26">v0.26（最新）</option><option value="0.25">v0.25</option><option value="0.23">v0.23</option></select></div><div id="updateLogContent" class="updateLogContent" aria-live="polite"></div></div>
  </div>
 </section>
 
@@ -186,7 +186,7 @@ canvas#mapCanvas{aspect-ratio:16/10;background:#0b1522}
 </section>
 
 </main>
-<footer>TRIAD v0.25 · 研究施設 · オフライン版</footer>
+<footer>TRIAD v0.26 · 研究施設 · オフライン版</footer>
 
   <div class="modal" id="mapModal"><div class="modalbox"><h2>研究施設マップ</h2><canvas id="overviewCanvas" width="900" height="600"></canvas><div class="mapLegend"><span>● あなた　♥ 恋人の相手（恋人のみ）</span><span>● タスク端末</span><span>■ 緊急会議ボタン</span><span>！ 手配書端末</span><span>■ 遮蔽物・チェイスカバー</span><span>× 死体</span></div><button class="primary" style="width:100%" onclick="closeMap()">閉じる</button></div></div>
  <div class="modal" id="targetModal"><div class="modalbox"><h2 id="targetTitle">対象を選択</h2><p id="targetInfo" class="muted"></p><div id="targetList" class="targetList"></div><button style="width:100%" onclick="closeTargetModal()">キャンセル</button></div></div>
@@ -1101,13 +1101,14 @@ function endGame(msg,winners={teams:[]}){
  $("gameOverModal").classList.add("show");
 }
 function endToHome(){if(state.running)saveAILongTermMemories({teams:[]},true);state.running=false;clearInterval(loop);clearInterval(clock);stopMove();stopBGM();document.querySelectorAll(".modal").forEach(m=>m.classList.remove("show"));show("home")}
-function renderUpdateLog(version="0.25"){
+function renderUpdateLog(version="0.26"){
  const logs={
+  "0.26":{date:"2026年11月8日",items:["スマートフォン専用レイアウトを追加。縦長画面で操作パネルを画面下部に固定。","タブレットの従来レイアウトは維持。","小型スマートフォンと横向き画面にも表示を調整。"]},
   "0.25":{date:"2026年11月8日",items:["通常マップでも自分以外のプレイヤー位置を非表示に変更（恋人の相手の位置も表示しません）。","アップデートログにバージョン選択機能を追加。","v0.24までの更新履歴を選択して確認できるように整理。"]},
   "0.24":{date:"2026年11月8日",items:["会議マップは自分の位置だけを表示。","会議画面に生存者・死亡者の一覧を追加。","AIの役職発言・推理・会話パターンを拡充。","AIプロフィール通信が止まっても4.5秒でローカル設定に切替。"]},
   "0.23":{date:"2026年11月8日",items:["試合開始後に移動とタイマーが進む安定版を復元。","タスクを暗号解読方式に整理。","AIプロフィール取得に失敗した場合もローカル設定で試合を進行。"]}
  };
- const entry=logs[version]||logs["0.25"],root=$("updateLogContent");
+ const entry=logs[version]||logs["0.26"],root=$("updateLogContent");
  if(root)root.innerHTML='<strong>'+("v"+version)+' · '+entry.date+'</strong><ul>'+entry.items.map(item=>'<li>'+item+'</li>').join('')+'</ul>';
 }
 function setHelpTab(tab){const roles=tab==="roles";$("helpRulesPanel").hidden=roles;$("helpRolesPanel").hidden=!roles;$("helpRulesTab").classList.toggle("primary",!roles);$("helpRolesTab").classList.toggle("primary",roles)}
