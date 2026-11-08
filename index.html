@@ -380,7 +380,7 @@ canvas#mapCanvas{aspect-ratio:16/10;background:#0b1522}
 </section>
 
 </main>
-<footer>TRIAD v0.67 · サーバー能力・勝利判定</footer>
+<footer>TRIAD v0.68 · 変身表示同期</footer>
 
   <div id="onlineConnectionBanner" role="status">オンライン接続が不安定です。<button type="button" onclick="retryOnlineConnection()">再接続</button></div>
   <div class="modal" id="offlineRoleSettingsModal"><div class="modalbox"><h2>通常対戦・役職詳細設定</h2><p class="muted">固定人数を指定した役職は必ず登場します。残りの枠はONになっている役職から出現重みに応じて抽選します。</p>
@@ -866,7 +866,7 @@ async function loadRankedProfile(){
 
 function show(id){
  if(!activateScreen(id))return;
- if(id==="home"){renderUpdateLog($("updateVersionSelect")?.value||"0.67");updateResumeGameUI()}
+ if(id==="home"){renderUpdateLog($("updateVersionSelect")?.value||"0.68");updateResumeGameUI()}
  if(id==="accounts")loadAccountDirectoryData();
  if(id==="socialHub")loadSocialHub();
 }
@@ -2837,8 +2837,9 @@ async function leaveOnlineRoom(){
  activeRoomId=null;activeRoomSnapshot=null;await disconnectRoomChannel();show("socialHub");await loadSocialHub();
 }
 
-function renderUpdateLog(version="0.67"){
+function renderUpdateLog(version="0.68"){
  const logs={
+  "0.68":{date:"2026年11月9日",items:["百面相の変身中に、他プレイヤーの色・形・表示名を画面上で再現し、変身終了後に本人の表示へ戻す処理を追加。"],},
   "0.67":{date:"2026年11月9日",items:["ランク戦の実装状況を更新。対応済みの5役職能力、タスク／陣営／個人目標の勝利確定、ランク更新を明記。"],},
   "0.66":{date:"2026年11月9日",items:["能力の使用済み状態・再使用待機を再接続時に復元。対象の遮蔽物チェックをサーバー側に追加し、未対応能力はランク戦画面で無効化。"],},
   "0.65":{date:"2026年11月9日",items:["百面相の変身表示をサーバー同期し、放浪者の匂い付与状況を本人の再接続時に復元。タスク完了による試合終了表示を追加。"],},
