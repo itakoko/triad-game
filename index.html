@@ -242,7 +242,7 @@ canvas#mapCanvas{aspect-ratio:16/10;background:#0b1522}
  <div class="card">
   <div class="row" style="justify-content:space-between"><div><div class="muted">部屋コード</div><div class="stat" id="activeRoomCode">------</div></div><button onclick="copyActiveRoomCode()">コードをコピー</button></div>
   <div id="activeRoomInfo" class="muted">部屋情報を読み込み中…</div>
-  <p class="muted">※現在はフレンド・部屋作成・待機室・設定まで利用できます。実際の試合開始後の移動・会議・投票を全員に同期する機能は、次の実装段階です。</p>
+  <p class="muted">※現在はフレンド・部屋作成・待機室・設定まで利用できます。試合中の移動・能力・タスク・会議・チャット・投票はホストを通じて同期します。オンライン役職はホストが割り当て、参加者ごとに非公開配信します。</p>
   <div class="accountSection"><h3>参加者</h3><div id="activeRoomMembers" class="targetList"></div></div>
   <div class="accountSection" id="hostRoomSettings">
    <h3>ホスト設定</h3>
@@ -256,7 +256,7 @@ canvas#mapCanvas{aspect-ratio:16/10;background:#0b1522}
     <div class="field"><label>第三陣営</label><select id="editRoomThird"><option>0</option><option>1</option><option>2</option><option>3</option><option>4</option></select></div>
    </div>
    <label><input id="editRoomSpecial" type="checkbox" style="width:auto;margin-right:8px" onchange="renderRoleConfigEditor(activeRoomSnapshot?.settings)">特別モード：役職重複を許可</label>
-   <p class="muted">各役職の人数を指定します。0はその役職を登場させません。指定人数が陣営人数に満たない場合、残りは自動補充します。通常モードは同じ特殊役職1人まで、特別モードは複数人にできます。</p><div id="roleConfigEditor"></div><div id="roleConfigSummary" class="muted" aria-live="polite" style="padding:10px;background:#101a2a;border-radius:10px;margin-top:10px">役職構成を入力すると、ここに人数の内訳が表示されます。</div>
+   <p class="muted">各役職の人数を指定します。チェックを外すと登場しません。固定人数と自動補充の出現重みを別々に設定できます。重複は全体または役職ごとに許可できます。</p><div id="roleConfigEditor"></div><div id="roleConfigSummary" class="muted" aria-live="polite" style="padding:10px;background:#101a2a;border-radius:10px;margin-top:10px">役職構成を入力すると、ここに人数の内訳が表示されます。</div>
    <button style="width:100%;margin-top:10px" onclick="saveRoomSettings()">設定を保存</button>
   </div>
   <div class="row" style="margin-top:14px"><button id="roomReadyButton" class="primary" onclick="toggleRoomReady()">準備完了</button><button id="roomStartButton" class="primary" hidden onclick="startOnlineMatch()">試合開始</button><button class="warn" onclick="leaveOnlineRoom()">退出する</button></div>
@@ -292,7 +292,7 @@ canvas#mapCanvas{aspect-ratio:16/10;background:#0b1522}
 </section>
 
 </main>
-<footer>TRIAD v0.45 · オンライン同期・入力検証強化</footer>
+<footer>TRIAD v0.46 · 役職選択・出現確率・重複設定</footer>
 
   <div class="modal" id="mapModal"><div class="modalbox"><h2>研究施設マップ</h2><canvas id="overviewCanvas" width="900" height="600"></canvas><div class="mapLegend"><span>● あなた　♥ 恋人の相手（恋人のみ）</span><span>● タスク端末</span><span>■ 緊急会議ボタン</span><span>！ 手配書端末</span><span>■ 遮蔽物・チェイスカバー</span><span>× 死体</span></div><button class="primary" style="width:100%" onclick="closeMap()">閉じる</button></div></div>
  <div class="modal" id="targetModal"><div class="modalbox"><h2 id="targetTitle">対象を選択</h2><p id="targetInfo" class="muted"></p><div id="targetList" class="targetList"></div><button style="width:100%" onclick="closeTargetModal()">キャンセル</button></div></div>
@@ -684,9 +684,9 @@ async function startGame(){
  if(white>9&&!activeRoomSnapshot?.special_mode){alert("通常モードの白陣営は最大9人です。人数を調整してください。");return}
  if(state.aiTurnTimer)clearTimeout(state.aiTurnTimer);
  state.map=maps.lab;state.worldWidth=state.map.width;state.worldHeight=state.map.height;state.players=[];state.dead=[];state.seconds=0;state.done=0;state.total=Math.floor(rand(53,58));state.log=[];state.camera={x:0,y:0};state.bountyIds=[];state.scentedIds=new Set();state.sabotageUntil=0;state.targetAction=null;state.lastDirection={x:1,y:0};state.meetingPhase="";state.selectedVote=null;state.lastBallots=[];state.meetingClaims=[];state.meetingEvents=[];state.aiTurnCount=0;state.aiTurnTimer=null;state.sightTick=0;state.killEvents=[];
- const roleCounts=onlineHost?activeRoomSnapshot.settings?.role_counts:null,special=onlineHost&&!!activeRoomSnapshot.special_mode;let roleQueues;
+ const roleSettings=onlineHost?activeRoomSnapshot.settings||{}:{},roleCounts=roleSettings.role_counts||null,special=onlineHost&&!!activeRoomSnapshot.special_mode;let roleQueues;
  try{
-  if(special||(roleCounts&&Object.values(roleCounts).some(v=>Number(v)>0)))roleQueues=configuredRoleQueues(roleCounts||{},{white,black,third},special);
+  if(onlineHost||special||(roleCounts&&Object.values(roleCounts).some(v=>Number(v)>0)))roleQueues=configuredRoleQueues(roleCounts||{},{white,black,third},special,roleSettings);
   else roleQueues={white:makeRoles("white",white),black:makeRoles("black",black),third:makeRoles("third",third,white)};
  }catch(e){alert(e.message||"役職設定が不正です。");return}
  if(!roleQueues.white||!roleQueues.black||(third>0&&!roleQueues.third)){alert("この人数では役職を割り当てられません。役職設定を調整してください。");return}
@@ -1958,18 +1958,18 @@ function resolveOnlineVotes(){
  onlineVotes.clear();updateNearbyActions();draw();
 }
 function renderRoleConfigEditor(settings={}){
- const root=$("roleConfigEditor");if(!root)return;const counts=settings?.role_counts||{};
- root.innerHTML=ROLE_CONFIG_GROUPS.map(g=>'<div class="accountSection"><b>'+g.label+'</b><div class="grid">'+g.roles.map(role=>'<div class="field"><label>'+escapeAccountText(role)+'</label><input type="number" min="0" max="30" step="1" data-role-count="'+escapeAccountText(role)+'" value="'+Number(counts[role]||0)+'" inputmode="numeric" oninput="updateRoleConfigSummary()"></div>').join("")+'</div></div>').join("");
+ const root=$("roleConfigEditor");if(!root)return;const counts=settings?.role_counts||{},enabled=settings?.role_enabled||{},weights=settings?.role_weights||{},duplicates=settings?.role_duplicate_allowed||{};
+ root.innerHTML=ROLE_CONFIG_GROUPS.map(g=>'<div class="accountSection"><b>'+g.label+'</b><div class="grid">'+g.roles.map(role=>{const on=enabled[role]===undefined?true:!!enabled[role];return '<div class="field"><label><input type="checkbox" data-role-enabled="'+escapeAccountText(role)+'" '+(on?'checked':'')+' onchange="updateRoleConfigSummary()" style="width:auto;margin-right:6px">'+escapeAccountText(role)+'</label><label class="muted">固定人数</label><input type="number" min="0" max="30" step="1" data-role-count="'+escapeAccountText(role)+'" value="'+Number(counts[role]||0)+'" inputmode="numeric" oninput="updateRoleConfigSummary()"><label class="muted">自動補充の出現重み</label><input type="number" min="0" max="100" step="1" data-role-weight="'+escapeAccountText(role)+'" value="'+Math.max(0,Math.min(100,Number(weights[role]??1)))+'" inputmode="numeric"><label class="muted"><input type="checkbox" data-role-duplicate="'+escapeAccountText(role)+'" '+(duplicates[role]?'checked':'')+' style="width:auto;margin-right:6px">この役職の重複を許可</label></div>'}).join("")+'</div></div>').join("");
  ["editRoomMaxHumans","editRoomAICount","editRoomBlack","editRoomThird","editRoomSpecial"].forEach(id=>{const el=$(id);if(el)el.onchange=updateRoleConfigSummary});
  updateRoleConfigSummary();
 }
 function readRoleConfigEditor(){
- const out={};document.querySelectorAll("#roleConfigEditor [data-role-count]").forEach(el=>out[el.dataset.roleCount]=Math.max(0,Math.min(30,Math.floor(Number(el.value)||0))));
- return Object.values(out).some(v=>v>0)?out:null;
+ const collect=(selector,key,checkbox)=>{const out={};document.querySelectorAll("#roleConfigEditor "+selector).forEach(el=>out[el.dataset[key]]=checkbox?el.checked:Math.max(0,Math.min(100,Number(el.value)||0)));return out};
+ return {role_counts:collect("[data-role-count]","roleCount",false),role_enabled:collect("[data-role-enabled]","roleEnabled",true),role_weights:collect("[data-role-weight]","roleWeight",false),role_duplicate_allowed:collect("[data-role-duplicate]","roleDuplicate",true)};
 }
 function updateRoleConfigSummary(){
  const root=$("roleConfigSummary");if(!root)return;
- const counts={};document.querySelectorAll("#roleConfigEditor [data-role-count]").forEach(el=>counts[el.dataset.roleCount]=Math.max(0,Math.min(30,Math.floor(Number(el.value)||0))));
+ const counts={},enabled={},weights={},duplicates={};document.querySelectorAll("#roleConfigEditor [data-role-count]").forEach(el=>counts[el.dataset.roleCount]=Math.max(0,Math.min(30,Math.floor(Number(el.value)||0))));document.querySelectorAll("#roleConfigEditor [data-role-enabled]").forEach(el=>enabled[el.dataset.roleEnabled]=el.checked);document.querySelectorAll("#roleConfigEditor [data-role-weight]").forEach(el=>weights[el.dataset.roleWeight]=Math.max(0,Math.min(100,Number(el.value)||0)));document.querySelectorAll("#roleConfigEditor [data-role-duplicate]").forEach(el=>duplicates[el.dataset.roleDuplicate]=el.checked);
  const humans=Number(activeRoomSnapshot?.members?.length??$("editRoomMaxHumans")?.value??6);
  const ai=Number($("editRoomAICount")?.value||activeRoomSnapshot?.ai_count||6);
  const total=humans+ai,black=Number($("editRoomBlack")?.value||activeRoomSnapshot?.settings?.black_count||2),third=Number($("editRoomThird")?.value||activeRoomSnapshot?.settings?.third_count||0),white=total-black-third;
@@ -1978,33 +1978,43 @@ function updateRoleConfigSummary(){
   const chosen=g.roles.reduce((sum,r)=>sum+(counts[r]||0),0),available=g.team==="white"?white:g.team==="black"?black:third;
   return {label:g.label,chosen,available,fill:Math.max(0,available-chosen),over:chosen>available};
  });
- const duplicates=ROLE_CONFIG_GROUPS.flatMap(g=>g.roles.filter(r=>r!=="クルー"&&r!=="恋人"&&(counts[r]||0)>1));
+ const duplicateErrors=ROLE_CONFIG_GROUPS.flatMap(g=>g.roles.filter(r=>r!=="クルー"&&r!=="恋人"&&(counts[r]||0)>1&&!special&&!duplicates[r]));
+ const disabledCounts=ROLE_CONFIG_GROUPS.flatMap(g=>g.roles.filter(r=>(counts[r]||0)>0&&!enabled[r]));
+ const noAutoRoles=ROLE_CONFIG_GROUPS.filter(g=>g.roles.every(r=>!enabled[r]||(weights[r]||0)<=0)&&g.roles.reduce((n,r)=>n+(counts[r]||0),0)<(g.team==="white"?white:g.team==="black"?black:third));
  const errors=[];
  if(white<1)errors.push("白陣営が1人以上必要です");
  if(total>30)errors.push("人間＋AIは30人以下にしてください");
  parts.filter(p=>p.over).forEach(p=>errors.push(p.label+"の指定人数が陣営人数を超えています"));
- if(!special&&duplicates.length)errors.push("通常モードでは同じ特殊役職を複数指定できません："+duplicates.join("、"));
+ if(duplicateErrors.length)errors.push("重複を許可していない役職が複数指定されています："+duplicateErrors.join("、"));
+ if(disabledCounts.length)errors.push("登場OFFの役職に固定人数が設定されています："+disabledCounts.join("、"));
+ noAutoRoles.forEach(g=>errors.push(g.label+"の自動補充対象がありません。役職をONにして重みを1以上にしてください。"));
  if(counts["恋人"]!==undefined&&counts["恋人"]!==0&&counts["恋人"]!==2)errors.push("恋人は0人または2人にしてください");
  root.innerHTML=parts.map(p=>'<div style="margin:4px 0">'+p.label+'：指定 '+p.chosen+'人 ／ 陣営 '+p.available+'人 ／ 自動補充 '+p.fill+'人</div>').join("")+
   '<div style="margin-top:8px;font-weight:700;color:'+(errors.length?"#ff9aa2":"#9ee5e1")+'">'+(errors.length?errors.join(" ／ "):"人数の整合性：OK")+'</div>';
 }
-function configuredRoleQueues(counts,teamCounts,special){
- const queues={white:[],black:[],third:[]};
+function configuredRoleQueues(counts,teamCounts,special,options={}){
+ const queues={white:[],black:[],third:[]},enabled=options.role_enabled||{},weights=options.role_weights||{},duplicates=options.role_duplicate_allowed||{};
+ const pickWeighted=pool=>{const valid=pool.map(role=>({role,weight:Math.max(0,Math.min(100,Number(weights[role]??1)))})).filter(x=>x.weight>0);const total=valid.reduce((n,x)=>n+x.weight,0);if(!total)return null;let roll=Math.random()*total;for(const x of valid){roll-=x.weight;if(roll<0)return x.role}return valid[valid.length-1].role};
  for(const g of ROLE_CONFIG_GROUPS){
   const total=teamCounts[g.team]||0,chosen=[],used=new Set();
   g.roles.forEach(role=>{
-   const n=Math.max(0,Math.min(30,Math.floor(Number(counts?.[role])||0)));
-   if(!special&&role!=="クルー"&&role!=="恋人"&&n>1)throw new Error("通常モードでは「"+role+"」は1人までです。");
+   const n=Math.max(0,Math.min(30,Math.floor(Number(counts?.[role])||0))),on=enabled[role]===undefined?true:!!enabled[role];
+   if(n&&!on)throw new Error("登場OFFの「"+role+"」に人数が指定されています。");
+   if(!special&&!duplicates[role]&&role!=="クルー"&&role!=="恋人"&&n>1)throw new Error("「"+role+"」の重複が許可されていません。");
    if(role==="恋人"&&n!==0&&n!==2)throw new Error("恋人は0人または2人にしてください。");
-   chosen.push(...Array(n).fill(role));if(role!=="クルー"&&n)used.add(role);
+   chosen.push(...Array(n).fill(role));if(n)used.add(role);
   });
   if(chosen.length>total)throw new Error(g.label+"の役職人数合計が陣営人数を超えています。");
   while(chosen.length<total){
-   if(g.team==="white"){chosen.push("クルー");continue}
-   const pool=g.roles.filter(r=>!used.has(r)&&!(g.team==="third"&&(teamCounts.white||0)<3&&r==="暗殺者"));
-   if(!pool.length){if(!special)throw new Error(g.label+"の役職が不足しています。");chosen.push(g.team==="black"?"インポスター":"放浪者")}
-   else{const role=pool[Math.floor(Math.random()*pool.length)];chosen.push(role);used.add(role)}
+   let pool=g.roles.filter(role=>(enabled[role]===undefined||enabled[role])&&Number(weights[role]??1)>0&&!(g.team==="third"&&(teamCounts.white||0)<3&&role==="暗殺者"));
+   if(!special)pool=pool.filter(role=>role==="クルー"||role==="恋人"||!used.has(role)||duplicates[role]);
+   if(g.team==="white"&&total-chosen.length<2)pool=pool.filter(role=>role!=="恋人");
+   const role=pickWeighted(pool);
+   if(!role)throw new Error(g.label+"の自動補充対象がありません。登場役職をONにして出現重みを1以上にしてください。");
+   if(role==="恋人")chosen.push("恋人","恋人");else chosen.push(role);
+   if(!special&&!duplicates[role])used.add(role);
   }
+  if(chosen.length>total)throw new Error(g.label+"の人数が陣営人数を超えました。恋人は2人必要です。");
   queues[g.team]=shuffle(chosen);
  }
  return queues;
@@ -2148,7 +2158,7 @@ async function saveRoomSettings(){
  if(!activeRoomId)return;
  try{
   const special=$("editRoomSpecial").checked;
-  const settings={meeting_duration:Number($("editRoomMeetingTime").value),black_count:Number($("editRoomBlack").value),third_count:Number($("editRoomThird").value),role_duplicates:special,role_counts:readRoleConfigEditor(),discussion_enabled:true,task_mode:"standard"};
+  const settings={meeting_duration:Number($("editRoomMeetingTime").value),black_count:Number($("editRoomBlack").value),third_count:Number($("editRoomThird").value),role_duplicates:special,...readRoleConfigEditor(),discussion_enabled:true,task_mode:"standard"};
   const {error}=await supabaseClient.rpc("update_game_room",{p_room:activeRoomId,p_max_humans:Number($("editRoomMaxHumans").value),p_ai_count:Number($("editRoomAICount").value),p_special_mode:special,p_settings:settings});
   if(error)throw error;await broadcastRoomRefresh();await loadActiveRoom();socialMessage("部屋設定を保存しました。");
  }catch(e){socialMessage("設定を保存できません："+(e.message||e),true)}
@@ -2162,8 +2172,9 @@ async function leaveOnlineRoom(){
  activeRoomId=null;activeRoomSnapshot=null;await disconnectRoomChannel();show("socialHub");await loadSocialHub();
 }
 
-function renderUpdateLog(version="0.45"){
+function renderUpdateLog(version="0.46"){
  const logs={
+  "0.46":{date:"2026年11月8日",items:["役職ごとの登場ON/OFFを追加。","固定人数とは別に、自動補充時の役職出現重みを追加。","全体の特別モードに加え、役職ごとの重複許可を追加。","オンライン同期の案内文を実装状況に合わせて更新。"]},
   "0.45":{date:"2026年11月8日",items:["オンライン参加者の初期接続中に送られた移動・能力・会議・投票入力を一時キューに保存し、接続後に順番に送信。","公開状態スナップショットと個人用役職情報を分離し、古い個人情報パケットで自分の位置や生死状態が巻き戻る問題を修正。","オンライン参加者から届く対象指定をホスト側で役職・能力回数・クールダウン・距離に基づいて検証。"]},
   "0.44":{date:"2026年11月8日",items:["オンライン試合の操作入力をプレイヤー別の認証チャンネルへ分離。送信元のアカウントをチャンネル権限で確認し、他人になりすました操作を防止。","試合状態・役職情報・試合結果を参加者ごとの専用チャンネルへ配信。","オンライン同期チャンネルの初期化漏れを修正し、試合開始時の役職情報と状態配信を安定化。","役職人数の入力に陣営別内訳と自動補充人数のプレビューを追加。"]},
   "0.43":{date:"2026年11月8日",items:["部屋ごとに役職の登場人数を指定できる役職構成エディターを追加。","通常モードでは役職重複を制限し、特別モードでは複数人への割り当てを許可。","部屋の全員が準備完了後、ホストがオンライン試合を開始できるように変更。"]},
