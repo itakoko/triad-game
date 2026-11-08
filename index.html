@@ -375,7 +375,7 @@ canvas#mapCanvas{aspect-ratio:16/10;background:#0b1522}
   <button class="primary" style="width:100%;margin-top:12px" onclick="endToHome()">ホームへ戻る</button>
  </div></div>
  <div id="personalEffect"><div class="effectCard"><strong id="personalEffectTitle"></strong><span id="personalEffectText"></span></div></div>
-   <div class="modal" id="helpModal"><div class="modalbox"><h2>遊び方・ルール</h2><div class="helpTabs"><button id="helpRulesTab" class="primary" onclick="setHelpTab('rules')">遊び方</button><button id="helpRolesTab" onclick="setHelpTab('roles')">役職一覧</button></div><section id="helpRulesPanel"><ul><li>黄色い端末の近くでタスクボタンを押し、暗号解読を成功させると共有タスクが1件進みます。</li><li>白陣営の共有タスク目標は試合ごとに53〜57件。白陣営のAIも作業し、全員の合計が目標に達すると白陣営が勝利します。</li><li>同じ役職は原則として重複しません。恋人は特殊役職で、必ず2人1組で登場します。</li><li>同じ端末は、同じプレイヤーが1回の会議サイクルで1回だけ使用できます。会議終了後に再使用でき、全体のタスク進捗は保持されます。</li><li>死体の近くで通報、または研究所中央の緊急会議ボタンで会議を開始できます。会議終了後、生存者は研究所内に再配置され、死体と端末の使用制限がリセットされます。</li><li>遮蔽物の向こう側にいる相手は見えず、能力の対象にも選べません。</li><li>死亡後は観戦モードに切り替わり、生存者を選んで視界を観戦できます。観戦中は移動・タスク・能力を使用できません。</li><li>AIは周囲の状況や目撃情報をもとに行動し、死体の通報や緊急会議、会議での発言・投票を行います。</li></ul><p class="muted">AIとプレイヤーは、キル・役職能力・移動の基本速度・タスク端末の使用制限を共通ルールで処理します。AIは暗号入力の代わりに、端末で解読作業を行う時間を取ります。</p></section><section id="helpRolesPanel" hidden><div class="roleGroup"><h3>⚪ 白陣営</h3><article class="roleCard"><b>クルー</b><p>固有能力はありません。タスクを進め、会議で情報を共有し、黒陣営を見つける役職です。</p></article><article class="roleCard"><b>サイエンティスト</b><p>能力ボタンから生存者一覧を確認できます。現在生きているプレイヤーを確認する能力で、使用回数の制限やクールタイムはありません。</p></article><article class="roleCard"><b>恋人（2人1組）</b><p>恋人は必ず2人で登場します。お互いの現在位置をマップ上で確認できます。固有の攻撃能力はありません。</p></article><article class="roleCard"><b>占い師</b><p>近く（約100ワールド単位）の生存者1人を一度だけ占えます。結果は相手の役職ではなく、白・黒・第三のどの陣営かです。</p></article><article class="roleCard"><b>狩人</b><p>近く（約100ワールド単位）の生存者1人を一度だけ攻撃できます。能力を使うと使用済みになり、再使用できません。</p></article><article class="roleCard"><b>保安官</b><p>狩人と同様に、近くの生存者1人を一度だけ攻撃できます。ただし白陣営を誤って倒すと、自分も死亡します。</p></article><article class="roleCard"><b>僧侶</b><p>生存者1人を選んで一度だけ加護を与えます。対象は次に受ける攻撃を1回防ぎます。加護は攻撃を防ぐと消えます。</p></article><article class="roleCard"><b>ライトキーパー</b><p>暗闇による視界制限を受けない常時能力を持ちます。攻撃能力はありません。</p></article></div><div class="roleGroup"><h3>⚫ 黒陣営</h3><article class="roleCard"><b>インポスター</b><p>近くの相手をキルできます。キルの初回待機は試合開始から30秒、その後のクールタイムは30秒です。停電サボタージュを使うと、黒陣営以外の視界を10秒間狭めます。サボタージュの初回待機は35秒、その後も35秒ごとに使用できます。</p></article><article class="roleCard"><b>イノシシ</b><p>向いている方向へ突進し、進路上の相手に接触すると攻撃します。壁にぶつかると突進が終了し、次の突進まで20秒の待機が発生します。</p></article><article class="roleCard"><b>百面相</b><p>生存者1人を選び、その姿に10秒間変身できます。変身終了後のクールタイムは35秒です。</p></article></div><div class="roleGroup"><h3>🟣 第三陣営</h3><article class="roleCard"><b>放浪者</b><p>近く（約90ワールド単位）の相手1人に気づかれず匂いを移します。次の使用まで15秒待つ必要があります。生存者全員に匂いを移すと単独勝利します。</p></article><article class="roleCard"><b>暗殺者</b><p>試合開始時に白陣営から手配対象が3人選ばれます。手配書で対象を確認し、対象3人全員を倒すと単独勝利します。キル後の待機は20秒です。手配対象以外を倒すと、自分も死亡します。</p></article><article class="roleCard"><b>てるてる</b><p>会議で投票により追放されると、その時点で単独勝利します。通常のキル能力はありません。</p></article><article class="roleCard"><b>狂人</b><p>キルボタンから近くの相手を攻撃できます。攻撃後のクールタイムは30秒です。生存中の白陣営と他の第三陣営の合計人数が、黒陣営と狂人の合計人数を下回ると単独勝利します。</p></article></div></section><button class="primary" style="width:100%;margin-top:12px" onclick="closeHelp()">閉じる</button></div></div>
+   <div class="modal" id="helpModal"><div class="modalbox"><h2>遊び方・ルール</h2><div class="helpTabs"><button id="helpRulesTab" class="primary" onclick="setHelpTab('rules')">遊び方</button><button id="helpRolesTab" onclick="setHelpTab('roles')">役職一覧</button></div><section id="helpRulesPanel"><ul><li>黄色い端末の近くでタスクボタンを押し、暗号解読を成功させると共有タスクが1件進みます。</li><li>白陣営の共有タスク目標は試合ごとに53〜57件。白陣営のAIも作業し、全員の合計が目標に達すると白陣営が勝利します。</li><li>同じ役職は原則として重複しません。恋人は特殊役職で、必ず2人1組で登場します。</li><li>同じ端末は、同じプレイヤーが1回の会議サイクルで1回だけ使用できます。会議終了後に再使用でき、全体のタスク進捗は保持されます。</li><li>死体の近くで通報、または研究所中央の緊急会議ボタンで会議を開始できます。会議終了後、生存者は研究所内に再配置され、死体と端末の使用制限がリセットされます。</li><li>遮蔽物の向こう側にいる相手は見えず、能力の対象にも選べません。</li><li>死亡後は観戦モードに切り替わり、生存者を選んで視界を観戦できます。観戦中は移動・タスク・能力を使用できません。</li><li>AIは周囲の状況や目撃情報をもとに行動し、死体の通報や緊急会議、会議での発言・投票を行います。</li></ul><p class="muted">AIとプレイヤーは、キル・役職能力・移動の基本速度・タスク端末の使用制限を共通ルールで処理します。AIは暗号入力の代わりに、端末で解読作業を行う時間を取ります。</p></section><section id="helpRolesPanel" hidden><div class="roleGroup"><h3>⚪ 白陣営</h3><article class="roleCard"><b>クルー</b><p>固有能力はありません。タスクを進め、会議で情報を共有し、黒陣営を見つける役職です。</p></article><article class="roleCard"><b>サイエンティスト</b><p>能力ボタンから生存者一覧を確認できます。現在生きているプレイヤーを確認する能力で、使用回数の制限やクールタイムはありません。</p></article><article class="roleCard"><b>恋人（2人1組）</b><p>恋人は必ず2人で登場します。お互いの現在位置をマップ上で確認できます。固有の攻撃能力はありません。</p></article><article class="roleCard"><b>占い師</b><p>近く（約100ワールド単位）の生存者1人を一度だけ占えます。結果は相手の役職ではなく、白・黒・第三のどの陣営かです。</p></article><article class="roleCard"><b>狩人</b><p>近く（約100ワールド単位）の生存者1人を一度だけ攻撃できます。能力を使うと使用済みになり、再使用できません。</p></article><article class="roleCard"><b>保安官</b><p>狩人と同様に、近くの生存者1人を一度だけ攻撃できます。ただし白陣営を誤って倒すと、自分も死亡します。</p></article><article class="roleCard"><b>僧侶</b><p>生存者1人を選んで一度だけ加護を与えます。対象は次に受ける攻撃を1回防ぎます。加護は攻撃を防ぐと消えます。</p></article><article class="roleCard"><b>ライトキーパー</b><p>暗闇による視界制限を受けない常時能力を持ちます。攻撃能力はありません。</p></article></div><div class="roleGroup"><h3>⚫ 黒陣営</h3><article class="roleCard"><b>インポスター</b><p>近くの相手をキルできます。キルの初回待機は試合開始から30秒、その後のクールタイムは30秒です。停電サボタージュを使うと、黒陣営以外の視界を10秒間狭めます。サボタージュの初回待機は35秒、その後も35秒ごとに使用できます。</p></article><article class="roleCard"><b>イノシシ</b><p>向いている方向へ突進し、進路上の相手に接触すると攻撃します。壁にぶつかると突進が終了し、次の突進まで20秒の待機が発生します。</p></article><article class="roleCard"><b>百面相</b><p>生存者1人を選び、その姿に10秒間変身できます。変身終了後のクールタイムは35秒です。</p></article></div><div class="roleGroup"><h3>🟣 第三陣営</h3><article class="roleCard"><b>放浪者</b><p>近く（約90ワールド単位）の相手1人に気づかれず匂いを移します。次の使用まで15秒待つ必要があります。生存者全員に匂いを移すと単独勝利します。</p></article><article class="roleCard"><b>暗殺者</b><p>試合開始時に白陣営から手配対象が3人選ばれます。手配書で対象を確認し、対象3人全員を倒すと単独勝利します。キル後の待機は20秒です。手配対象以外を倒すと、自分も死亡します。</p></article><article class="roleCard"><b>てるてる</b><p>会議で投票により追放されると、その時点で単独勝利します。通常のキル能力はありません。</p></article><article class="roleCard"><b>狂人</b><p>キルボタンから近くの相手を攻撃できます。攻撃後のクールタイムは30秒です。生存中の白陣営と他の第三陣営の合計人数が、黒陣営と狂人の合計人数を下回ると単独勝利します。</p></article><article class="roleCard"><b>ギャンブラー</b><p>25秒ごとに運命のルーレットを回せます。大当たり（1/6）で近くの敵を倒し、3回大当たりすると単独勝利。強運（1/6）で次の攻撃を防ぎ、運命の目（1/6）でランダムな生存者の陣営を知り、小当たり（1/6）で次の抽選が5秒後になります。ハズレ（1/6）は何も起きず、大凶（1/6）は自分が脱落します。</p></article></div></section><button class="primary" style="width:100%;margin-top:12px" onclick="closeHelp()">閉じる</button></div></div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
@@ -585,7 +585,7 @@ const maps={
 const ROLE_POOLS={
  white:["クルー","サイエンティスト","占い師","狩人","保安官","僧侶","ライトキーパー"],
  black:["インポスター","イノシシ","百面相"],
- third:["放浪者","暗殺者","てるてる","狂人"]
+ third:["放浪者","暗殺者","てるてる","狂人","ギャンブラー"]
 };
 let state={players:[],me:null,map:null,tasks:[],done:0,total:0,seconds:0,move:{x:0,y:0},lastDirection:{x:1,y:0},running:false,meeting:false,meetingPhase:"",meetingId:null,selectedVote:null,lastBallots:[],meetingClaims:[],meetingEvents:[],aiTurnCount:0,aiTurnTimer:null,meetingTimer:null,meetingSecondsLeft:90,meetingDuration:90,sightTick:0,killEvents:[],dead:[],log:[],camera:{x:0,y:0},worldWidth:2000,worldHeight:1320,nearTask:null,nearBody:null,nearEmergency:false,emergencyMeetingReadyAt:0,bountyIds:[],scentedIds:new Set(),sabotageUntil:0,targetAction:null};
 let loop=null,clock=null,autosaveTimer=null;
@@ -750,7 +750,7 @@ async function startGame(){
  for(let i=0;i<totalPlayers;i++){
   const member=i<members.length?members[i]:null,aiIndex=i-members.length,isHuman=!!(onlineHost&&member);
   const spawn=isHuman&&member.user_id===authUser.id?[250,250]:randomSpawn(),team=teams[i],profile=member?null:(profileDeck[aiIndex]||null),guestNumber=member&&!member.is_host?members.slice(0,i).filter(m=>!m.is_host).length+1:0;
-  const p={id:i,userId:member?.user_id||null,isHuman,name:member?(member.is_host?(member.display_name||"ホスト"):"ゲスト"+guestNumber):fallbackAIName(aiIndex+1),number:i+1,team,role:roleQueues[team].pop(),aiProfile:profile,alive:true,ghost:false,x:spawn[0],y:spawn[1],color:colors[i%colors.length],colorName:colorNames[i%colorNames.length],shape:i%4,taskCount:0,partnerId:null,protected:false,abilityUsed:false,roleReadyAt:startedAt,killReadyAt:startedAt+(team==="black"?30000:0),sabotageReadyAt:startedAt+(team==="black"?35000:0),emergencyReadyAt:startedAt+rand(30000,65000),aiNextGoalAt:startedAt+rand(2500,8000),aiNextTaskAt:startedAt+rand(3500,6500),aiTaskIndex:null,aiGoal:null,aiPath:[],disguiseId:null,disguiseUntil:0,charging:false,charge:{x:0,y:0},scented:false,emergencyMeetingUsed:false,aiMemory:{suspicion:{},trust:{},sightings:{}}};
+  const p={id:i,userId:member?.user_id||null,isHuman,name:member?(member.is_host?(member.display_name||"ホスト"):"ゲスト"+guestNumber):fallbackAIName(aiIndex+1),number:i+1,team,role:roleQueues[team].pop(),aiProfile:profile,alive:true,ghost:false,x:spawn[0],y:spawn[1],color:colors[i%colors.length],colorName:colorNames[i%colorNames.length],shape:i%4,taskCount:0,partnerId:null,protected:false,abilityUsed:false,gamblerJackpots:0,gamblerNotice:"",gamblerNoticeUntil:0,roleReadyAt:startedAt,killReadyAt:startedAt+(team==="black"?30000:0),sabotageReadyAt:startedAt+(team==="black"?35000:0),emergencyReadyAt:startedAt+rand(30000,65000),aiNextGoalAt:startedAt+rand(2500,8000),aiNextTaskAt:startedAt+rand(3500,6500),aiTaskIndex:null,aiGoal:null,aiPath:[],disguiseId:null,disguiseUntil:0,charging:false,charge:{x:0,y:0},scented:false,emergencyMeetingUsed:false,aiMemory:{suspicion:{},trust:{},sightings:{}}};
   state.players.push(p);
  }
  state.me=onlineHost?state.players.find(p=>p.userId===authUser.id):state.players[0];if(!state.me){alert("自分の参加情報が見つかりません。");return}
@@ -792,7 +792,7 @@ function respawnLivingPlayers(){
 }
 function teamName(t){return t==="white"?"⚪ 白":t==="black"?"⚫ 黒":"🟣 第三"}
 function roleDescription(p){
- const d={"クルー":"能力なし","サイエンティスト":"生存者を確認","恋人":"相手の位置をマップで確認","占い師":"近くの相手を1度だけ占う","狩人":"近くの相手を1度だけキル","保安官":"近くの相手を1度だけキル（白を殺すと自分も死亡）","僧侶":"近くの相手に1度だけ加護","ライトキーパー":"視界の暗闇を受けない","インポスター":"キル・停電サボタージュ","イノシシ":"方向を決めて突進、壁に当たると停止","百面相":"近くの相手に10秒間変身","放浪者":"近くの相手に匂いを移し、生存者全員に移すと勝利","暗殺者":"手配書の白陣営3人を全員倒すと勝利","てるてる":"会議で追放されると勝利","狂人":"キルで黒陣営を含む人数を減らし、条件達成で単独勝利"};
+ const d={"クルー":"能力なし","サイエンティスト":"生存者を確認","恋人":"相手の位置をマップで確認","占い師":"近くの相手を1度だけ占う","狩人":"近くの相手を1度だけキル","保安官":"近くの相手を1度だけキル（白を殺すと自分も死亡）","僧侶":"近くの相手に1度だけ加護","ライトキーパー":"視界の暗闇を受けない","インポスター":"キル・停電サボタージュ","イノシシ":"方向を決めて突進、壁に当たると停止","百面相":"近くの相手に10秒間変身","放浪者":"近くの相手に匂いを移し、生存者全員に移すと勝利","暗殺者":"手配書の白陣営3人を全員倒すと勝利","てるてる":"会議で追放されると勝利","狂人":"キルで黒陣営を含む人数を減らし、条件達成で単独勝利","ギャンブラー":"運命のルーレットで大当たりを3回引くと単独勝利。大凶を引くと自分が脱落"};
  return d[p.role]||"";
 }
 function remainingText(until){return Math.max(0,Math.ceil((until-Date.now())/1000))}
@@ -844,6 +844,7 @@ function playSfx(name){
   sabotage:[[120,.24,"sawtooth",.055,0],[82,.34,"triangle",.06,.17]],
   respawn:[[392,.13,"sine",.045,0],[523,.2,"sine",.045,.14]],
   win:[[523,.18,"triangle",.05,0],[659,.18,"triangle",.05,.16],[784,.3,"sine",.055,.32]],
+  jackpot:[[660,.08,"square",.05,0],[880,.08,"square",.06,.09],[1175,.12,"triangle",.065,.18],[1568,.28,"sine",.07,.32]],
   lose:[[330,.2,"triangle",.045,0],[247,.22,"triangle",.045,.18],[165,.34,"sine",.05,.39]]
  };
  (patterns[name]||[]).forEach(([hz,dur,type,volume,delay])=>synthTone(hz,dur,type,volume,delay));
@@ -1052,6 +1053,7 @@ function updateNearbyActions(){
  else if(me.role==="インポスター"){label="固有能力なし"}
  else if(me.role==="てるてる"){label="能力なし"}
  else if(me.role==="狂人"){label="キル能力は「キル」ボタン"}
+  else if(me.role==="ギャンブラー"){label=rem?`🎰 運命のルーレット（${rem}秒）`:"🎰 運命のルーレット";disabled=!alive||rem>0}
   if(!alive){label="👻 幽霊：能力使用不可";disabled=true}
   setButton("abilityAction",label,disabled,false);
  let hints=[];
@@ -1059,6 +1061,7 @@ function updateNearbyActions(){
  if(alive&&state.nearBody)hints.push("近くに死体があります");
  if(alive&&state.nearEmergency)hints.push("緊急会議ボタンの近くです");
  if(me.role==="放浪者")hints.push(`匂いを移した生存者 ${state.players.filter(p=>p.alive&&state.scentedIds.has(p.id)).length}/${state.players.filter(p=>p.alive).length}`);
+  if(me.role==="ギャンブラー"){hints.push(`🎰 JACKPOT ${me.gamblerJackpots||0}/3`);if(me.gamblerNotice&&Date.now()<(me.gamblerNoticeUntil||0))hints.push(me.gamblerNotice)}
  if(me.role==="暗殺者")hints.push(`手配書の対象 ${state.bountyIds.filter(id=>state.players.find(p=>p.id===id)?.alive).length}/3 人が生存`);
  if(state.sabotageUntil>now)hints.push(`停電中 ${remainingText(state.sabotageUntil)}秒`);
  $("nearHint").textContent=hints.join(" ／ ")||"黄色い端末・赤い会議ボタン・死体に近づくと操作できます。";
@@ -1284,13 +1287,26 @@ function showAliveList(){
  $("aliveModal").classList.add("show");
 }
 function closeAliveList(){$("aliveModal").classList.remove("show")}
+function resolveGamblerRoll(actor,now=Date.now()){
+ if(!actor?.alive||actor.role!=="ギャンブラー"||remainingText(actor.roleReadyAt)>0)return;
+ const roll=1+Math.floor(Math.random()*6);actor.roleReadyAt=now+25000;
+ const announce=(message)=>{actor.gamblerNotice=message;actor.gamblerNoticeUntil=now+12000;log(actor.name+"："+message)};
+ if(roll===1){actor.gamblerJackpots=(actor.gamblerJackpots||0)+1;const targets=targetCandidates(actor,160,false,p=>p.team!==actor.team);if(targets.length){const target=targets[Math.floor(Math.random()*targets.length)];announce("🎰 JACKPOT!! "+actor.gamblerJackpots+"/3");playSfx("jackpot");performKill(target,actor,"ギャンブラーの大当たり")}else{actor.protected=true;announce("🎰 JACKPOT!! 対象不在のため加護を獲得！ "+actor.gamblerJackpots+"/3");playSfx("jackpot")}if(actor.alive&&actor.gamblerJackpots>=3)endGame("ギャンブラーが大当たりを3回引いたため単独勝利！",{roles:["ギャンブラー"]})}
+ else if(roll===2){actor.protected=true;announce("✨ 強運！次の攻撃を1回防ぐ！");playSfx("ability")}
+ else if(roll===3){const targets=state.players.filter(p=>p.alive&&p.id!==actor.id);const target=targets[Math.floor(Math.random()*targets.length)];announce(target?"🔍 運命の目！ "+target.name+" は"+teamName(target.team)+"陣営！":"🔍 情報なし");playSfx("ability")}
+ else if(roll===4){actor.roleReadyAt=now+5000;announce("🍀 小当たり！次の抽選まで5秒！");playSfx("ability")}
+ else if(roll===5){announce("💨 ハズレ！何も起きなかった…");playSfx("ability")}
+ else{announce("💀 大凶！賭けに負けた…自分が脱落！");playSfx("death");markPlayerDead(actor,"ギャンブル失敗",actor);checkWin()}
+ updateNearbyActions();draw();
+}
 function useAbility(){if(isOnlineClient()){if(state.me?.role==="サイエンティスト"){showAliveList();return}if(state.me?.role==="暗殺者"){openBounty();sendOnlineInput({kind:"action",action:"ability"});return}if(!["占い師","狩人","保安官","僧侶","百面相","放浪者"].includes(state.me?.role)){sendOnlineInput({kind:"action",action:"ability"});return}}
  const actor=state.me;if(!state.running||!actor.alive)return;
  const role=actor.role,now=Date.now();
  if(role==="サイエンティスト"){playSfx("ability");showAliveList();return}
  if(role==="暗殺者"){if(remainingText(actor.roleReadyAt)===0){playSfx("ability");openBounty()}return}
  if(["イノシシ","百面相","放浪者"].includes(role)&&remainingText(actor.roleReadyAt)>0)return;
- if(role==="イノシシ"){playSfx("ability");actor.charging=true;actor.charge={...state.lastDirection};state.move={x:0,y:0};$("nearHint").textContent="突進中！壁に当たるまで操作できません。";return}
+ if(role==="ギャンブラー"){resolveGamblerRoll(actor,now);updateNearbyActions();draw();return}
+  if(role==="イノシシ"){playSfx("ability");actor.charging=true;actor.charge={...state.lastDirection};state.move={x:0,y:0};$("nearHint").textContent="突進中！壁に当たるまで操作できません。";return}
  if(role==="占い師"){playSfx("ability");openTargetSelection("占う相手を選択","近くの相手を1人だけ占えます。",targetCandidates(actor,100),"seer");return}
  if(role==="狩人"||role==="保安官"){playSfx("ability");openTargetSelection("能力を使う相手を選択","近くの相手を1人選べます。能力は一度だけです。",targetCandidates(actor,100),"roleKill");return}
  if(role==="僧侶"){playSfx("ability");openTargetSelection("加護を与える相手を選択","指定した相手1人を次の攻撃から守ります。",targetCandidates(actor,Infinity,true),"protect");return}
@@ -1385,6 +1401,7 @@ function aiAction(){
    const wanted=nearby.filter(p=>state.bountyIds.includes(p.id));
    if(wanted.length){actor.killReadyAt=now+20000;performKill(wanted[0],actor,"暗殺")}
   }else if(actor.role==="狂人"&&now>=actor.killReadyAt&&nearby.length&&Math.random()<.25){actor.killReadyAt=now+30000;performKill(nearby[0],actor,"狂人の攻撃")}
+  else if(actor.role==="ギャンブラー"&&now>=actor.roleReadyAt&&Math.random()<.035){resolveGamblerRoll(actor,now)}
   else if((actor.role==="狩人"||actor.role==="保安官")&&!actor.abilityUsed&&roleNearby.length){
    const suspect=chooseAICombatSuspect(actor,roleNearby);
    if(suspect){const suspicion=actor.aiMemory?.suspicion?.[suspect.id]||0;const witnessed=(state.killEvents||[]).some(e=>e.killerId===suspect.id&&e.witnessIds?.includes(actor.id));const chance=witnessed?.92:Math.min(.78,.30+suspicion*.055);if(Math.random()<chance){actor.abilityUsed=true;performKill(suspect,actor,actor.role==="狩人"?"狩人の攻撃":"保安官の攻撃")}}
@@ -1981,7 +1998,7 @@ let activeRoomId=null,activeRoomChannel=null,activeRoomSnapshot=null;
 const ROLE_CONFIG_GROUPS=[
  {team:"white",label:"⚪ 白陣営",roles:["クルー","サイエンティスト","恋人","占い師","狩人","保安官","僧侶","ライトキーパー"]},
  {team:"black",label:"⚫ 黒陣営",roles:["インポスター","イノシシ","百面相"]},
- {team:"third",label:"🟣 第三陣営",roles:["放浪者","暗殺者","てるてる","狂人"]}
+ {team:"third",label:"🟣 第三陣営",roles:["放浪者","暗殺者","てるてる","狂人","ギャンブラー"]}
 ];
 let onlineGame=null,onlineMoveTimer=null,onlineSnapshotTimer=null,onlineInputChannels=[],onlineUserChannels=[],onlineInputs=new Map(),onlineVotes=new Map(),onlineMeetingLog=[],onlineLastChatSignature="",onlineGameRevision=0,onlineSnapshotBusy=false,onlinePrivateChannel=null,onlinePrivatePlayer=null,onlineInputChannel=null,onlinePendingInputs=[],onlineVoteListSignature="";
 
@@ -2210,7 +2227,7 @@ async function handleOnlineAction(payload){
   case "sabotage":useSabotage();break;
   case "ability":useAbility();break;
   case "target":{const target=state.players.find(p=>p.id===Number(payload.targetId)),kind=String(payload.actionKind||"");const rules={seer:{roles:["占い師"],range:100,once:true},roleKill:{roles:["狩人","保安官"],range:100,once:true},protect:{roles:["僧侶"],range:Infinity,once:true},disguise:{roles:["百面相"],range:Infinity,cooldown:true},scent:{roles:["放浪者"],range:90,cooldown:true},kill:{roles:["インポスター","暗殺者"],range:88,cooldown:true}};const rule=rules[kind],distance=target?Math.hypot(target.x-actor.x,target.y-actor.y):Infinity;const roleAllowed=kind==="kill"?(actor.team==="black"||actor.role==="暗殺者"):!!rule?.roles.includes(actor.role);const ready=kind==="kill"?remainingText(actor.killReadyAt)===0:rule?.once?!actor.abilityUsed:rule?.cooldown?remainingText(actor.roleReadyAt)===0:true;if(rule&&roleAllowed&&ready&&target&&target.alive&&target.id!==actor.id&&distance<=rule.range&&!(kind==="kill"&&actor.team==="black"&&target.team==="black")&&(kind==="protect"||kind==="disguise"||hasLineOfSight(actor,target))){state.targetAction={kind};selectTarget(target.id)}break}
-  case "task":{const task=state.tasks.find(t=>t.id===Number(payload.taskId));if(task&&actor.team==="white"&&Math.hypot(task.x-actor.x,task.y-actor.y)<90)completeSharedTask(task,actor);break}
+  case "task":{const task=state.tasks.find(t=>t.id===Number(payload.taskId));if(task&&Math.hypot(task.x-actor.x,task.y-actor.y)<90)completeSharedTask(task,actor);break}
   case "chat":if(state.meeting&&state.meetingPhase==="discussion"&&actor.alive&&String(payload.text||"").length<=180){const msg=String(payload.text).trim();if(msg){appendMeetingMessage(playerTag(actor),msg,"ai",actor);recordMeetingClaim(actor.id,msg);scheduleAITurn(500)}}break;
   case "begin_vote":if(state.meeting&&state.meetingPhase==="discussion"&&actor.alive)beginVoting();break;
   case "vote":{const target=payload.target,valid=target==="skip"||state.players.some(p=>p.alive&&p.id===Number(target));if(state.meeting&&state.meetingPhase==="voting"&&actor.alive&&valid&&!onlineVotes.has(actor.id)){onlineVotes.set(actor.id,target==="skip"?"skip":Number(target));resolveOnlineVotes()}break;}
