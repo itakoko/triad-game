@@ -222,7 +222,7 @@ canvas#mapCanvas{aspect-ratio:16/10;background:#0b1522}
    <div class="card" style="background:#15263b"><h3>10人戦</h3><p>白6人・黒2人・第三2人</p><span class="pill">準備中</span></div>
    <div class="card" style="background:#15263b"><h3>12人戦</h3><p>白6人・黒3人・第三3人</p><span class="pill">準備中</span></div>
   </div>
-  <p class="muted">サーバー移動・AI移動・タスク進行に加え、緊急会議・投票・AI投票・追放処理を接続しました（会議チャットは未対応）。キル・役職能力・勝敗判定・ランク確定は未完成のため、新規マッチングはまだ公開していません。</p>
+  <p class="muted">サーバー移動・AI移動・タスク進行、緊急会議・投票・AI投票に加え、サイエンティスト・占い師・僧侶・放浪者・百面相の能力をサーバー接続しました。タスク完了・陣営人数・てるてる追放・放浪者の目標による勝敗確定とランク更新処理も追加済みです。会議チャット、その他の役職能力、全パターンの対戦検証は未完了のため、新規マッチングはまだ公開していません。</p>
   <div class="row"><button onclick="connectRankedActiveMatch()">進行中の試合に再接続</button><button onclick="loadRankedProfile()">ランク情報を更新</button></div>
  </div>
  <div class="card">
@@ -380,7 +380,7 @@ canvas#mapCanvas{aspect-ratio:16/10;background:#0b1522}
 </section>
 
 </main>
-<footer>TRIAD v0.66 · 能力のサーバー検証改善</footer>
+<footer>TRIAD v0.67 · サーバー能力・勝利判定</footer>
 
   <div id="onlineConnectionBanner" role="status">オンライン接続が不安定です。<button type="button" onclick="retryOnlineConnection()">再接続</button></div>
   <div class="modal" id="offlineRoleSettingsModal"><div class="modalbox"><h2>通常対戦・役職詳細設定</h2><p class="muted">固定人数を指定した役職は必ず登場します。残りの枠はONになっている役職から出現重みに応じて抽選します。</p>
@@ -866,7 +866,7 @@ async function loadRankedProfile(){
 
 function show(id){
  if(!activateScreen(id))return;
- if(id==="home"){renderUpdateLog($("updateVersionSelect")?.value||"0.66");updateResumeGameUI()}
+ if(id==="home"){renderUpdateLog($("updateVersionSelect")?.value||"0.67");updateResumeGameUI()}
  if(id==="accounts")loadAccountDirectoryData();
  if(id==="socialHub")loadSocialHub();
 }
@@ -2837,8 +2837,9 @@ async function leaveOnlineRoom(){
  activeRoomId=null;activeRoomSnapshot=null;await disconnectRoomChannel();show("socialHub");await loadSocialHub();
 }
 
-function renderUpdateLog(version="0.66"){
+function renderUpdateLog(version="0.67"){
  const logs={
+  "0.67":{date:"2026年11月9日",items:["ランク戦の実装状況を更新。対応済みの5役職能力、タスク／陣営／個人目標の勝利確定、ランク更新を明記。"],},
   "0.66":{date:"2026年11月9日",items:["能力の使用済み状態・再使用待機を再接続時に復元。対象の遮蔽物チェックをサーバー側に追加し、未対応能力はランク戦画面で無効化。"],},
   "0.65":{date:"2026年11月9日",items:["百面相の変身表示をサーバー同期し、放浪者の匂い付与状況を本人の再接続時に復元。タスク完了による試合終了表示を追加。"],},
   "0.64":{date:"2026年11月9日",items:["ランク戦にサイエンティスト・占い師・僧侶・放浪者・百面相のサーバー能力操作を接続。勝利時の試合確定と終了表示を追加。"],},
