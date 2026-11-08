@@ -195,7 +195,7 @@ canvas#mapCanvas{aspect-ratio:16/10;background:#0b1522}
   <div class="card accountDetailCard" id="accountDetail"><div class="muted">アカウントを選択してください。</div></div>
  </div>
  <div class="actions"><button onclick="show('home')">ホームに戻る</button><button onclick="refreshAccounts()">最新情報に更新</button></div>
- <p class="muted">AIの共有戦績・能力はサーバーに保存されます。プレイヤー「あなた」の戦績は現在この端末内に保存されます。</p>
+ <p class="muted">AI情報とオンラインプレイヤーの公開プロフィール・戦績はサーバーに保存されます。未ログイン時の「あなた」の戦績はこの端末内だけに保存されます。</p>
 </section>
 
 <section id="game" class="screen">
@@ -383,11 +383,19 @@ async function syncOnlinePlayerStats(stats){
  try{
   const profile=onlinePlayerProfiles.find(p=>p.user_id===authUser.id);
   const displayName=profile?.display_name||authUser.user_metadata?.display_name||"プレイヤー";
+  const playedRole=stats.lastRole,won=stats.lastResult==="勝利";
+  const matches=Math.max(Number(stats.matchesPlayed||0),Number(profile?.matches_played||0)+1);
+  const wins=Math.max(Number(stats.wins||0),Number(profile?.wins||0)+(won?1:0));
+  const losses=Math.max(Number(stats.losses||0),Number(profile?.losses||0)+(won?0:1));
+  const survived=Math.max(Number(stats.survived||0),Number(profile?.survived||0)+(state.me?.alive?1:0));
+  const roleStats={...(profile?.role_stats||{})};
+  Object.entries(stats.roleStats||{}).forEach(([role,v])=>{
+   const cloud=roleStats[role]||{};
+   roleStats[role]={matches:Math.max(Number(v.matches||0),Number(cloud.matches||0)+(role===playedRole?1:0)),wins:Math.max(Number(v.wins||0),Number(cloud.wins||0)+(role===playedRole&&won?1:0)),survived:Math.max(Number(v.survived||0),Number(cloud.survived||0)+(role===playedRole&&state.me?.alive?1:0))};
+  });
   const {error}=await supabaseClient.from("player_profiles").upsert({
-   user_id:authUser.id,display_name:displayName,
-   matches_played:Number(stats.matchesPlayed||0),wins:Number(stats.wins||0),
-   losses:Number(stats.losses||0),survived:Number(stats.survived||0),
-   role_stats:stats.roleStats||{},updated_at:new Date().toISOString()
+   user_id:authUser.id,display_name:displayName,matches_played:matches,
+   wins,losses,survived,role_stats:roleStats,updated_at:new Date().toISOString()
   },{onConflict:"user_id"});
   if(error)throw error;
   await loadOnlinePlayerProfiles();
@@ -1540,5 +1548,6 @@ function renderUpdateLog(version="0.35"){
 }
 function setHelpTab(tab){const roles=tab==="roles";$("helpRulesPanel").hidden=roles;$("helpRolesPanel").hidden=!roles;$("helpRulesTab").classList.toggle("primary",!roles);$("helpRolesTab").classList.toggle("primary",roles)}
 function openHelp(){setHelpTab("rules");$("helpModal").classList.add("show")}function closeHelp(){$("helpModal").classList.remove("show")}
+if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",()=>initializeOnlineAccounts());else initializeOnlineAccounts();
 </script>
 </body></html>
