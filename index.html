@@ -1950,6 +1950,7 @@ function resolveOnlineVotes(){
 function renderRoleConfigEditor(settings={}){
  const root=$("roleConfigEditor");if(!root)return;const counts=settings?.role_counts||{};
  root.innerHTML=ROLE_CONFIG_GROUPS.map(g=>'<div class="accountSection"><b>'+g.label+'</b><div class="grid">'+g.roles.map(role=>'<div class="field"><label>'+escapeAccountText(role)+'</label><input type="number" min="0" max="30" step="1" data-role-count="'+escapeAccountText(role)+'" value="'+Number(counts[role]||0)+'" inputmode="numeric" oninput="updateRoleConfigSummary()"></div>').join("")+'</div></div>').join("");
+ ["editRoomMaxHumans","editRoomAICount","editRoomBlack","editRoomThird","editRoomSpecial"].forEach(id=>{const el=$(id);if(el)el.onchange=updateRoleConfigSummary});
  updateRoleConfigSummary();
 }
 function readRoleConfigEditor(){
@@ -1959,7 +1960,7 @@ function readRoleConfigEditor(){
 function updateRoleConfigSummary(){
  const root=$("roleConfigSummary");if(!root)return;
  const counts={};document.querySelectorAll("#roleConfigEditor [data-role-count]").forEach(el=>counts[el.dataset.roleCount]=Math.max(0,Math.min(30,Math.floor(Number(el.value)||0))));
- const humans=Number($("editRoomMaxHumans")?.value||activeRoomSnapshot?.max_humans||6);
+ const humans=Number(activeRoomSnapshot?.members?.length??$("editRoomMaxHumans")?.value??6);
  const ai=Number($("editRoomAICount")?.value||activeRoomSnapshot?.ai_count||6);
  const total=humans+ai,black=Number($("editRoomBlack")?.value||activeRoomSnapshot?.settings?.black_count||2),third=Number($("editRoomThird")?.value||activeRoomSnapshot?.settings?.third_count||0),white=total-black-third;
  const special=!!$("editRoomSpecial")?.checked;
@@ -1990,7 +1991,7 @@ function configuredRoleQueues(counts,teamCounts,special){
   if(chosen.length>total)throw new Error(g.label+"の役職人数合計が陣営人数を超えています。");
   while(chosen.length<total){
    if(g.team==="white"){chosen.push("クルー");continue}
-   const pool=g.roles.filter(r=>!used.has(r));
+   const pool=g.roles.filter(r=>!used.has(r)&&!(g.team==="third"&&(teamCounts.white||0)<3&&r==="暗殺者"));
    if(!pool.length){if(!special)throw new Error(g.label+"の役職が不足しています。");chosen.push(g.team==="black"?"インポスター":"放浪者")}
    else{const role=pool[Math.floor(Math.random()*pool.length)];chosen.push(role);used.add(role)}
   }
