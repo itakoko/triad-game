@@ -662,7 +662,7 @@ function openTaskPuzzle(task){
  }else if(data.kind==="grid"){
   const path=[1,3,5,8];activeTaskData.gridPath=path;activeTaskData.gridSelected=[];
   const cells=shuffle([0,1,2,3,4,5,6,7,8]);
-  taskPuzzleShell("🧫 "+data.label,data.room+"：培養槽を通る正しい4地点を選択してください。正解ルートは左上から右下へ続きます。",'<div class="grid" style="grid-template-columns:repeat(3,1fr)">'+cells.map(n=>'<button id="gridCell'+n+'" style="min-height:58px" onclick="toggleTaskGrid('+n+')">'+(n+1)+'</button>').join("")+'</div><p id="gridProgress" class="muted">選択：0 / 4</p>');
+  taskPuzzleShell("🧫 "+data.label,data.room+"：表示された座標にある4つの培養槽を選択してください。",'<p class="taskPuzzleCode">指定座標：B1・A2・C2・C3</p><div class="grid" style="grid-template-columns:repeat(3,1fr)">'+cells.map(n=>'<button id="gridCell'+n+'" style="min-height:58px" onclick="toggleTaskGrid('+n+')">'+String.fromCharCode(65+n%3)+(Math.floor(n/3)+1)+'</button>').join("")+'</div><p id="gridProgress" class="muted">選択：0 / 4</p>');
  }else if(data.kind==="order"){
   activeTaskData.orderItems=shuffle(["ピンセット","包帯","試験管","薬品"]);activeTaskData.orderCorrect=["包帯","薬品","試験管","ピンセット"];activeTaskData.orderInput=[];
   taskPuzzleShell("🩺 "+data.label,data.room+"：器具を使用順に並べてください。ボタンを正しい順番で押します。",'<div class="grid">'+activeTaskData.orderItems.map((v,i)=>'<button id="orderItem'+i+'" onclick="pickTaskOrder('+i+')">'+v+'</button>').join("")+'</div><p id="orderProgress" class="muted">順番：0 / 4</p>');
@@ -711,7 +711,7 @@ function submitTaskPuzzle(){
  else if(d.kind==="memory")correct=d.input.length===4&&d.input.every((v,i)=>v===d.sequence[i]);
  else if(d.kind==="cipher"){const answer=$("taskPuzzleInput")?.value.trim()||"";correct=/^\d{4}$/.test(answer)&&answer===activeTaskAnswer}
  else if(d.kind==="valves")correct=d.valveValues.every((v,i)=>v===d.valveTargets[i]);
- else if(d.kind==="grid")correct=d.gridSelected.length===4&&d.gridSelected.every((v,i)=>v===d.gridPath[i]);
+ else if(d.kind==="grid")correct=d.gridSelected.length===4&&d.gridPath.every(v=>d.gridSelected.includes(v));
  else if(d.kind==="order")correct=d.orderInput.length===4&&d.orderInput.every((v,i)=>v===d.orderCorrect[i]);
  else if(d.kind==="route")correct=d.routeInput.length===5&&d.routeInput.every((v,i)=>v===d.route[i]);
  else if(d.kind==="calibrate")correct=d.calValues.every((v,i)=>v===d.calTargets[i]);
@@ -930,7 +930,7 @@ function updateMeetingSummary(){
  const scoreMap=new Map(),reasons=new Map();
  const add=(id,points,reason)=>{
   if(id===undefined||id===null)return;
-  const person=state.players.find(p=>p.id===id);if(!person||!person.alive||id===state.me?.id)return;
+  const person=state.players.find(p=>p.id===id);if(!person||!person.alive)return;
   scoreMap.set(id,(scoreMap.get(id)||0)+points);
   if(!reasons.has(id))reasons.set(id,[]);
   if(reason&&!reasons.get(id).includes(reason))reasons.get(id).push(reason);
