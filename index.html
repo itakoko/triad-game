@@ -380,7 +380,7 @@ canvas#mapCanvas{aspect-ratio:16/10;background:#0b1522}
 </section>
 
 </main>
-<footer>TRIAD v0.69 · ランク戦会議チャット</footer>
+<footer>TRIAD v0.70 · 狩人・保安官の能力接続</footer>
 
   <div id="onlineConnectionBanner" role="status">オンライン接続が不安定です。<button type="button" onclick="retryOnlineConnection()">再接続</button></div>
   <div class="modal" id="offlineRoleSettingsModal"><div class="modalbox"><h2>通常対戦・役職詳細設定</h2><p class="muted">固定人数を指定した役職は必ず登場します。残りの枠はONになっている役職から出現重みに応じて抽選します。</p>
@@ -883,7 +883,7 @@ async function loadRankedProfile(){
 
 function show(id){
  if(!activateScreen(id))return;
- if(id==="home"){renderUpdateLog($("updateVersionSelect")?.value||"0.69");updateResumeGameUI()}
+ if(id==="home"){renderUpdateLog($("updateVersionSelect")?.value||"0.70");updateResumeGameUI()}
  if(id==="accounts")loadAccountDirectoryData();
  if(id==="socialHub")loadSocialHub();
 }
@@ -1255,7 +1255,7 @@ function updateNearbyActions(){
  else if(me.role==="狂人"){label="キル能力は「キル」ボタン"}
   else if(me.role==="ギャンブラー"){label=me.gamblerKillReady?"🎰 JACKPOTキル（1回）":rem?`🎰 運命のルーレット（${rem}秒）`:"🎰 運命のルーレット";disabled=!alive||(!me.gamblerKillReady&&rem>0)}
   if(!alive){label="👻 幽霊：能力使用不可";disabled=true}
-  if(rankedServerMode&&!["サイエンティスト","占い師","僧侶","放浪者","百面相"].includes(me.role)){label="この能力はランク戦未対応";disabled=true}
+  if(rankedServerMode&&!["サイエンティスト","占い師","僧侶","放浪者","百面相","狩人","保安官"].includes(me.role)){label="この能力はランク戦未対応";disabled=true}
   setButton("abilityAction",label,disabled,false);
  let hints=[];
  if(state.nearTask)hints.push("タスク端末の近くです");
@@ -1549,6 +1549,7 @@ function useAbility(){if(rankedServerMode){
  if(actor.role==="占い師"){openTargetSelection("占う相手を選択","近くの生存者1人を一度だけ占えます。",targetCandidates(actor,100),"seer");return}
  if(actor.role==="僧侶"){openTargetSelection("加護を与える相手を選択","生存者1人に一度だけ加護を与えます。",targetCandidates(actor,Infinity,true),"protect");return}
  if(actor.role==="放浪者"){openTargetSelection("匂いを移す相手を選択","近くの生存者に匂いを移します。",targetCandidates(actor,90),"scent");return}
+ if(actor.role==="狩人"||actor.role==="保安官"){openTargetSelection(actor.role==="狩人"?"攻撃する相手を選択":"対象を選択","近くの生存者1人を一度だけ攻撃できます。",targetCandidates(actor,100),"attack_once");return}
  if(actor.role==="百面相"){openTargetSelection("変身する相手を選択","選んだ相手の姿に10秒間変身します。",targetCandidates(actor,Infinity),"disguise");return}
  return;
  }if(isOnlineClient()){if(state.me?.role==="サイエンティスト"){showAliveList();return}if(state.me?.role==="暗殺者"){openBounty();sendOnlineInput({kind:"action",action:"ability"});return}if(state.me?.role==="ギャンブラー"&&state.me.gamblerKillReady){openTargetSelection("JACKPOTキル","近くの相手1人をキルできます。",targetCandidates(state.me,100,false,p=>p.team!==state.me.team),"gamblerKill");return}if(!["占い師","狩人","保安官","僧侶","百面相","放浪者"].includes(state.me?.role)){sendOnlineInput({kind:"action",action:"ability"});return}}
@@ -1568,10 +1569,13 @@ function useAbility(){if(rankedServerMode){
 function selectTarget(id){if(rankedServerMode){
  const action=state.targetAction,kind=action?.kind,target=state.players.find(p=>p.id===Number(id));closeTargetModal();
  if(!kind||!target)return;
- const apiKind={seer:"seer",protect:"protect",scent:"scent",disguise:"disguise"}[kind];if(!apiKind)return;
+ const apiKind={seer:"seer",protect:"protect",scent:"scent",disguise:"disguise",attack_once:"attack_once"}[kind];if(!apiKind)return;
  rankedEngineCall("ability",{kind:apiKind,target_seat:Number(target.number||target.id+1)}).then(async result=>{
   if(result.status==="seer_result"){target.team=result.target_faction;showSeerResult(target)}
   else if(result.status==="protected"){target.protected=true;alert(target.name+" に加護を与えました。")}
+  else if(result.status==="attack_success"){alert(target.name+" を倒しました。");applyRankedServerSnapshot(await rankedEngineCall("state"))}
+  else if(result.status==="attack_blocked"){alert("加護が攻撃を防ぎました。");applyRankedServerSnapshot(await rankedEngineCall("state"))}
+  else if(result.status==="sheriff_misfire"){alert("白陣営を誤って攻撃したため、保安官も脱落しました。");applyRankedServerSnapshot(await rankedEngineCall("state"))}
   else if(result.status==="scented"){state.scentedIds.add(target.id);$("nearHint").textContent="匂いを移しました。対象 "+result.scented_count+" 人";alert("匂いを移しました。")}
   else if(result.status==="disguised"){alert("10秒間、選んだ相手の姿に変身しました。")}
   else if(result.status==="objective_complete"){state.running=false;clearInterval(loop);alert("放浪者の単独勝利！");}
@@ -2863,8 +2867,9 @@ async function leaveOnlineRoom(){
  activeRoomId=null;activeRoomSnapshot=null;await disconnectRoomChannel();show("socialHub");await loadSocialHub();
 }
 
-function renderUpdateLog(version="0.69"){
+function renderUpdateLog(version="0.70"){
  const logs={
+  "0.70":{date:"2026年11月9日",items:["ランク戦に狩人・保安官の一度限りの攻撃能力を追加。僧侶の加護による攻撃防御、保安官の白陣営誤射時の自身脱落をサーバーで処理。"],},
   "0.69":{date:"2026年11月9日",items:["ランク戦会議でサーバー同期チャットを実装。生存者の議論フェーズのみ発言可能、180文字制限・連投制限・最大80件保持をサーバー側で検証。"],},
   "0.68":{date:"2026年11月9日",items:["百面相の変身中に、他プレイヤーの色・形・表示名を画面上で再現し、変身終了後に本人の表示へ戻す処理を追加。"],},
   "0.67":{date:"2026年11月9日",items:["ランク戦の実装状況を更新。対応済みの5役職能力、タスク／陣営／個人目標の勝利確定、ランク更新を明記。"],},
