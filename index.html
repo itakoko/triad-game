@@ -647,7 +647,8 @@ const ROLE_POOLS={
 };
 let state={players:[],me:null,map:null,tasks:[],done:0,total:0,seconds:0,move:{x:0,y:0},lastDirection:{x:1,y:0},running:false,meeting:false,meetingPhase:"",meetingId:null,selectedVote:null,lastBallots:[],meetingClaims:[],meetingEvents:[],aiTurnCount:0,aiTurnTimer:null,meetingTimer:null,meetingSecondsLeft:90,meetingDuration:90,sightTick:0,killEvents:[],dead:[],log:[],camera:{x:0,y:0},worldWidth:2000,worldHeight:1320,nearTask:null,nearBody:null,nearEmergency:false,emergencyMeetingReadyAt:0,bountyIds:[],scentedIds:new Set(),sabotageUntil:0,targetAction:null};
 let loop=null,clock=null,autosaveTimer=null;
-let rankedServerMode=false,rankedServerBusy=false,rankedLastMoveAt=0,rankedLastTickAt=0,rankedLastStateAt=0;
+let rankedServerMode=false,rankedServerBusy=false,rankedLastMoveAt=0,rankedLastTickAt=0;
+let rankedMapStaticCanvas=null,rankedMapStaticKey="";
 let rankedPointsBefore=null;
 let rankedMeetingWasActive=false;
 let rankedQueueTimer=null,rankedQueueBusy=false,rankedSelectedFormat=10;
@@ -680,7 +681,7 @@ async function enterRankedServerMatch(snap){
  if(state.me.role==="ギャンブラー"){state.me.gamblerPrediction=snap.self.gambler_prediction||null;state.me.gamblerPredictionHits=Number(snap.self.gambler_prediction_hits)||0;state.me.gamblerLowCount=Number(snap.self.gambler_low_count)||0;state.me.gamblerHighCount=Number(snap.self.gambler_high_count)||0;state.me.gamblerBadLuckCount=Number(snap.self.gambler_bad_luck_count)||0;state.me.gamblerKillReady=!!snap.self.gambler_kill_ready;}
  $("mapLabel").textContent="マップ：研究施設（サーバー試験）";$("roleLabel").textContent="役職："+state.me.role;$("myRoleText").textContent="陣営："+teamName(state.me.team)+" ／ 役職："+state.me.role+"。サーバー試験モードです。";
  $("myStatus").textContent=state.me.alive?"生存":"死亡";$("taskCount").textContent=state.done+" / "+state.total;$("taskProgress").style.width=(state.total?state.done/state.total*100:0)+"%";
- show("game");state.running=true;startAudio();syncRankedMeetingUI(snap.meeting);updateNearbyActions();draw();clearInterval(loop);clearInterval(clock);loop=setInterval(tick,70);$("nearHint").textContent="サーバー試験：移動とタスク進行をサーバーに送信しています。";
+ show("game");state.running=true;startAudio();syncRankedMeetingUI(snap.meeting);updateNearbyActions();draw();clearInterval(loop);clearInterval(clock);loop=setInterval(tick,50);$("nearHint").textContent="ランク戦：移動を滑らかに表示し、サーバー状態を同期しています。";
 }
 function renderRankedMeetingMessages(messages){
  const list=Array.isArray(messages)?messages:[];
@@ -780,9 +781,9 @@ function applyRankedServerSnapshot(snap){
 }
 async function rankedServerPulse(){
  if(!rankedServerMode||!state.running||rankedServerBusy)return;rankedServerBusy=true;
- try{const now=Date.now(),mv=state.move||{x:0,y:0};if(!state.me?.charging&&(Math.abs(mv.x)+Math.abs(mv.y))>.08&&now-rankedLastMoveAt>=220){rankedLastMoveAt=now;await rankedEngineCall("move",{dx:mv.x,dy:mv.y})}
- if(now-rankedLastTickAt>=1000){rankedLastTickAt=now;const tr=await rankedEngineCall("tick");if(tr.status==="match_completed"||tr.status==="role_completed"){await showRankedServerResult(tr);return}}
- if(now-rankedLastStateAt>=1300){rankedLastStateAt=now;applyRankedServerSnapshot(await rankedEngineCall("state"))}}
+ try{const now=Date.now(),mv=state.move||{x:0,y:0};
+ if(!state.me?.charging&&(Math.abs(mv.x)+Math.abs(mv.y))>.08&&now-rankedLastMoveAt>=300){rankedLastMoveAt=now;await rankedEngineCall("move",{dx:mv.x,dy:mv.y})}
+ if(now-rankedLastTickAt>=1000){rankedLastTickAt=now;const tr=await rankedEngineCall("tick");if(tr.status==="match_completed"||tr.status==="role_completed"){await showRankedServerResult(tr);return}if(tr.status==="ok")applyRankedServerSnapshot(tr)} }
  catch(e){console.warn("Ranked server sync failed",e);$("nearHint").textContent="サーバー再接続中…"}finally{rankedServerBusy=false}
 }
 async function rankedServerDoTask(task){
@@ -1245,7 +1246,7 @@ function recordAISightings(){
  });
 }
 function tick(){
- if(rankedServerMode){if(!state.running)return;rankedServerPulse();updateNearbyActions();draw();return}
+ if(rankedServerMode){if(!state.running)return;const p=state.me,mv=state.move||{x:0,y:0},mag=Math.hypot(mv.x,mv.y)||1;if(p?.alive&&!p.charging&&mag>0.08){const nx=p.x+(mv.x/mag)*2.5,ny=p.y+(mv.y/mag)*2.5;if(isWalkable(nx,p.y))p.x=nx;if(isWalkable(p.x,ny))p.y=ny}rankedServerPulse();updateNearbyActions();draw();return}
   // Online clients only render host snapshots; they never simulate movement or AI.
   if(!state.running||state.meeting)return;let p=state.me;if(onlineGame&&!onlineGame.isHost){if(!p.alive&&deathViewMode==="ghost")moveGhostPlayer(p);updateNearbyActions();draw();return}
   state.players.filter(a=>a.alive&&a.charging).forEach(a=>{
@@ -1268,7 +1269,7 @@ function tick(){
   state.sightTick++;if(state.sightTick%8===0)recordAISightings();updateNearbyActions();draw();
 }
 function draw(){
- const c=$("mapCanvas"),ctx=c.getContext("2d"),W=c.width,H=c.height;ctx.clearRect(0,0,W,H);
+ const c=$("mapCanvas");let ctx=c.getContext("2d");const W=c.width,H=c.height;ctx.clearRect(0,0,W,H);
  // v0.13: カメラをプレイヤーへ強く寄せる。ワールド座標を1.65倍で描画し、
  // 表示領域に合わせてカメラ位置を計算する。マップやキャラの実サイズは変更しない。
  const cameraZoom=1.65,viewW=W/cameraZoom,viewH=H/cameraZoom;
@@ -1277,7 +1278,7 @@ function draw(){
  if(spectating&&watchTarget)spectatorTargetId=watchTarget.id;
  state.camera.x=Math.max(0,Math.min(maxX,watchTarget.x-viewW/2));state.camera.y=Math.max(0,Math.min(maxY,watchTarget.y-viewH/2));
  const spectatorLabel=$("spectatorTargetName");if(spectatorLabel)spectatorLabel.textContent=spectating&&watchTarget?"観戦中："+watchTarget.name:"";
- ctx.save();ctx.setTransform(cameraZoom,0,0,cameraZoom,-state.camera.x*cameraZoom,-state.camera.y*cameraZoom);ctx.fillStyle="#0b1724";ctx.fillRect(0,0,state.worldWidth,state.worldHeight);
+ ctx.save();const screenCtx=ctx;ctx.setTransform(cameraZoom,0,0,cameraZoom,-state.camera.x*cameraZoom,-state.camera.y*cameraZoom);const mapCacheKey=String(state.worldWidth)+"x"+String(state.worldHeight)+":"+String(state.map.rooms.length)+":"+String(state.map.props.length);if(!rankedMapStaticCanvas||rankedMapStaticKey!==mapCacheKey){rankedMapStaticCanvas=document.createElement("canvas");rankedMapStaticCanvas.width=state.worldWidth;rankedMapStaticCanvas.height=state.worldHeight;rankedMapStaticKey=mapCacheKey;ctx=rankedMapStaticCanvas.getContext("2d");ctx.fillStyle="#0b1724";ctx.fillRect(0,0,state.worldWidth,state.worldHeight);
  // corridor floors and room floors
  state.map.corridors.forEach(a=>{ctx.fillStyle="#526778";ctx.fillRect(a[0],a[1],a[2],a[3]);ctx.strokeStyle="#8296a8";ctx.lineWidth=12;ctx.strokeRect(a[0],a[1],a[2],a[3]);ctx.strokeStyle="#1b2a39";ctx.lineWidth=3;ctx.strokeRect(a[0]+8,a[1]+8,a[2]-16,a[3]-16)});
  state.map.rooms.forEach((r,i)=>{ctx.fillStyle=["#526b7d","#5b7385","#4b7183","#596b83"][i%4];ctx.fillRect(r[1],r[2],r[3],r[4]);ctx.strokeStyle="#9bb0c2";ctx.lineWidth=13;ctx.strokeRect(r[1],r[2],r[3],r[4]);ctx.strokeStyle="#182a3b";ctx.lineWidth=3;ctx.strokeRect(r[1]+8,r[2]+8,r[3]-16,r[4]-16);ctx.fillStyle="#d7e6f2";ctx.font="bold 20px system-ui";ctx.fillText(r[0],r[1]+22,r[2]+34);});
@@ -1293,6 +1294,7 @@ function draw(){
   state.map.rooms.forEach((r,i)=>{ctx.save();ctx.beginPath();ctx.rect(r[1]+10,r[2]+10,r[3]-20,r[4]-20);ctx.clip();ctx.strokeStyle="#c6d5df12";ctx.lineWidth=1;for(let n=0;n<r[3];n+=42){ctx.beginPath();if(i%2){ctx.moveTo(r[1]+n,r[2]+44);ctx.lineTo(r[1]+n,r[2]+r[4]-8)}else{ctx.moveTo(r[1]+8,r[2]+n);ctx.lineTo(r[1]+r[3]-8,r[2]+n)}ctx.stroke()}ctx.restore()});
  // floor markings
  ctx.strokeStyle="#72889a55";ctx.lineWidth=2;for(let x=130;x<1680;x+=80){ctx.beginPath();ctx.moveTo(x,520);ctx.lineTo(x+30,520);ctx.stroke()}
+}ctx=screenCtx;ctx.setTransform(cameraZoom,0,0,cameraZoom,-state.camera.x*cameraZoom,-state.camera.y*cameraZoom);ctx.drawImage(rankedMapStaticCanvas,0,0);
   state.tasks.forEach(t=>{if(t.done)return;ctx.fillStyle="#ffd36b";ctx.beginPath();ctx.arc(t.x,t.y,10,0,Math.PI*2);ctx.fill();ctx.strokeStyle="#fff3c6";ctx.lineWidth=3;ctx.stroke();ctx.fillStyle="#fff0b5";ctx.font="12px system-ui";ctx.fillText(t.label,t.x-30,t.y-17);ctx.fillStyle="#13243a";ctx.font="bold 10px system-ui";ctx.fillText(String(t.remaining),t.x-3,t.y+4)});
  // emergency meeting console: fixed location in central junction
  ctx.fillStyle="#7d292e";ctx.fillRect(860,480,80,80);ctx.strokeStyle="#ffaaa0";ctx.lineWidth=5;ctx.strokeRect(860,480,80,80);ctx.fillStyle="#fff0e8";ctx.font="bold 15px system-ui";ctx.fillText("会議ボタン",852,475);ctx.fillStyle="#ff5b55";ctx.beginPath();ctx.arc(900,520,13,0,Math.PI*2);ctx.fill();
