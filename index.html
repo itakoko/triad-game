@@ -780,9 +780,9 @@ function applyRankedServerSnapshot(snap){
 }
 async function rankedServerPulse(){
  if(!rankedServerMode||!state.running||rankedServerBusy)return;rankedServerBusy=true;
- try{const now=Date.now(),mv=state.move||{x:0,y:0};if(!state.me?.charging&&(Math.abs(mv.x)+Math.abs(mv.y))>.08&&now-rankedLastMoveAt>=110){rankedLastMoveAt=now;await rankedEngineCall("move",{dx:mv.x,dy:mv.y})}
- if(now-rankedLastTickAt>=360){rankedLastTickAt=now;const tr=await rankedEngineCall("tick");if(tr.status==="match_completed"||tr.status==="role_completed"){await showRankedServerResult(tr);return}}
- if(now-rankedLastStateAt>=720){rankedLastStateAt=now;applyRankedServerSnapshot(await rankedEngineCall("state"))}}
+ try{const now=Date.now(),mv=state.move||{x:0,y:0};if(!state.me?.charging&&(Math.abs(mv.x)+Math.abs(mv.y))>.08&&now-rankedLastMoveAt>=220){rankedLastMoveAt=now;await rankedEngineCall("move",{dx:mv.x,dy:mv.y})}
+ if(now-rankedLastTickAt>=1000){rankedLastTickAt=now;const tr=await rankedEngineCall("tick");if(tr.status==="match_completed"||tr.status==="role_completed"){await showRankedServerResult(tr);return}}
+ if(now-rankedLastStateAt>=1300){rankedLastStateAt=now;applyRankedServerSnapshot(await rankedEngineCall("state"))}}
  catch(e){console.warn("Ranked server sync failed",e);$("nearHint").textContent="サーバー再接続中…"}finally{rankedServerBusy=false}
 }
 async function rankedServerDoTask(task){
