@@ -663,6 +663,7 @@ async function enterRankedServerMatch(snap){
  const ownSeat=Number(snap.self?.seat);
  for(const v of(snap.players||[])){const seat=Number(v.seat),isSelf=seat===ownSeat,isAI=!!v.is_ai;state.players.push({id:seat-1,number:seat,userId:isSelf?authUser?.id:null,isHuman:!isAI,name:isSelf?"あなた":(isAI?"AI "+String(seat).padStart(2,"0"):"プレイヤー "+String(seat).padStart(2,"0")),baseName:isSelf?"あなた":(isAI?"AI "+String(seat).padStart(2,"0"):"プレイヤー "+String(seat).padStart(2,"0")),team:isSelf?snap.self.faction:"unknown",role:isSelf?snap.self.role:"？？？",alive:!!v.alive,ghost:false,x:Number(v.x),y:Number(v.y),color:colors[(seat-1)%colors.length],colorName:colorNames[(seat-1)%colorNames.length],shape:(seat-1)%4,taskCount:0,protected:false,abilityUsed:false,charging:false,charge:{x:0,y:0}})}
  state.me=state.players.find(p=>p.number===ownSeat);if(!state.me)throw new Error("自分の参加情報が見つかりません。");
+ if(state.me.role==="ギャンブラー"){state.me.gamblerPrediction=snap.self.gambler_prediction||null;state.me.gamblerPredictionHits=Number(snap.self.gambler_prediction_hits)||0;state.me.gamblerLowCount=Number(snap.self.gambler_low_count)||0;state.me.gamblerHighCount=Number(snap.self.gambler_high_count)||0;state.me.gamblerBadLuckCount=Number(snap.self.gambler_bad_luck_count)||0;state.me.gamblerKillReady=!!snap.self.gambler_kill_ready;}
  $("mapLabel").textContent="マップ：研究施設（サーバー試験）";$("roleLabel").textContent="役職："+state.me.role;$("myRoleText").textContent="陣営："+teamName(state.me.team)+" ／ 役職："+state.me.role+"。サーバー試験モードです。";
  $("myStatus").textContent=state.me.alive?"生存":"死亡";$("taskCount").textContent=state.done+" / "+state.total;$("taskProgress").style.width=(state.total?state.done/state.total*100:0)+"%";
  show("game");state.running=true;startAudio();syncRankedMeetingUI(snap.meeting);updateNearbyActions();draw();clearInterval(loop);clearInterval(clock);loop=setInterval(tick,70);$("nearHint").textContent="サーバー試験：移動とタスク進行をサーバーに送信しています。";
@@ -689,7 +690,9 @@ function syncRankedMeetingUI(meeting){
  if(active&&!rankedMeetingWasActive)state.selectedVote=null;
  if(!active){
   if(rankedMeetingWasActive){$("meetingModal").classList.remove("show");state.meeting=false;state.meetingPhase="";state.emergencyMeetingReadyAt=Number(meeting?.cooldown_until)||Date.now()+25000;updateNearbyActions()}
-  rankedMeetingWasActive=false;return;
+  rankedMeetingWasActive=false;
+  if(rankedServerMode&&state.me?.role==="ギャンブラー"&&state.me.alive&&!state.me.gamblerPrediction)chooseGamblerPrediction(state.me);
+  return;
  }
  rankedMeetingWasActive=true;state.meeting=true;state.meetingPhase=phase;state.move={x:0,y:0};
  $("meetingTitle").textContent="ランク戦会議";$("meetingPhaseLabel").textContent=phase==="discussion"?"議論フェーズ":phase==="voting"?"投票フェーズ":"投票結果";
@@ -756,7 +759,7 @@ async function showRankedServerResult(result){
 function applyRankedServerSnapshot(snap){
  if(!rankedServerMode||snap?.status!=="ok")return;const ownSeat=Number(snap.self?.seat);state.serverPhase=snap.phase;state.emergencyMeetingReadyAt=Number(snap.meeting_cooldown_until)||state.emergencyMeetingReadyAt;
  (snap.players||[]).forEach(v=>{const p=state.players.find(x=>x.number===Number(v.seat));if(p){p.x=Number(v.x);p.y=Number(v.y);p.alive=!!v.alive;const ap=Number(v.appearance_seat)||Number(v.seat);const target=state.players.find(q=>q.number===ap);p.color=colors[(ap-1)%colors.length];p.shape=(ap-1)%4;p.name=ap!==Number(v.seat)&&target?(target.baseName||target.name):p.baseName||p.name}});
- const me=state.players.find(p=>p.number===ownSeat);if(me){me.team=snap.self.faction;me.role=snap.self.role;me.alive=!!snap.self.alive;me.abilityUsed=!!snap.self.ability_used;me.charging=!!snap.self.charging;me.roleReadyAt=Number(snap.self.role_ready_at)||0;me.killReadyAt=Number(snap.self.kill_ready_at)||0;state.bountyIds=(snap.self.assassin_targets||[]).map(n=>Number(n)-1);me.gamblerKillReady=!!snap.self.gambler_kill_ready;state.me=me;if(me.role==="放浪者"&&Array.isArray(snap.self.scented_seats))state.scentedIds=new Set(snap.self.scented_seats.map(n=>Number(n)-1));}
+ const me=state.players.find(p=>p.number===ownSeat);if(me){me.team=snap.self.faction;me.role=snap.self.role;me.alive=!!snap.self.alive;me.abilityUsed=!!snap.self.ability_used;me.charging=!!snap.self.charging;me.roleReadyAt=Number(snap.self.role_ready_at)||0;me.killReadyAt=Number(snap.self.kill_ready_at)||0;state.bountyIds=(snap.self.assassin_targets||[]).map(n=>Number(n)-1);me.gamblerKillReady=!!snap.self.gambler_kill_ready;me.gamblerPrediction=snap.self.gambler_prediction||null;me.gamblerPredictionHits=Number(snap.self.gambler_prediction_hits)||0;me.gamblerLowCount=Number(snap.self.gambler_low_count)||0;me.gamblerHighCount=Number(snap.self.gambler_high_count)||0;me.gamblerBadLuckCount=Number(snap.self.gambler_bad_luck_count)||0;me.gamblerReveals=Array.isArray(snap.self.gambler_reveals)?snap.self.gambler_reveals:[];for(const known of me.gamblerReveals){const revealed=state.players.find(p=>p.number===Number(known.seat));if(revealed)revealed.team=String(known.faction||"unknown")}state.me=me;if(me.role==="放浪者"&&Array.isArray(snap.self.scented_seats))state.scentedIds=new Set(snap.self.scented_seats.map(n=>Number(n)-1));}
  state.tasks=(snap.tasks||[]).map(t=>{const old=state.tasks.find(x=>x.id===Number(t.id))||{},spec=taskKinds[Number(t.id)%taskKinds.length];return{...old,id:Number(t.id),x:Number(t.x),y:Number(t.y),done:!!t.done,remaining:Number(t.remaining),label:spec.label,room:spec.room,kind:spec.kind}});
  state.done=state.tasks.reduce((n,t)=>n+(4-Math.max(0,Number(t.remaining)||0)),0);state.total=state.tasks.length*4;state.seconds=Number(snap.elapsed_seconds)||state.seconds;
  $("taskCount").textContent=state.done+" / "+state.total;$("taskProgress").style.width=(state.total?state.done/state.total*100:0)+"%";$("timer").textContent=String(Math.floor(state.seconds/60)).padStart(2,"0")+":"+String(state.seconds%60).padStart(2,"0");$("myStatus").textContent=state.me.alive?"生存":"死亡";syncRankedMeetingUI(snap.meeting);updateNearbyActions();draw();
@@ -1289,9 +1292,9 @@ function updateNearbyActions(){
  else if(me.role==="インポスター"){label="固有能力なし"}
  else if(me.role==="てるてる"){label="能力なし"}
  else if(me.role==="狂人"){label="キル能力は「キル」ボタン"}
-  else if(me.role==="ギャンブラー"){label=me.gamblerKillReady?"🎰 JACKPOTキル（1回）":rem?`🎰 運命のルーレット（${rem}秒）`:"🎰 運命のルーレット";disabled=!alive||(!me.gamblerKillReady&&rem>0)}
+  else if(me.role==="ギャンブラー"){label=!me.gamblerPrediction?"🎲 予想を選択してください":me.gamblerKillReady?"🎰 JACKPOTキル（1回）":rem?`🎰 運命のルーレット（${rem}秒）`:"🎰 運命のルーレット";disabled=!alive||!me.gamblerPrediction||(!me.gamblerKillReady&&rem>0)}
   if(!alive){label="👻 幽霊：能力使用不可";disabled=true}
-  if(rankedServerMode&&!["イノシシ","サイエンティスト","占い師","僧侶","放浪者","百面相","狩人","保安官","暗殺者"].includes(me.role)){label="この能力はランク戦未対応";disabled=true}
+  if(rankedServerMode&&!["イノシシ","サイエンティスト","占い師","僧侶","放浪者","百面相","狩人","保安官","暗殺者","ギャンブラー"].includes(me.role)){label="この能力はランク戦未対応";disabled=true}
   setButton("abilityAction",label,disabled,false);
  let hints=[];
  if(state.nearTask)hints.push("タスク端末の近くです");
@@ -1549,7 +1552,12 @@ function selectGamblerPrediction(choice){
  if(!actor||actor.role!=="ギャンブラー"||(choice!=="low"&&choice!=="high"))return;
  actor.gamblerPrediction=choice;actor.gamblerPredictionAsked=true;actor.gamblerPredictionPending=false;
  actor.gamblerNotice="予想："+(choice==="low"?"1〜3が多い":"4〜6が多い");
- if(gamblerPredictionPendingOnline&&isOnlineClient())sendOnlineInput({kind:"action",action:"gamblerPredict",prediction:choice});
+ if(rankedServerMode){
+  rankedEngineCall("ability",{kind:"gambler_predict",prediction:choice}).then(async result=>{
+   if(result.status==="prediction_set"){actor.gamblerPrediction=choice;actor.gamblerPredictionPending=false;applyRankedServerSnapshot(await rankedEngineCall("state"))}
+   else{actor.gamblerPrediction=null;actor.gamblerPredictionPending=false;alert("予想を登録できません："+result.status)}
+  }).catch(e=>{actor.gamblerPrediction=null;actor.gamblerPredictionPending=false;alert("予想送信エラー："+(e.message||String(e)))});
+ }else if(gamblerPredictionPendingOnline&&isOnlineClient())sendOnlineInput({kind:"action",action:"gamblerPredict",prediction:choice});
  gamblerPredictionPendingActor=null;gamblerPredictionPendingOnline=false;
  $("gamblerPredictionModal")?.classList.remove("show");
  updateNearbyActions();
@@ -1612,6 +1620,23 @@ function useAbility(){if(rankedServerMode){
  if(actor.role==="放浪者"){openTargetSelection("匂いを移す相手を選択","近くの生存者に匂いを移します。",targetCandidates(actor,90),"scent");return}
  if(actor.role==="狩人"||actor.role==="保安官"){openTargetSelection(actor.role==="狩人"?"攻撃する相手を選択":"対象を選択","近くの生存者1人を一度だけ攻撃できます。",targetCandidates(actor,100),"attack_once");return}
  if(actor.role==="百面相"){openTargetSelection("変身する相手を選択","選んだ相手の姿に10秒間変身します。",targetCandidates(actor,Infinity),"disguise");return}
+ if(actor.role==="ギャンブラー"){
+  if(actor.gamblerKillReady){openTargetSelection("JACKPOT能力を使う相手を選択","近くの相手1人に一度だけ使えます。",targetCandidates(actor,100,false,p=>p.team!==actor.team),"gamblerKill");return}
+  rankedEngineCall("ability",{kind:"gambler_roll"}).then(async result=>{
+   if(result.status==="gambler_result"||result.status==="gambler_eliminated"){
+    const target=result.target_seat?state.players.find(p=>p.number===Number(result.target_seat)):null;
+    if(target&&result.target_faction)target.team=result.target_faction;
+    const messages={1:"JACKPOT！1回使える能力を獲得しました。",2:"強運！次に受ける攻撃を1回防ぎます。",3:target?"運命の目："+target.name+" は"+teamName(result.target_faction)+"陣営です。":"運命の目：対象はいませんでした。",4:"小当たり！次の抽選まで5秒です。",5:"ハズレ。今回は効果なしです。",6:"大凶！累計"+result.bad_luck_count+"/3回です。"};
+    alert(messages[result.roll]||"ダイス結果："+result.roll_name);
+    if(result.status==="gambler_eliminated")alert("大凶が3回になり、脱落しました。");
+    applyRankedServerSnapshot(await rankedEngineCall("state"));
+   }else if(result.status==="match_completed"||result.status==="role_completed")await showRankedServerResult(result);
+   else if(result.status==="cooldown")alert("次の抽選まで待ってください。");
+   else if(result.status==="prediction_required")chooseGamblerPrediction(actor);
+   else alert("ダイスを振れません："+result.status);
+  }).catch(e=>alert("ダイス処理エラー："+(e.message||String(e))));
+  return;
+ }
  return;
  }if(isOnlineClient()){if(state.me?.role==="サイエンティスト"){showAliveList();return}if(state.me?.role==="暗殺者"){openBounty();sendOnlineInput({kind:"action",action:"ability"});return}if(state.me?.role==="ギャンブラー"&&state.me.gamblerKillReady){openTargetSelection("JACKPOTキル","近くの相手1人をキルできます。",targetCandidates(state.me,100,false,p=>p.team!==state.me.team),"gamblerKill");return}if(!["占い師","狩人","保安官","僧侶","百面相","放浪者"].includes(state.me?.role)){sendOnlineInput({kind:"action",action:"ability"});return}}
  const actor=state.me;if(!state.running||!actor.alive)return;
@@ -1630,7 +1655,7 @@ function useAbility(){if(rankedServerMode){
 function selectTarget(id){if(rankedServerMode){
  const action=state.targetAction,kind=action?.kind,target=state.players.find(p=>p.id===Number(id));closeTargetModal();
  if(!kind||!target)return;
- const apiKind={seer:"seer",protect:"protect",scent:"scent",disguise:"disguise",attack_once:"attack_once",assassinKill:"assassin_kill"}[kind];if(!apiKind)return;
+ const apiKind={seer:"seer",protect:"protect",scent:"scent",disguise:"disguise",attack_once:"attack_once",assassinKill:"assassin_kill",gamblerKill:"gambler_kill"}[kind];if(!apiKind)return;
  rankedEngineCall("ability",{kind:apiKind,target_seat:Number(target.number||target.id+1)}).then(async result=>{
   if(result.status==="seer_result"){target.team=result.target_faction;showSeerResult(target)}
   else if(result.status==="protected"){target.protected=true;alert(target.name+" に加護を与えました。")}
@@ -1638,6 +1663,8 @@ function selectTarget(id){if(rankedServerMode){
   else if(result.status==="role_completed"){await showRankedServerResult(result)}
   else if(result.status==="not_a_bounty_target"){alert("その相手は手配対象ではありません。")}
   else if(result.status==="attack_blocked"){alert("加護が攻撃を防ぎました。")}
+  else if(result.status==="gambler_kill_success"){alert("JACKPOT能力を使いました。")}
+  else if(result.status==="gambler_kill_blocked"){alert("対象の加護がJACKPOT能力を防ぎました。")}
   else if(result.status==="sheriff_misfire"){alert("白陣営を誤って攻撃したため、保安官も脱落しました。")}
   else if(result.status==="scented"){state.scentedIds.add(target.id);$("nearHint").textContent="匂いを移しました。対象 "+result.scented_count+" 人";alert("匂いを移しました。")}
   else if(result.status==="disguised"){alert("10秒間、選んだ相手の姿に変身しました。")}
