@@ -636,6 +636,7 @@ const ROLE_POOLS={
 let state={players:[],me:null,map:null,tasks:[],done:0,total:0,seconds:0,move:{x:0,y:0},lastDirection:{x:1,y:0},running:false,meeting:false,meetingPhase:"",meetingId:null,selectedVote:null,lastBallots:[],meetingClaims:[],meetingEvents:[],aiTurnCount:0,aiTurnTimer:null,meetingTimer:null,meetingSecondsLeft:90,meetingDuration:90,sightTick:0,killEvents:[],dead:[],log:[],camera:{x:0,y:0},worldWidth:2000,worldHeight:1320,nearTask:null,nearBody:null,nearEmergency:false,emergencyMeetingReadyAt:0,bountyIds:[],scentedIds:new Set(),sabotageUntil:0,targetAction:null};
 let loop=null,clock=null,autosaveTimer=null;
 let rankedServerMode=false,rankedServerBusy=false,rankedLastMoveAt=0,rankedLastTickAt=0,rankedLastStateAt=0;
+let rankedPointsBefore=null;
 let rankedMeetingWasActive=false;
 
 async function rankedEngineCall(action,extra={}){
@@ -652,6 +653,8 @@ async function connectRankedActiveMatch(){
 }
 async function enterRankedServerMatch(snap){
  if(snap?.status!=="ok")throw new Error("試合情報を取得できません。");
+ rankedPointsBefore=null;
+ try{const {data,error}=await supabaseClient.functions.invoke("triad-ranked",{body:{action:"profile"}});if(!error&&data?.profile)rankedPointsBefore=Math.max(0,Number(data.profile.points)||0)}catch(e){console.warn("Ranked pre-match points unavailable",e)}
  rankedServerMode=true;rankedServerBusy=false;rankedMeetingWasActive=false;rankedLastMoveAt=rankedLastTickAt=rankedLastStateAt=0;
  state.selectedVote=null;state.emergencyMeetingReadyAt=Number(snap.meeting_cooldown_until)||0;state.map=maps.lab;state.worldWidth=maps.lab.width;state.worldHeight=maps.lab.height;state.players=[];state.dead=[];state.move={x:0,y:0};state.camera={x:0,y:0};state.scentedIds=new Set();state.bountyIds=[];state.sabotageUntil=0;state.meeting=false;state.meetingPhase="";state.log=[];
  state.seconds=Number(snap.elapsed_seconds)||0;
@@ -717,6 +720,39 @@ function syncRankedMeetingUI(meeting){
  }
  $("meetingModal").classList.add("show");
 }
+async function showRankedServerResult(result){
+ state.running=false;clearInterval(loop);clearInterval(clock);stopMove();
+ const reveal=Array.isArray(result?.role_reveal)?result.role_reveal:[];
+ for(const row of reveal){
+  const p=state.players.find(v=>Number(v.number)===Number(row.seat));
+  if(!p)continue;
+  p.role=String(row.role||"未設定");p.team=String(row.faction||"unknown");p.alive=!!row.alive;
+ }
+ const me=state.players.find(p=>Number(p.number)===Number(state.me?.number));
+ if(me)state.me=me;
+ const solo=Number(result?.winner_seat)>0;
+ const won=solo?Number(state.me?.number)===Number(result.winner_seat):String(state.me?.team)===String(result?.winner_faction);
+ const winnerText=solo?(String(result.winner_role||"役職")+"の単独勝利"):((teamName(String(result.winner_faction||"unknown")))+"陣営の勝利");
+ playSfx(won?"win":"lose");
+ $("gameResultBadge").textContent=won?"あなたの勝利":"あなたは敗北";
+ $("gameResultTitle").textContent=won?"勝利！":"敗北";
+ $("gameResultTitle").className=won?"win":"loss";
+ $("gameResultReason").textContent=winnerText+"で試合が終了しました。";
+ let detail="あなた："+teamName(state.me?.team||"unknown")+"「"+String(state.me?.role||"未設定")+"」／ "+(state.me?.alive?"生存":"脱落");
+ try{
+  const {data,error}=await supabaseClient.functions.invoke("triad-ranked",{body:{action:"profile"}});
+  if(!error&&data?.profile){
+   const after=Math.max(0,Number(data.profile.points)||0);
+   const delta=rankedPointsBefore===null?null:after-rankedPointsBefore;
+   detail+="\nランクポイント："+after.toLocaleString("ja-JP")+" pt";
+   if(delta!==null)detail+="（今回 "+(delta>=0?"+":"")+delta+" pt）";
+  }else detail+="\nランクポイントはプロフィール画面で確認できます。";
+ }catch(e){detail+="\nランクポイントはプロフィール画面で確認できます。"}
+ $("gameResultDetail").textContent=detail;
+ $("roleReveal").innerHTML=state.players.map(p=>'<div class="pill"><span class="dot" style="background:'+p.color+'"></span> '+escapeMeetingText(playerTag(p))+' — '+escapeMeetingText(teamName(p.team))+'「'+escapeMeetingText(p.role||"未設定")+'」'+(p.alive?"":"（脱落）")+'</div>').join("");
+ $("gameOverModal").classList.add("show");
+ rankedPointsBefore=null;
+}
 function applyRankedServerSnapshot(snap){
  if(!rankedServerMode||snap?.status!=="ok")return;const ownSeat=Number(snap.self?.seat);state.serverPhase=snap.phase;state.emergencyMeetingReadyAt=Number(snap.meeting_cooldown_until)||state.emergencyMeetingReadyAt;
  (snap.players||[]).forEach(v=>{const p=state.players.find(x=>x.number===Number(v.seat));if(p){p.x=Number(v.x);p.y=Number(v.y);p.alive=!!v.alive;const ap=Number(v.appearance_seat)||Number(v.seat);const target=state.players.find(q=>q.number===ap);p.color=colors[(ap-1)%colors.length];p.shape=(ap-1)%4;p.name=ap!==Number(v.seat)&&target?(target.baseName||target.name):p.baseName||p.name}});
@@ -728,14 +764,14 @@ function applyRankedServerSnapshot(snap){
 async function rankedServerPulse(){
  if(!rankedServerMode||!state.running||rankedServerBusy)return;rankedServerBusy=true;
  try{const now=Date.now(),mv=state.move||{x:0,y:0};if(!state.me?.charging&&(Math.abs(mv.x)+Math.abs(mv.y))>.08&&now-rankedLastMoveAt>=110){rankedLastMoveAt=now;await rankedEngineCall("move",{dx:mv.x,dy:mv.y})}
- if(now-rankedLastTickAt>=360){rankedLastTickAt=now;const tr=await rankedEngineCall("tick");if(tr.status==="match_completed"){state.running=false;clearInterval(loop);clearInterval(clock);$("nearHint").textContent=tr.winner_role?("単独勝利："+tr.winner_role):("試合終了："+tr.winner_faction+" 陣営の勝利");alert(tr.winner_role?("単独勝利："+tr.winner_role):("試合終了："+tr.winner_faction+" 陣営の勝利"));return}}
+ if(now-rankedLastTickAt>=360){rankedLastTickAt=now;const tr=await rankedEngineCall("tick");if(tr.status==="match_completed"||tr.status==="role_completed"){await showRankedServerResult(tr);return}}
  if(now-rankedLastStateAt>=720){rankedLastStateAt=now;applyRankedServerSnapshot(await rankedEngineCall("state"))}}
  catch(e){console.warn("Ranked server sync failed",e);$("nearHint").textContent="サーバー再接続中…"}finally{rankedServerBusy=false}
 }
 async function rankedServerDoTask(task){
 
  if(!rankedServerMode||!task)return;try{const result=await rankedEngineCall("task",{task_id:task.id});
- if(result.status==="match_completed"){state.running=false;clearInterval(loop);$("nearHint").textContent="試合終了："+result.winner_faction+" 陣営の勝利";alert("試合終了："+result.winner_faction+" 陣営の勝利");return}
+ if(result.status==="match_completed"||result.status==="role_completed"){await showRankedServerResult(result);return}
  if(result.status==="too_far"){$("nearHint").textContent="タスク端末にもう少し近づいてください。";return}
  if(result.status==="task_throttled"){$("nearHint").textContent="少し待ってからもう一度操作してください。";return}
  $("nearHint").textContent=result.status==="completed"?"タスク完了！":result.status==="progress"?"タスク進行："+result.progress+"/4":"タスク状態："+result.status;
@@ -1599,14 +1635,14 @@ function selectTarget(id){if(rankedServerMode){
   if(result.status==="seer_result"){target.team=result.target_faction;showSeerResult(target)}
   else if(result.status==="protected"){target.protected=true;alert(target.name+" に加護を与えました。")}
   else if(result.status==="attack_success"){alert(target.name+" を倒しました。")}
-  else if(result.status==="role_completed"){state.running=false;clearInterval(loop);clearInterval(clock);alert("単独勝利！ "+result.winner_role+" の勝利です。")}
+  else if(result.status==="role_completed"){await showRankedServerResult(result)}
   else if(result.status==="not_a_bounty_target"){alert("その相手は手配対象ではありません。")}
   else if(result.status==="attack_blocked"){alert("加護が攻撃を防ぎました。")}
   else if(result.status==="sheriff_misfire"){alert("白陣営を誤って攻撃したため、保安官も脱落しました。")}
   else if(result.status==="scented"){state.scentedIds.add(target.id);$("nearHint").textContent="匂いを移しました。対象 "+result.scented_count+" 人";alert("匂いを移しました。")}
   else if(result.status==="disguised"){alert("10秒間、選んだ相手の姿に変身しました。")}
-  else if(result.status==="objective_complete"){state.running=false;clearInterval(loop);alert("放浪者の単独勝利！");}
-  else if(result.status==="match_completed"){state.running=false;clearInterval(loop);alert("試合終了： "+result.winner_faction+" 陣営の勝利");}
+  else if(result.status==="objective_complete"){await showRankedServerResult({...result,winner_role:"放浪者",winner_seat:Number(state.me?.number)})}
+  else if(result.status==="match_completed"){await showRankedServerResult(result)}
   else if(result.status==="too_far")alert("対象にもう少し近づいてください。");
   else if(result.status==="ability_used")alert("この能力は使用済みです。");
   else if(result.status==="cooldown")alert("能力の再使用まで待ってください。");
