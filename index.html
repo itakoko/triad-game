@@ -813,12 +813,35 @@ function applyRankedServerSnapshot(snap){
  state.done=state.tasks.reduce((n,t)=>n+(4-Math.max(0,Number(t.remaining)||0)),0);state.total=state.tasks.length*4;setRankedClock(snap.elapsed_seconds,false);
  $("taskCount").textContent=state.done+" / "+state.total;$("taskProgress").style.width=(state.total?state.done/state.total*100:0)+"%";updateRankedClockDisplay();$("myStatus").textContent=state.me.alive?"生存":"死亡";syncRankedMeetingUI(snap.meeting);updateNearbyActions();draw();
 }
+let rankedLastHeartbeatAt=0,rankedTakeoverNoticeShown=false;
+function handleRankedTakeoverNotice(){
+ if(rankedTakeoverNoticeShown)return;
+ rankedTakeoverNoticeShown=true;rankedServerMode=false;state.running=false;
+ clearInterval(loop);clearInterval(clock);stopMove();
+ $("nearHint").textContent="接続が長時間途切れたため、この席はAIに引き継がれました。この試合には再参加できません。";
+ $("emergencyAction").disabled=true;$("taskAction").disabled=true;$("abilityAction").disabled=true;
+}
 async function rankedServerPulse(){
- if(!rankedServerMode||!state.running||rankedServerBusy)return;rankedServerBusy=true;
- try{const now=Date.now(),mv=state.move||{x:0,y:0};
- if(!state.me?.charging&&(Math.abs(mv.x)+Math.abs(mv.y))>.08&&now-rankedLastMoveAt>=300){rankedLastMoveAt=now;await rankedEngineCall("move",{dx:mv.x,dy:mv.y})}
- if(now-rankedLastTickAt>=1000){rankedLastTickAt=now;const tr=await rankedEngineCall("tick");if(tr.status==="match_completed"||tr.status==="role_completed"){await showRankedServerResult(tr);return}if(tr.status==="ok")applyRankedServerSnapshot(tr)} }
- catch(e){console.warn("Ranked server sync failed",e);$("nearHint").textContent="サーバー再接続中…"}finally{rankedServerBusy=false}
+ if(!rankedServerMode||!state.running||rankedServerBusy)return;
+ rankedServerBusy=true;
+ try{
+  const now=Date.now(),mv=state.move||{x:0,y:0};
+  if(now-rankedLastHeartbeatAt>=5000){
+   rankedLastHeartbeatAt=now;
+   const hb=await rankedEngineCall("heartbeat");
+   if(hb.status==="not_in_match"||hb.status==="seat_taken_over"){handleRankedTakeoverNotice();return;}
+  }
+  if(!state.me?.charging&&(Math.abs(mv.x)+Math.abs(mv.y))>.08&&now-rankedLastMoveAt>=300){
+   rankedLastMoveAt=now;await rankedEngineCall("move",{dx:mv.x,dy:mv.y});
+  }
+  if(now-rankedLastTickAt>=1000){
+   rankedLastTickAt=now;const tr=await rankedEngineCall("tick");
+   if(tr.status==="match_completed"||tr.status==="role_completed"){await showRankedServerResult(tr);return;}
+   if(tr.status==="not_in_match"){handleRankedTakeoverNotice();return;}
+   if(tr.status==="ok")applyRankedServerSnapshot(tr);
+  }
+ }catch(e){console.warn("Ranked server sync failed",e);$("nearHint").textContent="サーバー再接続中…";}
+ finally{rankedServerBusy=false;}
 }
 async function rankedServerDoTask(task){
 
