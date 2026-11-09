@@ -392,7 +392,7 @@ canvas#mapCanvas{aspect-ratio:16/10;background:#0b1522}
 </section>
 
 </main>
-<footer>TRIAD v0.83 · ランク戦の役職能力・推理AI改善</footer>
+<footer>TRIAD v0.84 · 常駐デバッグAI・自動診断</footer>
 
   <div id="onlineConnectionBanner" role="status">オンライン接続が不安定です。<button type="button" onclick="retryOnlineConnection()">再接続</button></div>
   <div class="modal" id="offlineRoleSettingsModal"><div class="modalbox"><h2>通常対戦・役職詳細設定</h2><p class="muted">固定人数を指定した役職は必ず登場します。残りの枠はONになっている役職から出現重みに応じて抽選します。</p>
@@ -3195,6 +3195,62 @@ function renderUpdateLog(version="0.77"){
 }
 function setHelpTab(tab){const roles=tab==="roles";$("helpRulesPanel").hidden=roles;$("helpRolesPanel").hidden=!roles;$("helpRulesTab").classList.toggle("primary",!roles);$("helpRolesTab").classList.toggle("primary",roles)}
 function openHelp(){setHelpTab("rules");$("helpModal").classList.add("show")}function closeHelp(){$("helpModal").classList.remove("show")}
-if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",()=>{initializeOnlineAccounts();updateResumeGameUI()});else{initializeOnlineAccounts();updateResumeGameUI()}
+
+/* TRIAD Debug AI v0.84: in-browser diagnostics and persistent issue journal */
+const DEBUG_AI_KEY="triad_debug_ai_issues_v1";
+let debugAIStarted=false,debugAIScanTimer=null,debugAIIssues=[];
+function loadDebugAIIssues(){try{const v=JSON.parse(localStorage.getItem(DEBUG_AI_KEY)||"[]");debugAIIssues=Array.isArray(v)?v:[]}catch{debugAIIssues=[]}}
+function saveDebugAIIssues(){try{localStorage.setItem(DEBUG_AI_KEY,JSON.stringify(debugAIIssues.slice(-120)))}catch(e){console.warn("Debug AI storage unavailable",e)}}
+function addDebugAIIssue(level,title,detail,source="自動検査"){
+ const key=level+"|"+title+"|"+detail;
+ const old=debugAIIssues.find(x=>x.key===key&&!x.resolved);
+ if(old){old.lastSeen=Date.now();old.count=(old.count||1)+1}
+ else debugAIIssues.push({key,level,title,detail,source,firstSeen:Date.now(),lastSeen:Date.now(),count:1,resolved:false});
+ saveDebugAIIssues();renderDebugAIIssues();
+}
+function renderDebugAIIssues(){
+ const root=$("debugAIIssues");if(!root)return;
+ const active=debugAIIssues.filter(x=>!x.resolved).slice(-30).reverse();
+ $("debugAIIssueCount").textContent=String(debugAIIssues.filter(x=>!x.resolved).length);
+ if(!active.length){root.innerHTML='<div class="card"><b style="color:#72e3df">現在、監視対象から問題は検出されていません。</b><p class="muted">未検出は「バグが存在しない」ことを保証するものではありません。</p></div>';return}
+ root.innerHTML=active.map((x,i)=>'<div class="card"><div class="row"><b>'+escapeDebugText(x.title)+'</b><span class="pill">'+escapeDebugText(x.level)+'</span></div><p style="font-size:13px;white-space:pre-wrap">'+escapeDebugText(x.detail)+'</p><small class="muted">発生元：'+escapeDebugText(x.source)+' · 回数：'+x.count+' · '+new Date(x.lastSeen).toLocaleString('ja-JP')+'</small><button style="width:100%;margin-top:8px" onclick="resolveDebugAIIssue('+i+')">この問題を解決済みにする</button></div>').join("");
+}
+function escapeDebugText(v){return String(v??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]))}
+function resolveDebugAIIssue(reverseIndex){const a=debugAIIssues.filter(x=>!x.resolved).slice(-30).reverse(),item=a[reverseIndex];if(item){const target=debugAIIssues.find(x=>x.key===item.key&&!x.resolved);if(target)target.resolved=true;saveDebugAIIssues();renderDebugAIIssues()}}
+function clearDebugAIResolved(){debugAIIssues=debugAIIssues.filter(x=>!x.resolved);saveDebugAIIssues();renderDebugAIIssues()}
+function openDebugAI(){$("debugAIModal")?.classList.add("show");runDebugAIScan();startDebugAIMonitor()}
+function closeDebugAI(){$("debugAIModal")?.classList.remove("show")}
+function copyDebugAIReport(){const report=debugAIIssues.filter(x=>!x.resolved).map(x=>'['+x.level+'] '+x.title+'\n'+x.detail+'\n発生元：'+x.source).join('\n\n')||'現在、記録された未解決問題はありません。';if(navigator.clipboard?.writeText)navigator.clipboard.writeText('TRIAD DEBUG AI REPORT\n'+report).then(()=>{$("debugAIStatus").textContent="コピーしました"}).catch(()=>{$("debugAIStatus").textContent="コピーできません"});else $("debugAIStatus").textContent="このブラウザはコピーに未対応です"}
+function runDebugAIScan(){
+ loadDebugAIIssues();let checks=0,found=0;
+ const report=(level,title,detail)=>{found++;addDebugAIIssue(level,title,detail)};
+ const ids=["home","setup","ranked","socialHub","game","mapCanvas","meetingModal","emergencyAction","reportAction","taskAction","abilityAction","debugAIModal"];
+ const idCounts={};document.querySelectorAll("[id]").forEach(el=>idCounts[el.id]=(idCounts[el.id]||0)+1);
+ Object.entries(idCounts).filter(([,n])=>n>1).forEach(([id,n])=>report("重大","HTML ID重複",id+" が "+n+" 個あります。getElementByIdが意図しない要素を返す可能性があります。"));
+ ids.forEach(id=>{checks++;if(!$(id))report("警告","重要画面要素が見つかりません",id+" がDOMにありません。画面切替や操作ボタンの実装を確認してください。")});
+ const inlineFns=new Set([...document.querySelectorAll("[onclick]")].map(el=>{const m=(el.getAttribute("onclick")||"").match(/^\s*([A-Za-z_$][\w$]*)\s*\(/);return m?.[1]}).filter(Boolean));
+ inlineFns.forEach(fn=>{checks++;if(typeof window[fn]!=="function")report("重大","ボタン処理が未定義",fn+"() がHTMLから呼び出されていますが、グローバル関数として見つかりません。")});
+ if(typeof state!=="undefined"&&state){
+  checks++;
+  if(state.running&&(!Array.isArray(state.players)||!state.me))report("重大","試合状態の不整合","試合中なのにプレイヤー配列または自分のプレイヤー情報がありません。");
+  if(Array.isArray(state.players)){
+   const idsSeen=new Set();state.players.forEach(p=>{if(idsSeen.has(p.id))report("重大","プレイヤーID重複","プレイヤーID "+p.id+" が重複しています。");idsSeen.add(p.id);if(!p.team||!["white","black","third"].includes(p.team))report("警告","陣営データ不正",(p.name||p.id)+" の陣営値を確認してください。");if(!p.role)report("警告","役職データ欠落",(p.name||p.id)+" に役職が設定されていません。")});
+   if(state.running&&state.me&&!state.players.some(p=>p.id===state.me.id))report("重大","自分のプレイヤー参照が不一致","state.me が state.players に存在しません。");
+  }
+ }
+ if(typeof rankedServerMode!=="undefined"&&rankedServerMode&&typeof rankedEngineCall!=="function")report("重大","ランク戦エンジン未接続","ランク戦モードが有効ですが通信関数がありません。");
+ if(found===0){$("debugAISummary").textContent="検査項目 "+checks+" 件：異常なし";$("debugAIStatus").textContent="監視中"}else{$("debugAISummary").textContent="問題 "+found+" 件を検出";$("debugAIStatus").textContent="要確認"}
+ renderDebugAIIssues();
+}
+function startDebugAIMonitor(){
+ if(debugAIStarted)return;debugAIStarted=true;loadDebugAIIssues();
+ window.addEventListener("error",e=>addDebugAIIssue("重大","JavaScript実行エラー",(e.message||"不明なエラー")+" · "+(e.filename||"")+" : "+(e.lineno||"?"),"ブラウザ"));
+ window.addEventListener("unhandledrejection",e=>addDebugAIIssue("重大","非同期処理エラー",String(e.reason?.message||e.reason||"理由不明"),"Promise"));
+ debugAIScanTimer=setInterval(()=>{if(document.visibilityState!=="hidden")runDebugAIScan()},20000);
+ renderDebugAIIssues();runDebugAIScan();
+}
+
+if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",()=>{initializeOnlineAccounts();updateResumeGameUI();startDebugAIMonitor()});else{initializeOnlineAccounts();updateResumeGameUI()}
 </script>
+<div class="modal" id="debugAIModal"><div class="modalbox"><div class="row" style="align-items:center"><h2 style="flex:1">🛠️ TRIAD DEBUG AI</h2><span id="debugAIStatus" class="pill">監視準備中</span></div><p class="muted">ページを開いている間、20秒ごとに簡易診断します。ブラウザエラーは発生時に記録します。</p><div class="grid"><div class="card"><div class="muted">検査状態</div><div id="debugAISummary" style="font-size:22px;font-weight:900">未検査</div></div><div class="card"><div class="muted">検出した問題</div><div id="debugAIIssueCount" style="font-size:22px;font-weight:900">0</div></div></div><div class="actions"><button class="primary" onclick="runDebugAIScan()">今すぐ全体検査</button><button onclick="clearDebugAIResolved()">解決済みを整理</button><button onclick="copyDebugAIReport()">レポートをコピー</button></div><h3>検出・記録</h3><div id="debugAIIssues" class="targetList"><p class="muted">まだ検査していません。</p></div><p class="muted">※自動修正はゲームデータを壊す危険があるため、この版では行いません。原因候補と修正箇所を提示し、重大な変更は手動確認にします。</p><button style="width:100%" onclick="closeDebugAI()">閉じる</button></div></div>
 </body></html>
