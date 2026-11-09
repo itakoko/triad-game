@@ -1796,7 +1796,7 @@ function useAbility(){if(rankedServerMode){
 function selectTarget(id){if(rankedServerMode){
  const action=state.targetAction,kind=action?.kind,target=state.players.find(p=>p.id===Number(id));closeTargetModal();
  if(!kind||!target)return;
- const apiKind={seer:"seer",protect:"protect",scent:"scent",disguise:"disguise",attack_once:"attack_once",assassinKill:"assassin_kill",gamblerKill:"gambler_kill",rankedKill:"ranked_kill"}[kind];if(!apiKind)return;
+ const apiKind={seer:"seer",protect:"protect",scent:"scent",disguise:"disguise",roleKill:"attack_once",attack_once:"attack_once",assassinKill:"assassin_kill",gamblerKill:"gambler_kill",rankedKill:"ranked_kill"}[kind];if(!apiKind)return;
  rankedEngineCall("ability",{kind:apiKind,target_seat:Number(target.number||target.id+1)}).then(async result=>{
   if(result.status==="seer_result"){target.team=result.target_faction;showSeerResult(target)}
   else if(result.status==="protected"){target.protected=true;alert(target.name+" に加護を与えました。")}
