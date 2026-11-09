@@ -217,13 +217,25 @@ canvas#mapCanvas{aspect-ratio:16/10;background:#0b1522}
   </div>
  </div>
  <div class="card">
-  <h3>対戦形式</h3>
+  <h3>ランクマッチに参加</h3>
+  <p class="muted">形式を選んで参加してください。一定時間ほかのプレイヤーが集まらない場合、空席はAIで補充されます。</p>
   <div class="grid">
-   <div class="card" style="background:#15263b"><h3>10人戦</h3><p>白6人・黒2人・第三2人</p><span class="pill">準備中</span></div>
-   <div class="card" style="background:#15263b"><h3>12人戦</h3><p>白6人・黒3人・第三3人</p><span class="pill">準備中</span></div>
+   <div class="card" style="background:#15263b">
+    <h3>10人戦</h3><p>白6人・黒2人・第三2人</p>
+    <button class="primary" style="width:100%" onclick="joinRankedQueue(10)">10人戦に参加</button>
+   </div>
+   <div class="card" style="background:#15263b">
+    <h3>12人戦</h3><p>白6人・黒3人・第三3人</p>
+    <button class="primary" style="width:100%" onclick="joinRankedQueue(12)">12人戦に参加</button>
+   </div>
   </div>
-  <p class="muted">サーバー移動・AI移動・タスク進行、会議チャット・投票・AI投票に加え、サイエンティスト・占い師・狩人・保安官・僧侶・イノシシ・インポスター・放浪者・百面相・暗殺者・狂人・ギャンブラーの能力をサーバー接続しました。タスク完了・陣営人数・てるてる追放・放浪者の目標による勝敗確定とランク更新処理も追加済みです。未対応の役職能力と全パターンの対戦検証が残るため、新規マッチングはまだ公開していません。</p>
-  <div class="row"><button onclick="connectRankedActiveMatch()">進行中の試合に再接続</button><button onclick="loadRankedProfile()">ランク情報を更新</button></div>
+  <div id="rankedQueueStatus" class="accountTrait" style="margin-top:10px" aria-live="polite">マッチングに参加していません。</div>
+  <div class="row">
+   <button onclick="refreshRankedQueueStatus()">待機状況を更新</button>
+   <button class="warn" onclick="cancelRankedQueue()">マッチングをキャンセル</button>
+   <button onclick="connectRankedActiveMatch()">進行中の試合に再接続</button>
+  </div>
+  <p class="muted">マッチング中は約3秒ごとに状況を確認します。試合開始後は自動的にゲーム画面へ移動します。</p>
  </div>
  <div class="card">
   <h3>ランク帯</h3>
@@ -638,6 +650,7 @@ let loop=null,clock=null,autosaveTimer=null;
 let rankedServerMode=false,rankedServerBusy=false,rankedLastMoveAt=0,rankedLastTickAt=0,rankedLastStateAt=0;
 let rankedPointsBefore=null;
 let rankedMeetingWasActive=false;
+let rankedQueueTimer=null,rankedQueueBusy=false,rankedSelectedFormat=10;
 
 async function rankedEngineCall(action,extra={}){
  if(!supabaseClient)supabaseClient=window.supabase.createClient(SUPABASE_URL,SUPABASE_PUBLISHABLE_KEY);
@@ -878,6 +891,76 @@ function activateScreen(id){
  const target=document.getElementById(id);
  if(!target){console.error("Screen not found:",id);return false}
  target.classList.add("active");return true;
+}
+function rankedQueueMessage(message){
+ const el=$("rankedQueueStatus");if(el)el.textContent=message;
+}
+async function rankedQueueApi(action,extra={}){
+ if(!supabaseClient)supabaseClient=window.supabase.createClient(SUPABASE_URL,SUPABASE_PUBLISHABLE_KEY);
+ if(!authUser){const {data,error}=await supabaseClient.auth.getSession();if(error)throw error;authUser=data.session?.user||null}
+ if(!authUser)throw new Error("オンライン接続が必要です。");
+ await ensureOwnPlayerProfile();
+ const {data,error}=await supabaseClient.functions.invoke("triad-ranked",{body:{action,...extra}});
+ if(error)throw error;if(data?.error)throw new Error(data.message||data.error);return data;
+}
+function stopRankedQueuePolling(){
+ if(rankedQueueTimer!==null){clearInterval(rankedQueueTimer);rankedQueueTimer=null}
+ rankedQueueBusy=false;
+}
+async function joinRankedQueue(format){
+ if(rankedQueueBusy)return;
+ rankedQueueBusy=true;rankedSelectedFormat=format;
+ rankedQueueMessage(format+"人戦のマッチングに参加しています…");
+ try{
+  const result=await rankedQueueApi("join",{format_size:format});
+  if(result.status==="queued"){
+   rankedQueueMessage(format+"人戦の待機中です。プレイヤーを探しています。一定時間後にAIが空席を補充します。");
+   stopRankedQueuePolling();
+   rankedQueueTimer=setInterval(()=>refreshRankedQueueStatus(),3000);
+   await refreshRankedQueueStatus();
+  }else if(result.status==="active_match"){
+   rankedQueueMessage("すでに進行中のランク戦があります。試合へ接続します…");
+   await connectRankedActiveMatch();
+  }else rankedQueueMessage("マッチング応答："+String(result.status||"不明"));
+ }catch(e){rankedQueueMessage("参加できませんでした："+(e?.message||String(e)))}
+ finally{rankedQueueBusy=false}
+}
+async function refreshRankedQueueStatus(){
+ if(rankedQueueBusy)return;
+ rankedQueueBusy=true;
+ try{
+  const result=await rankedQueueApi("status");
+  const match=result.match||{};
+  if(match.status==="queued"){
+   rankedQueueMessage(rankedSelectedFormat+"人戦の待機中です。人数がそろうか、待機開始から約8秒経過するとAIが空席を補充します。");
+   return;
+  }
+  if(match.status==="active"){
+   stopRankedQueuePolling();
+   rankedQueueMessage("マッチング成立！試合に接続しています…");
+   const snap=await rankedEngineCall("state");
+   if(snap.status==="ok"){await enterRankedServerMatch(snap);return}
+   rankedQueueMessage("試合は成立しましたが、ゲーム状態の取得を待っています。もう一度「待機状況を更新」を押してください。");
+   return;
+  }
+  if(match.status==="finished"){
+   stopRankedQueuePolling();rankedQueueMessage("直近のランク戦は終了しています。戦績を更新してください。");loadRankedProfile();return;
+  }
+  rankedQueueMessage(match.status==="idle"?"マッチングに参加していません。":("マッチング状態："+String(match.status||"確認中")));
+ }catch(e){rankedQueueMessage("状況を取得できません："+(e?.message||String(e)))}
+ finally{rankedQueueBusy=false}
+}
+async function cancelRankedQueue(){
+ if(rankedQueueBusy)return;
+ rankedQueueBusy=true;
+ try{
+  const result=await rankedQueueApi("cancel");
+  if(result.status==="active_match"){
+   stopRankedQueuePolling();rankedQueueMessage("すでに試合が始まっているためキャンセルできません。進行中の試合へ接続してください。");return;
+  }
+  stopRankedQueuePolling();rankedQueueMessage("マッチングをキャンセルしました。");
+ }catch(e){rankedQueueMessage("キャンセルできません："+(e?.message||String(e)))}
+ finally{rankedQueueBusy=false}
 }
 function rankedTier(points){
  const p=Math.max(0,Number(points)||0);
