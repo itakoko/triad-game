@@ -1366,6 +1366,17 @@ function draw(){
  fogCtx.fillStyle=fog;
  fogCtx.beginPath();fogCtx.arc(px,py,outerRadius,0,Math.PI*2);fogCtx.fill();
  ctx.drawImage(fogCanvas,0,0);
+ // 恋人は相方の現在位置だけを視界の外でもマップ上に表示する。
+ if(!spectating&&state.me?.role==="恋人"&&state.me.partnerId!==null&&state.me.partnerId!==undefined){
+  const partner=state.players.find(p=>p.id===state.me.partnerId);
+  if(partner&&partner.alive){
+   const mx=(partner.x-state.camera.x)*cameraZoom,my=(partner.y-state.camera.y)*cameraZoom;
+   ctx.save();ctx.globalAlpha=.98;ctx.strokeStyle="#ff82c8";ctx.fillStyle="#ffb5dc";ctx.lineWidth=2.5;
+   ctx.beginPath();ctx.arc(mx,my,15*cameraZoom,0,Math.PI*2);ctx.stroke();
+   ctx.beginPath();ctx.arc(mx,my,4.5*cameraZoom,0,Math.PI*2);ctx.fill();
+   ctx.font="bold 11px system-ui";ctx.textAlign="center";ctx.lineWidth=3;ctx.strokeStyle="#241326";ctx.strokeText("恋人",mx,my-20*cameraZoom);ctx.fillStyle="#ffd6eb";ctx.fillText("恋人",mx,my-20*cameraZoom);ctx.restore();
+  }
+ }
 }
 function roundRect(ctx,x,y,w,h,r){ctx.beginPath();ctx.roundRect(x,y,w,h,r)}
 function holdMove(x,y){state.move={x,y};if(x||y){let m=Math.hypot(x,y);state.lastDirection={x:x/m,y:y/m}}}function stopMove(){state.move={x:0,y:0};if($("stickKnob"))$("stickKnob").style.transform="translate(0px,0px)"}
