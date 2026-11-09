@@ -759,7 +759,7 @@ async function showRankedServerResult(result){
 function applyRankedServerSnapshot(snap){
  if(!rankedServerMode||snap?.status!=="ok")return;const ownSeat=Number(snap.self?.seat);state.serverPhase=snap.phase;state.emergencyMeetingReadyAt=Number(snap.meeting_cooldown_until)||state.emergencyMeetingReadyAt;
  (snap.players||[]).forEach(v=>{const p=state.players.find(x=>x.number===Number(v.seat));if(p){p.x=Number(v.x);p.y=Number(v.y);p.alive=!!v.alive;const ap=Number(v.appearance_seat)||Number(v.seat);const target=state.players.find(q=>q.number===ap);p.color=colors[(ap-1)%colors.length];p.shape=(ap-1)%4;p.name=ap!==Number(v.seat)&&target?(target.baseName||target.name):p.baseName||p.name}});
- const me=state.players.find(p=>p.number===ownSeat);if(me){me.team=snap.self.faction;me.role=snap.self.role;me.alive=!!snap.self.alive;me.abilityUsed=!!snap.self.ability_used;me.charging=!!snap.self.charging;me.roleReadyAt=Number(snap.self.role_ready_at)||0;me.killReadyAt=Number(snap.self.kill_ready_at)||0;state.bountyIds=(snap.self.assassin_targets||[]).map(n=>Number(n)-1);me.gamblerKillReady=!!snap.self.gambler_kill_ready;me.gamblerPrediction=snap.self.gambler_prediction||null;me.gamblerPredictionHits=Number(snap.self.gambler_prediction_hits)||0;me.gamblerLowCount=Number(snap.self.gambler_low_count)||0;me.gamblerHighCount=Number(snap.self.gambler_high_count)||0;me.gamblerBadLuckCount=Number(snap.self.gambler_bad_luck_count)||0;me.gamblerReveals=Array.isArray(snap.self.gambler_reveals)?snap.self.gambler_reveals:[];for(const known of me.gamblerReveals){const revealed=state.players.find(p=>p.number===Number(known.seat));if(revealed)revealed.team=String(known.faction||"unknown")}state.me=me;if(me.role==="放浪者"&&Array.isArray(snap.self.scented_seats))state.scentedIds=new Set(snap.self.scented_seats.map(n=>Number(n)-1));}
+ const me=state.players.find(p=>p.number===ownSeat);if(me){me.team=snap.self.faction;me.role=snap.self.role;me.alive=!!snap.self.alive;me.abilityUsed=!!snap.self.ability_used;me.charging=!!snap.self.charging;me.roleReadyAt=Number(snap.self.role_ready_at)||0;me.killReadyAt=Number(snap.self.kill_ready_at)||0;me.sabotageReadyAt=Number(snap.self.sabotage_ready_at)||0;state.sabotageUntil=Number(snap.sabotage_until)||0;state.bountyIds=(snap.self.assassin_targets||[]).map(n=>Number(n)-1);me.gamblerKillReady=!!snap.self.gambler_kill_ready;me.gamblerPrediction=snap.self.gambler_prediction||null;me.gamblerPredictionHits=Number(snap.self.gambler_prediction_hits)||0;me.gamblerLowCount=Number(snap.self.gambler_low_count)||0;me.gamblerHighCount=Number(snap.self.gambler_high_count)||0;me.gamblerBadLuckCount=Number(snap.self.gambler_bad_luck_count)||0;me.gamblerReveals=Array.isArray(snap.self.gambler_reveals)?snap.self.gambler_reveals:[];for(const known of me.gamblerReveals){const revealed=state.players.find(p=>p.number===Number(known.seat));if(revealed)revealed.team=String(known.faction||"unknown")}state.me=me;if(me.role==="放浪者"&&Array.isArray(snap.self.scented_seats))state.scentedIds=new Set(snap.self.scented_seats.map(n=>Number(n)-1));}
  state.tasks=(snap.tasks||[]).map(t=>{const old=state.tasks.find(x=>x.id===Number(t.id))||{},spec=taskKinds[Number(t.id)%taskKinds.length];return{...old,id:Number(t.id),x:Number(t.x),y:Number(t.y),done:!!t.done,remaining:Number(t.remaining),label:spec.label,room:spec.room,kind:spec.kind}});
  state.done=state.tasks.reduce((n,t)=>n+(4-Math.max(0,Number(t.remaining)||0)),0);state.total=state.tasks.length*4;state.seconds=Number(snap.elapsed_seconds)||state.seconds;
  $("taskCount").textContent=state.done+" / "+state.total;$("taskProgress").style.width=(state.total?state.done/state.total*100:0)+"%";$("timer").textContent=String(Math.floor(state.seconds/60)).padStart(2,"0")+":"+String(state.seconds%60).padStart(2,"0");$("myStatus").textContent=state.me.alive?"生存":"死亡";syncRankedMeetingUI(snap.meeting);updateNearbyActions();draw();
@@ -1263,7 +1263,7 @@ function updateNearbyActions(){
  if(dead&&!ghost&&!state.players.some(p=>p.id===spectatorTargetId&&p.alive)){spectatorTargetId=state.players.find(p=>p.alive)?.id??null;}
  $("ghostBanner").textContent=dead?(ghost?"👻 幽霊モード：自由に移動できます":"👁 観戦モード：生存者の視点を見ています"):"";
  $("deathChoice").hidden=!dead||!deathChoicePending;
- if(rankedServerMode){$("killAction").hidden=me.role!=="暗殺者";$("sabotageAction").hidden=true;$("reportAction").hidden=true;$("emergencyAction").hidden=false}
+ if(rankedServerMode){$("killAction").hidden=!(["暗殺者","インポスター","狂人"].includes(me.role));$("sabotageAction").hidden=me.role!=="インポスター";$("reportAction").hidden=true;$("emergencyAction").hidden=false}
  state.nearTask=alive?state.tasks.find(t=>(me.team!=="white"||!t.done)&&!t.completedBy?.includes(me.id)&&Math.hypot(t.x-me.x,t.y-me.y)<72)||null:null;
  state.nearBody=alive?state.dead.find(d=>Math.hypot(d.x-me.x,d.y-me.y)<82)||null:null;
  state.nearEmergency=alive&&Math.hypot(900-me.x,520-me.y)<82;const emergencyWait=Math.max(0,Math.ceil(((state.emergencyMeetingReadyAt||0)-now)/1000));const emergencyAvailable=state.nearEmergency&&!me.emergencyMeetingUsed&&emergencyWait===0;
@@ -1275,7 +1275,7 @@ function updateNearbyActions(){
  const canKill=me.team==="black"||["暗殺者","狂人"].includes(me.role);
  if(canKill){const rem=remainingText(me.killReadyAt);setButton("killAction",rem?`🔪 キル（${rem}秒）`:"🔪 キル",!alive||rem>0,!alive)}
  else setButton("killAction","🔪 キル",true,true);
- if(me.team==="black"){const rem=remainingText(me.sabotageReadyAt);setButton("sabotageAction",rem?`⚡ 停電サボタージュ（${rem}秒）`:"⚡ 停電サボタージュ",!alive||rem>0,!alive)}
+ if(me.team==="black"&&(!rankedServerMode||me.role==="インポスター")){const rem=remainingText(me.sabotageReadyAt);setButton("sabotageAction",rem?`⚡ 停電サボタージュ（${rem}秒）`:"⚡ 停電サボタージュ",!alive||rem>0,!alive)}
  else setButton("sabotageAction","⚡ サボタージュ",true,true);
  let label="能力なし",disabled=true;
  const rem=remainingText(me.roleReadyAt);
@@ -1506,17 +1506,33 @@ function performKill(target,actor,source="キル"){
 function useKill(){
  const actor=state.me;if(!state.running||!actor.alive)return;
  if(rankedServerMode){
-  if(actor.role!=="暗殺者")return;
-  if(remainingText(actor.killReadyAt)>0)return;
-  const targets=targetCandidates(actor,88,false,p=>state.bountyIds.includes(p.id));
-  openTargetSelection("手配対象を倒す","手配対象のうち、近くにいる相手だけ選べます。",targets,"assassinKill");return;
+  if(remainingText(actor.killReadyAt)>0){alert("次に使用できるまで待ってください。");return}
+  if(actor.role==="暗殺者"){
+   const targets=targetCandidates(actor,88,false,p=>state.bountyIds.includes(p.id));
+   openTargetSelection("手配対象を倒す","手配対象のうち、近くにいる相手だけ選べます。",targets,"assassinKill");return;
+  }
+  if(actor.role==="インポスター"||actor.role==="狂人"){
+   const filter=actor.role==="インポスター"?(p=>p.team!=="black"):(p=>p.id!==actor.id);
+   const targets=targetCandidates(actor,88,false,filter);
+   openTargetSelection("近くの相手を選択","範囲内の相手を選びます。",targets,"rankedKill");return;
+  }
+  return;
  }
  const cooldown=actor.team==="black"?actor.killReadyAt:actor.killReadyAt;
  if(remainingText(cooldown)>0)return;
  const targets=targetCandidates(actor,88,false,p=>!(actor.team==="black"&&p.team==="black"));
  openTargetSelection("キルする相手を選択","近くにいる相手だけ選べます。",targets,"kill");
 }
-function useSabotage(){if(isOnlineClient()){sendOnlineInput({kind:"action",action:"sabotage"});return}
+function useSabotage(){if(rankedServerMode){
+ const actor=state.me;if(!actor?.alive||actor.role!=="インポスター")return;
+ rankedEngineCall("ability",{kind:"sabotage"}).then(async result=>{
+  if(result.status==="sabotage_started"){state.sabotageUntil=Number(result.until)||Date.now()+10000;alert("停電サボタージュを開始しました。10秒間、黒陣営以外の視界が狭くなります。")}
+  else if(result.status==="cooldown")alert("サボタージュの再使用まで待ってください。");
+  else alert("サボタージュを使えません："+result.status);
+  applyRankedServerSnapshot(await rankedEngineCall("state"));
+ }).catch(e=>alert("サボタージュ送信エラー："+(e.message||String(e))));
+ return;
+ }if(isOnlineClient()){sendOnlineInput({kind:"action",action:"sabotage"});return}
  const actor=state.me;if(!state.running||!actor.alive||actor.team!=="black"||remainingText(actor.sabotageReadyAt)>0)return;
  state.sabotageUntil=Date.now()+10000;actor.sabotageReadyAt=Date.now()+35000;playSfx("sabotage");
  alert("停電サボタージュ！ 10秒間、黒陣営以外の視界が狭くなります。");updateNearbyActions();draw();
@@ -1655,7 +1671,7 @@ function useAbility(){if(rankedServerMode){
 function selectTarget(id){if(rankedServerMode){
  const action=state.targetAction,kind=action?.kind,target=state.players.find(p=>p.id===Number(id));closeTargetModal();
  if(!kind||!target)return;
- const apiKind={seer:"seer",protect:"protect",scent:"scent",disguise:"disguise",attack_once:"attack_once",assassinKill:"assassin_kill",gamblerKill:"gambler_kill"}[kind];if(!apiKind)return;
+ const apiKind={seer:"seer",protect:"protect",scent:"scent",disguise:"disguise",attack_once:"attack_once",assassinKill:"assassin_kill",gamblerKill:"gambler_kill",rankedKill:"ranked_kill"}[kind];if(!apiKind)return;
  rankedEngineCall("ability",{kind:apiKind,target_seat:Number(target.number||target.id+1)}).then(async result=>{
   if(result.status==="seer_result"){target.team=result.target_faction;showSeerResult(target)}
   else if(result.status==="protected"){target.protected=true;alert(target.name+" に加護を与えました。")}
@@ -1665,6 +1681,8 @@ function selectTarget(id){if(rankedServerMode){
   else if(result.status==="attack_blocked"){alert("加護が攻撃を防ぎました。")}
   else if(result.status==="gambler_kill_success"){alert("JACKPOT能力を使いました。")}
   else if(result.status==="gambler_kill_blocked"){alert("対象の加護がJACKPOT能力を防ぎました。")}
+  else if(result.status==="ranked_kill_success"){alert("能力を使用しました。")}
+  else if(result.status==="ranked_kill_blocked"){alert("対象の加護が攻撃を防ぎました。")}
   else if(result.status==="sheriff_misfire"){alert("白陣営を誤って攻撃したため、保安官も脱落しました。")}
   else if(result.status==="scented"){state.scentedIds.add(target.id);$("nearHint").textContent="匂いを移しました。対象 "+result.scented_count+" 人";alert("匂いを移しました。")}
   else if(result.status==="disguised"){alert("10秒間、選んだ相手の姿に変身しました。")}
