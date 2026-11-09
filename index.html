@@ -905,7 +905,6 @@ async function rankedQueueApi(action,extra={}){
 }
 function stopRankedQueuePolling(){
  if(rankedQueueTimer!==null){clearInterval(rankedQueueTimer);rankedQueueTimer=null}
- rankedQueueBusy=false;
 }
 async function joinRankedQueue(format){
  if(rankedQueueBusy)return;
