@@ -193,7 +193,7 @@ canvas#mapCanvas{aspect-ratio:16/10;background:#0b1522}
   <div class="card"><h3>🏆 ランク戦</h3><p class="muted">ランクポイントと戦績を確認し、10人戦・12人戦に参加できます。</p><button class="primary" style="width:100%" onclick="openRankedScreen()">ランク戦を見る</button></div>
   <div class="card"><h3>📘 遊び方</h3><p class="muted">試作版のルールと操作方法を確認します。</p><button style="width:100%" onclick="openHelp()">ルールを見る</button></div>
   <div class="card"><h3>👥 アカウント図鑑</h3><p class="muted">プレイヤーとAIアカウント全員の能力・成績・得意な役職を確認できます。</p><button style="width:100%" onclick="openAccountsScreen()">アカウントを見る</button></div>
-  <div class="card"><h3>🛠️ TRIAD DEBUG AI</h3><p class="muted">画面・ボタン・役職データなどを簡易診断し、検出した問題を確認できます。</p><button class="primary" style="width:100%" onclick="openDebugAI()">デバッグAIを開く</button></div>
+  <div class="card" id="debugAIAccessCard" hidden><h3>🛠️ TRIAD DEBUG AI</h3><p class="muted">管理者専用：画面・ボタン・役職データなどを簡易診断します。</p><button class="primary" style="width:100%" onclick="openDebugAI()">デバッグAIを開く</button></div>
   <div class="card"><h3>📋 アップデートログ</h3><p class="muted">見たいバージョンを選択してください。</p><div class="field"><label for="updateVersionSelect">バージョン</label><select id="updateVersionSelect" onchange="renderUpdateLog(this.value)"><option value="0.84">v0.84（最新）</option><option value="0.77">v0.77</option><option value="0.76">v0.76</option><option value="0.75">v0.75</option><option value="0.74">v0.74</option><option value="0.73">v0.73</option><option value="0.72">v0.72</option><option value="0.71">v0.71</option><option value="0.58">v0.58</option><option value="0.56">v0.57</option><option value="0.55">v0.55（最新）</option><option value="0.54">v0.54（最新）</option><option value="0.53">v0.53</option><option value="0.52">v0.52</option><option value="0.51">v0.51</option><option value="0.49">v0.49</option><option value="0.48">v0.48</option><option value="0.44">v0.44</option><option value="0.43">v0.43</option><option value="0.42">v0.42</option><option value="0.41">v0.41</option><option value="0.40">v0.40</option><option value="0.39">v0.39</option><option value="0.38">v0.38</option><option value="0.37">v0.37</option><option value="0.36">v0.36</option><option value="0.35">v0.35</option><option value="0.34">v0.34</option><option value="0.33">v0.33</option><option value="0.32">v0.32</option><option value="0.31">v0.31</option><option value="0.29">v0.29</option><option value="0.28">v0.28</option><option value="0.27">v0.27</option><option value="0.26">v0.26</option><option value="0.25">v0.25</option><option value="0.23">v0.23</option></select></div><div id="updateLogContent" class="updateLogContent" aria-live="polite"></div></div>
  </div>
 </section>
@@ -459,11 +459,13 @@ async function loadAIProfiles(){
 const $=id=>document.getElementById(id);
 
 let authUser=null,authSubscription=null,onlinePlayerProfiles=[],emailLinkReward=null;
+function updateDebugAIAccessUI(){const card=$("debugAIAccessCard");if(card)card.hidden=authUser?.id!=="ec89c004-e971-40e7-8b60-42eea36b2d97";}
 function setAccountAuthMessage(message,isError=false){
  const el=$("accountAuthMessage");if(el){el.textContent=message;el.style.color=isError?"#ff9aa2":"var(--muted)"}
 }
 function updateAccountAuthUI(){
  const signedIn=!!authUser,guestMode=!!authUser?.is_anonymous;
+ updateDebugAIAccessUI();
  if($("accountAuthStatus"))$("accountAuthStatus").textContent=guestMode?"ゲスト接続中":signedIn?"ログイン中":"未接続";
  if($("accountSignedOut"))$("accountSignedOut").hidden=signedIn&&!guestMode;
  if($("accountSignedIn"))$("accountSignedIn").hidden=!signedIn||guestMode;
@@ -3220,7 +3222,7 @@ function renderDebugAIIssues(){
 function escapeDebugText(v){return String(v??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]))}
 function resolveDebugAIIssue(reverseIndex){const a=debugAIIssues.filter(x=>!x.resolved).slice(-30).reverse(),item=a[reverseIndex];if(item){const target=debugAIIssues.find(x=>x.key===item.key&&!x.resolved);if(target)target.resolved=true;saveDebugAIIssues();renderDebugAIIssues()}}
 function clearDebugAIResolved(){debugAIIssues=debugAIIssues.filter(x=>!x.resolved);saveDebugAIIssues();renderDebugAIIssues()}
-function openDebugAI(){$("debugAIModal")?.classList.add("show");runDebugAIScan();startDebugAIMonitor()}
+function openDebugAI(){if(authUser?.id!=="ec89c004-e971-40e7-8b60-42eea36b2d97"){alert("この機能は管理者アカウント専用です。");return} $("debugAIModal")?.classList.add("show");runDebugAIScan();startDebugAIMonitor()}
 function closeDebugAI(){$("debugAIModal")?.classList.remove("show")}
 function copyDebugAIReport(){const report=debugAIIssues.filter(x=>!x.resolved).map(x=>'['+x.level+'] '+x.title+'\n'+x.detail+'\n発生元：'+x.source).join('\n\n')||'現在、記録された未解決問題はありません。';if(navigator.clipboard?.writeText)navigator.clipboard.writeText('TRIAD DEBUG AI REPORT\n'+report).then(()=>{$("debugAIStatus").textContent="コピーしました"}).catch(()=>{$("debugAIStatus").textContent="コピーできません"});else $("debugAIStatus").textContent="このブラウザはコピーに未対応です"}
 function runDebugAIScan(){
