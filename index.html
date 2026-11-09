@@ -392,7 +392,7 @@ canvas#mapCanvas{aspect-ratio:16/10;background:#0b1522}
 </section>
 
 </main>
-<footer>TRIAD v0.81 · 移動同期・時間表示改善</footer>
+<footer>TRIAD v0.82 · AI移動アニメーション改善</footer>
 
   <div id="onlineConnectionBanner" role="status">オンライン接続が不安定です。<button type="button" onclick="retryOnlineConnection()">再接続</button></div>
   <div class="modal" id="offlineRoleSettingsModal"><div class="modalbox"><h2>通常対戦・役職詳細設定</h2><p class="muted">固定人数を指定した役職は必ず登場します。残りの枠はONになっている役職から出現重みに応じて抽選します。</p>
@@ -794,9 +794,20 @@ function updateRankedClockDisplay(){
  const total=Math.max(0,Math.floor(state.seconds));
  $("timer").textContent=String(Math.floor(total/60)).padStart(2,"0")+":"+String(total%60).padStart(2,"0");
 }
+function updateRankedRemotePlayers(now=Date.now()){
+ if(!rankedServerMode||!state.players)return;
+ for(const p of state.players){
+  if(p.number===Number(state.me?.number)||!Number.isFinite(p._rankedTargetX)||!Number.isFinite(p._rankedTargetY))continue;
+  const elapsed=Math.max(0,now-(p._rankedLerpAt||now));
+  const t=Math.min(1,elapsed/Math.max(250,p._rankedLerpMs||900));
+  const eased=t*t*(3-2*t);
+  p.x=p._rankedFromX+(p._rankedTargetX-p._rankedFromX)*eased;
+  p.y=p._rankedFromY+(p._rankedTargetY-p._rankedFromY)*eased;
+ }
+}
 function applyRankedServerSnapshot(snap){
  if(!rankedServerMode||snap?.status!=="ok")return;const ownSeat=Number(snap.self?.seat);state.serverPhase=snap.phase;state.emergencyMeetingReadyAt=Number(snap.meeting_cooldown_until)||state.emergencyMeetingReadyAt;
- (snap.players||[]).forEach(v=>{const p=state.players.find(x=>x.number===Number(v.seat));if(p){const sx=Number(v.x),sy=Number(v.y);if(Number(v.seat)!==ownSeat){p.x=sx;p.y=sy}p.alive=!!v.alive;const ap=Number(v.appearance_seat)||Number(v.seat);const target=state.players.find(q=>q.number===ap);p.color=colors[(ap-1)%colors.length];p.shape=(ap-1)%4;p.name=ap!==Number(v.seat)&&target?(target.baseName||target.name):p.baseName||p.name}});
+ (snap.players||[]).forEach(v=>{const p=state.players.find(x=>x.number===Number(v.seat));if(p){const sx=Number(v.x),sy=Number(v.y);if(Number(v.seat)!==ownSeat){p._rankedFromX=Number(p.x)||sx;p._rankedFromY=Number(p.y)||sy;p._rankedTargetX=sx;p._rankedTargetY=sy;p._rankedLerpAt=Date.now();p._rankedLerpMs=900}p.alive=!!v.alive;const ap=Number(v.appearance_seat)||Number(v.seat);const target=state.players.find(q=>q.number===ap);p.color=colors[(ap-1)%colors.length];p.shape=(ap-1)%4;p.name=ap!==Number(v.seat)&&target?(target.baseName||target.name):p.baseName||p.name}});
  const me=state.players.find(p=>p.number===ownSeat);if(me){me.team=snap.self.faction;me.role=snap.self.role;me.alive=!!snap.self.alive;me.abilityUsed=!!snap.self.ability_used;me.charging=!!snap.self.charging;me.roleReadyAt=Number(snap.self.role_ready_at)||0;me.killReadyAt=Number(snap.self.kill_ready_at)||0;me.sabotageReadyAt=Number(snap.self.sabotage_ready_at)||0;state.sabotageUntil=Number(snap.sabotage_until)||0;state.bountyIds=(snap.self.assassin_targets||[]).map(n=>Number(n)-1);me.partnerId=Number(snap.self.lover_partner_seat)>0?Number(snap.self.lover_partner_seat)-1:null;me.gamblerKillReady=!!snap.self.gambler_kill_ready;me.gamblerPrediction=snap.self.gambler_prediction||null;me.gamblerPredictionHits=Number(snap.self.gambler_prediction_hits)||0;me.gamblerLowCount=Number(snap.self.gambler_low_count)||0;me.gamblerHighCount=Number(snap.self.gambler_high_count)||0;me.gamblerBadLuckCount=Number(snap.self.gambler_bad_luck_count)||0;me.gamblerReveals=Array.isArray(snap.self.gambler_reveals)?snap.self.gambler_reveals:[];for(const known of me.gamblerReveals){const revealed=state.players.find(p=>p.number===Number(known.seat));if(revealed)revealed.team=String(known.faction||"unknown")}state.me=me;if(me.role==="放浪者"&&Array.isArray(snap.self.scented_seats))state.scentedIds=new Set(snap.self.scented_seats.map(n=>Number(n)-1));}
  state.tasks=(snap.tasks||[]).map(t=>{const old=state.tasks.find(x=>x.id===Number(t.id))||{},spec=taskKinds[Number(t.id)%taskKinds.length];return{...old,id:Number(t.id),x:Number(t.x),y:Number(t.y),done:!!t.done,remaining:Number(t.remaining),label:spec.label,room:spec.room,kind:spec.kind}});
  state.done=state.tasks.reduce((n,t)=>n+(4-Math.max(0,Number(t.remaining)||0)),0);state.total=state.tasks.length*4;setRankedClock(snap.elapsed_seconds,false);
@@ -1273,7 +1284,7 @@ function recordAISightings(){
  });
 }
 function tick(){
- if(rankedServerMode){if(!state.running)return;updateRankedClockDisplay();const p=state.me,mv=state.move||{x:0,y:0},mag=Math.hypot(mv.x,mv.y)||1;if(p?.alive&&!p.charging&&mag>0.08){const nx=p.x+(mv.x/mag)*2.5,ny=p.y+(mv.y/mag)*2.5;if(isWalkable(nx,p.y))p.x=nx;if(isWalkable(p.x,ny))p.y=ny}else if(p&&!p.alive&&deathViewMode==="ghost"){moveGhostPlayer(p)}rankedServerPulse();updateNearbyActions();draw();return}
+ if(rankedServerMode){if(!state.running)return;updateRankedClockDisplay();updateRankedRemotePlayers();const p=state.me,mv=state.move||{x:0,y:0},mag=Math.hypot(mv.x,mv.y)||1;if(p?.alive&&!p.charging&&mag>0.08){const nx=p.x+(mv.x/mag)*2.5,ny=p.y+(mv.y/mag)*2.5;if(isWalkable(nx,p.y))p.x=nx;if(isWalkable(p.x,ny))p.y=ny}else if(p&&!p.alive&&deathViewMode==="ghost"){moveGhostPlayer(p)}rankedServerPulse();updateNearbyActions();draw();return}
   // Online clients only render host snapshots; they never simulate movement or AI.
   if(!state.running||state.meeting)return;let p=state.me;if(onlineGame&&!onlineGame.isHost){if(!p.alive&&deathViewMode==="ghost")moveGhostPlayer(p);updateNearbyActions();draw();return}
   state.players.filter(a=>a.alive&&a.charging).forEach(a=>{
