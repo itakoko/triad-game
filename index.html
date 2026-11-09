@@ -182,7 +182,7 @@ canvas#mapCanvas{aspect-ratio:16/10;background:#0b1522}
 </style>
 </head>
 <body>
-<header><div class="logo">TRI<span>AD</span></div><div class="row" style="align-items:center;gap:8px;flex:0 0 auto"><div class="tag">オンラインアカウント対応 · 連携限定報酬 · v0.77</div><button class="headerAccountButton" type="button" onclick="openAccountsScreen()">アカウント</button></div></header>
+<header><div class="logo">TRI<span>AD</span></div><div class="row" style="align-items:center;gap:8px;flex:0 0 auto"><div class="tag">オンラインアカウント対応 · 連携限定報酬 · v0.78</div><button class="headerAccountButton" type="button" onclick="openAccountsScreen()">アカウント</button></div></header>
 <main>
 <section id="home" class="screen active">
  <div class="hero"><div class="pill">研究施設マップ・探索型推理ゲーム</div><h1>閉鎖された研究所。<br>見えない場所に誰かがいる。</h1><p>部屋と通路を自分で探索し、タスクを進めながら状況を判断します。視界はプレイヤーの周囲に限られます。</p></div>
@@ -193,7 +193,7 @@ canvas#mapCanvas{aspect-ratio:16/10;background:#0b1522}
   <div class="card"><h3>🏆 ランク戦</h3><p class="muted">ランクポイントと戦績を確認し、10人戦・12人戦に参加できます。</p><button class="primary" style="width:100%" onclick="openRankedScreen()">ランク戦を見る</button></div>
   <div class="card"><h3>📘 遊び方</h3><p class="muted">試作版のルールと操作方法を確認します。</p><button style="width:100%" onclick="openHelp()">ルールを見る</button></div>
   <div class="card"><h3>👥 アカウント図鑑</h3><p class="muted">プレイヤーとAIアカウント全員の能力・成績・得意な役職を確認できます。</p><button style="width:100%" onclick="openAccountsScreen()">アカウントを見る</button></div>
-  <div class="card"><h3>📋 アップデートログ</h3><p class="muted">見たいバージョンを選択してください。</p><div class="field"><label for="updateVersionSelect">バージョン</label><select id="updateVersionSelect" onchange="renderUpdateLog(this.value)"><option value="0.77">v0.77（最新）</option><option value="0.76">v0.76</option><option value="0.75">v0.75</option><option value="0.74">v0.74</option><option value="0.73">v0.73</option><option value="0.72">v0.72</option><option value="0.71">v0.71</option><option value="0.58">v0.58</option><option value="0.56">v0.57</option><option value="0.55">v0.55（最新）</option><option value="0.54">v0.54（最新）</option><option value="0.53">v0.53</option><option value="0.52">v0.52</option><option value="0.51">v0.51</option><option value="0.49">v0.49</option><option value="0.48">v0.48</option><option value="0.44">v0.44</option><option value="0.43">v0.43</option><option value="0.42">v0.42</option><option value="0.41">v0.41</option><option value="0.40">v0.40</option><option value="0.39">v0.39</option><option value="0.38">v0.38</option><option value="0.37">v0.37</option><option value="0.36">v0.36</option><option value="0.35">v0.35</option><option value="0.34">v0.34</option><option value="0.33">v0.33</option><option value="0.32">v0.32</option><option value="0.31">v0.31</option><option value="0.29">v0.29</option><option value="0.28">v0.28</option><option value="0.27">v0.27</option><option value="0.26">v0.26</option><option value="0.25">v0.25</option><option value="0.23">v0.23</option></select></div><div id="updateLogContent" class="updateLogContent" aria-live="polite"></div></div>
+  <div class="card"><h3>📋 アップデートログ</h3><p class="muted">見たいバージョンを選択してください。</p><div class="field"><label for="updateVersionSelect">バージョン</label><select id="updateVersionSelect" onchange="renderUpdateLog(this.value)"><option value="0.77">v0.78（最新）</option><option value="0.76">v0.76</option><option value="0.75">v0.75</option><option value="0.74">v0.74</option><option value="0.73">v0.73</option><option value="0.72">v0.72</option><option value="0.71">v0.71</option><option value="0.58">v0.58</option><option value="0.56">v0.57</option><option value="0.55">v0.55（最新）</option><option value="0.54">v0.54（最新）</option><option value="0.53">v0.53</option><option value="0.52">v0.52</option><option value="0.51">v0.51</option><option value="0.49">v0.49</option><option value="0.48">v0.48</option><option value="0.44">v0.44</option><option value="0.43">v0.43</option><option value="0.42">v0.42</option><option value="0.41">v0.41</option><option value="0.40">v0.40</option><option value="0.39">v0.39</option><option value="0.38">v0.38</option><option value="0.37">v0.37</option><option value="0.36">v0.36</option><option value="0.35">v0.35</option><option value="0.34">v0.34</option><option value="0.33">v0.33</option><option value="0.32">v0.32</option><option value="0.31">v0.31</option><option value="0.29">v0.29</option><option value="0.28">v0.28</option><option value="0.27">v0.27</option><option value="0.26">v0.26</option><option value="0.25">v0.25</option><option value="0.23">v0.23</option></select></div><div id="updateLogContent" class="updateLogContent" aria-live="polite"></div></div>
  </div>
 </section>
 
@@ -392,7 +392,7 @@ canvas#mapCanvas{aspect-ratio:16/10;background:#0b1522}
 </section>
 
 </main>
-<footer>TRIAD v0.72 · 暗殺者・狂人の単独勝利対応</footer>
+<footer>TRIAD v0.78 · ランク戦同期・能力競合修正</footer>
 
   <div id="onlineConnectionBanner" role="status">オンライン接続が不安定です。<button type="button" onclick="retryOnlineConnection()">再接続</button></div>
   <div class="modal" id="offlineRoleSettingsModal"><div class="modalbox"><h2>通常対戦・役職詳細設定</h2><p class="muted">固定人数を指定した役職は必ず登場します。残りの枠はONになっている役職から出現重みに応じて抽選します。</p>
@@ -657,8 +657,16 @@ async function rankedEngineCall(action,extra={}){
  if(!supabaseClient)supabaseClient=window.supabase.createClient(SUPABASE_URL,SUPABASE_PUBLISHABLE_KEY);
  if(!authUser){const {data,error}=await supabaseClient.auth.getSession();if(error)throw error;authUser=data.session?.user||null}
  if(!authUser)throw new Error("オンライン接続が必要です。");
- const {data,error}=await supabaseClient.functions.invoke("triad-engine",{body:{action,...extra}});
- if(error)throw error;if(data?.error)throw new Error(data.message||data.error);return data;
+ let lastError=null;
+ for(let attempt=0;attempt<3;attempt++){
+  const {data,error}=await supabaseClient.functions.invoke("triad-engine",{body:{action,...extra}});
+  if(!error){if(data?.error)throw new Error(data.message||data.error);return data}
+  lastError=error;
+  const status=Number(error.context?.status||error.status||0);
+  if(status!==409||attempt===2)throw error;
+  await new Promise(resolve=>setTimeout(resolve,90*(attempt+1)));
+ }
+ throw lastError||new Error("サーバーとの同期に失敗しました。");
 }
 async function connectRankedActiveMatch(){
  const message=$("rankedProfileMessage");if(message)message.textContent="進行中のランク戦を確認しています…";
@@ -773,7 +781,7 @@ async function showRankedServerResult(result){
 }
 function applyRankedServerSnapshot(snap){
  if(!rankedServerMode||snap?.status!=="ok")return;const ownSeat=Number(snap.self?.seat);state.serverPhase=snap.phase;state.emergencyMeetingReadyAt=Number(snap.meeting_cooldown_until)||state.emergencyMeetingReadyAt;
- (snap.players||[]).forEach(v=>{const p=state.players.find(x=>x.number===Number(v.seat));if(p){p.x=Number(v.x);p.y=Number(v.y);p.alive=!!v.alive;const ap=Number(v.appearance_seat)||Number(v.seat);const target=state.players.find(q=>q.number===ap);p.color=colors[(ap-1)%colors.length];p.shape=(ap-1)%4;p.name=ap!==Number(v.seat)&&target?(target.baseName||target.name):p.baseName||p.name}});
+ (snap.players||[]).forEach(v=>{const p=state.players.find(x=>x.number===Number(v.seat));if(p){const sx=Number(v.x),sy=Number(v.y);if(Number(v.seat)===ownSeat){p.x+=(sx-p.x)*0.32;p.y+=(sy-p.y)*0.32}else{p.x=sx;p.y=sy}p.alive=!!v.alive;const ap=Number(v.appearance_seat)||Number(v.seat);const target=state.players.find(q=>q.number===ap);p.color=colors[(ap-1)%colors.length];p.shape=(ap-1)%4;p.name=ap!==Number(v.seat)&&target?(target.baseName||target.name):p.baseName||p.name}});
  const me=state.players.find(p=>p.number===ownSeat);if(me){me.team=snap.self.faction;me.role=snap.self.role;me.alive=!!snap.self.alive;me.abilityUsed=!!snap.self.ability_used;me.charging=!!snap.self.charging;me.roleReadyAt=Number(snap.self.role_ready_at)||0;me.killReadyAt=Number(snap.self.kill_ready_at)||0;me.sabotageReadyAt=Number(snap.self.sabotage_ready_at)||0;state.sabotageUntil=Number(snap.sabotage_until)||0;state.bountyIds=(snap.self.assassin_targets||[]).map(n=>Number(n)-1);me.partnerId=Number(snap.self.lover_partner_seat)>0?Number(snap.self.lover_partner_seat)-1:null;me.gamblerKillReady=!!snap.self.gambler_kill_ready;me.gamblerPrediction=snap.self.gambler_prediction||null;me.gamblerPredictionHits=Number(snap.self.gambler_prediction_hits)||0;me.gamblerLowCount=Number(snap.self.gambler_low_count)||0;me.gamblerHighCount=Number(snap.self.gambler_high_count)||0;me.gamblerBadLuckCount=Number(snap.self.gambler_bad_luck_count)||0;me.gamblerReveals=Array.isArray(snap.self.gambler_reveals)?snap.self.gambler_reveals:[];for(const known of me.gamblerReveals){const revealed=state.players.find(p=>p.number===Number(known.seat));if(revealed)revealed.team=String(known.faction||"unknown")}state.me=me;if(me.role==="放浪者"&&Array.isArray(snap.self.scented_seats))state.scentedIds=new Set(snap.self.scented_seats.map(n=>Number(n)-1));}
  state.tasks=(snap.tasks||[]).map(t=>{const old=state.tasks.find(x=>x.id===Number(t.id))||{},spec=taskKinds[Number(t.id)%taskKinds.length];return{...old,id:Number(t.id),x:Number(t.x),y:Number(t.y),done:!!t.done,remaining:Number(t.remaining),label:spec.label,room:spec.room,kind:spec.kind}});
  state.done=state.tasks.reduce((n,t)=>n+(4-Math.max(0,Number(t.remaining)||0)),0);state.total=state.tasks.length*4;state.seconds=Number(snap.elapsed_seconds)||state.seconds;
