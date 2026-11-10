@@ -1432,7 +1432,7 @@ function updateNearbyActions(){
   $("taskAction").textContent=ghost?"👻 タスクを解読":state.nearTask?`🔧 ${state.nearTask.label}を解析（残り${state.nearTask.remaining}件）`:"🔧 タスクを行う";
  $("taskAction").hidden=!state.nearTask||state.meeting;
  $("reportAction").hidden=!alive||!state.nearBody;
- $("emergencyAction").hidden=rankedServerMode?(!alive||state.meeting):(!emergencyAvailable||state.meeting);$("emergencyAction").textContent=rankedServerMode?(emergencyWait>0?`🆘 緊急会議（待機${emergencyWait}秒）`:"🆘 緊急会議（中央へ移動）"):(emergencyWait>0?`🆘 緊急会議（${emergencyWait}秒）`:me.emergencyMeetingUsed?"🆘 使用済み":"🆘 緊急会議");
+ $("emergencyAction").hidden=!emergencyAvailable||state.meeting;$("emergencyAction").textContent=emergencyWait>0?`🆘 緊急会議（${emergencyWait}秒）`:me.emergencyMeetingUsed?"🆘 使用済み":"🆘 緊急会議";
  $("mapAction").disabled=dead;
  const canKill=me.team==="black"||["暗殺者","狂人"].includes(me.role);
  if(canKill){const rem=remainingText(me.killReadyAt);setButton("killAction",rem?`🔪 キル（${rem}秒）`:"🔪 キル",!alive||rem>0,!alive)}
