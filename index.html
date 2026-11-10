@@ -1672,8 +1672,8 @@ function useKill(){
    const targets=targetCandidates(actor,88,false,p=>state.bountyIds.includes(p.id));
    openTargetSelection("手配対象を倒す","手配対象のうち、近くにいる相手だけ選べます。",targets,"assassinKill");return;
   }
-  if(actor.role==="インポスター"||actor.role==="狂人"){
-   const filter=actor.role==="インポスター"?(p=>p.team!=="black"):(p=>p.id!==actor.id);
+  if(actor.team==="black"||actor.role==="狂人"){
+   const filter=actor.team==="black"?(p=>p.team!=="black"):(p=>p.id!==actor.id);
    const targets=targetCandidates(actor,88,false,filter);
    openTargetSelection("近くの相手を選択","範囲内の相手を選びます。",targets,"rankedKill");return;
   }
