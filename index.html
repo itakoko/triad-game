@@ -466,6 +466,7 @@ function setAccountAuthMessage(message,isError=false){
 function updateAccountAuthUI(){
  const signedIn=!!authUser,guestMode=!!authUser?.is_anonymous;
  updateDebugAIAccessUI();
+ if(authUser?.id==="ec89c004-e971-40e7-8b60-42eea36b2d97")startDebugAIMonitor();
  if($("accountAuthStatus"))$("accountAuthStatus").textContent=guestMode?"ゲスト接続中":signedIn?"ログイン中":"未接続";
  if($("accountSignedOut"))$("accountSignedOut").hidden=signedIn&&!guestMode;
  if($("accountSignedIn"))$("accountSignedIn").hidden=!signedIn||guestMode;
@@ -680,7 +681,7 @@ async function enterRankedServerMatch(snap){
  if(snap?.status!=="ok")throw new Error("試合情報を取得できません。");
  rankedPointsBefore=null;
  try{const {data,error}=await supabaseClient.functions.invoke("triad-ranked",{body:{action:"profile"}});if(!error&&data?.profile)rankedPointsBefore=Math.max(0,Number(data.profile.points)||0)}catch(e){console.warn("Ranked pre-match points unavailable",e)}
- rankedServerMode=true;rankedServerBusy=false;rankedMeetingWasActive=false;rankedLastMoveAt=rankedLastTickAt=0;
+ rankedServerMode=true;rankedServerBusy=false;rankedMeetingWasActive=false;rankedLastMoveAt=rankedLastTickAt=0;rankedTakeoverNoticeShown=false;startRankedHeartbeat();
  state.selectedVote=null;state.emergencyMeetingReadyAt=Number(snap.meeting_cooldown_until)||0;state.map=maps.lab;state.worldWidth=maps.lab.width;state.worldHeight=maps.lab.height;state.players=[];state.dead=[];state.move={x:0,y:0};state.camera={x:0,y:0};state.scentedIds=new Set();state.bountyIds=[];state.sabotageUntil=0;state.meeting=false;state.meetingPhase="";state.log=[];
  setRankedClock(snap.elapsed_seconds,true);
  state.tasks=(snap.tasks||[]).map(t=>{const spec=taskKinds[Number(t.id)%taskKinds.length];return{id:Number(t.id),x:Number(t.x),y:Number(t.y),done:!!t.done,quota:4,remaining:Number(t.remaining),completedBy:Array.isArray(t.completed_by)?t.completed_by.map(n=>Number(n)-1):[],label:spec.label,room:spec.room,kind:spec.kind}});
@@ -750,7 +751,7 @@ function syncRankedMeetingUI(meeting){
  $("meetingModal").classList.add("show");
 }
 async function showRankedServerResult(result){
- state.running=false;clearInterval(loop);clearInterval(clock);stopMove();
+ stopRankedHeartbeat();state.running=false;clearInterval(loop);clearInterval(clock);stopMove();
  const reveal=Array.isArray(result?.role_reveal)?result.role_reveal:[];
  for(const row of reveal){
   const p=state.players.find(v=>Number(v.number)===Number(row.seat));
@@ -817,10 +818,19 @@ function applyRankedServerSnapshot(snap){
  state.done=state.tasks.reduce((n,t)=>n+(4-Math.max(0,Number(t.remaining)||0)),0);state.total=state.tasks.length*4;setRankedClock(snap.elapsed_seconds,false);
  $("taskCount").textContent=state.done+" / "+state.total;$("taskProgress").style.width=(state.total?state.done/state.total*100:0)+"%";updateRankedClockDisplay();$("myStatus").textContent=state.me.alive?"生存":"死亡";syncRankedMeetingUI(snap.meeting);updateNearbyActions();draw();
 }
-let rankedLastHeartbeatAt=0,rankedTakeoverNoticeShown=false;
+let rankedLastHeartbeatAt=0,rankedTakeoverNoticeShown=false,rankedHeartbeatTimer=null,rankedHeartbeatBusy=false;
+function stopRankedHeartbeat(){if(rankedHeartbeatTimer){clearInterval(rankedHeartbeatTimer);rankedHeartbeatTimer=null}rankedHeartbeatBusy=false}
+async function rankedHeartbeatPulse(){
+ if(!rankedServerMode||!state.running||rankedHeartbeatBusy)return;
+ rankedHeartbeatBusy=true;
+ try{const hb=await rankedEngineCall("heartbeat");if(hb.status==="not_in_match"||hb.status==="seat_taken_over")handleRankedTakeoverNotice()}
+ catch(e){console.warn("Ranked heartbeat failed",e)}
+ finally{rankedHeartbeatBusy=false}
+}
+function startRankedHeartbeat(){stopRankedHeartbeat();rankedLastHeartbeatAt=Date.now();rankedHeartbeatTimer=setInterval(rankedHeartbeatPulse,5000);rankedHeartbeatPulse()}
 function handleRankedTakeoverNotice(){
  if(rankedTakeoverNoticeShown)return;
- rankedTakeoverNoticeShown=true;rankedServerMode=false;state.running=false;
+ rankedTakeoverNoticeShown=true;stopRankedHeartbeat();rankedServerMode=false;state.running=false;
  clearInterval(loop);clearInterval(clock);stopMove();
  $("nearHint").textContent="接続が長時間途切れたため、この席はAIに引き継がれました。この試合には再参加できません。";
  $("emergencyAction").disabled=true;$("taskAction").disabled=true;$("abilityAction").disabled=true;
@@ -830,11 +840,7 @@ async function rankedServerPulse(){
  rankedServerBusy=true;
  try{
   const now=Date.now(),mv=state.move||{x:0,y:0};
-  if(now-rankedLastHeartbeatAt>=5000){
-   rankedLastHeartbeatAt=now;
-   const hb=await rankedEngineCall("heartbeat");
-   if(hb.status==="not_in_match"||hb.status==="seat_taken_over"){handleRankedTakeoverNotice();return;}
-  }
+  // Heartbeats run independently from the render/update loop.
   if(!state.me?.charging&&(Math.abs(mv.x)+Math.abs(mv.y))>.08&&now-rankedLastMoveAt>=300){
    rankedLastMoveAt=now;await rankedEngineCall("move",{dx:mv.x,dy:mv.y});
   }
@@ -3253,7 +3259,7 @@ function startDebugAIMonitor(){
  renderDebugAIIssues();runDebugAIScan();
 }
 
-if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",()=>{initializeOnlineAccounts();updateResumeGameUI();startDebugAIMonitor()});else{initializeOnlineAccounts();updateResumeGameUI()}
+if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",()=>{initializeOnlineAccounts();updateResumeGameUI()});else{initializeOnlineAccounts();updateResumeGameUI()}
 </script>
 <div class="modal" id="debugAIModal"><div class="modalbox"><div class="row" style="align-items:center"><h2 style="flex:1">🛠️ TRIAD DEBUG AI</h2><span id="debugAIStatus" class="pill">監視準備中</span></div><p class="muted">ページを開いている間、20秒ごとに簡易診断します。ブラウザエラーは発生時に記録します。</p><div class="grid"><div class="card"><div class="muted">検査状態</div><div id="debugAISummary" style="font-size:22px;font-weight:900">未検査</div></div><div class="card"><div class="muted">検出した問題</div><div id="debugAIIssueCount" style="font-size:22px;font-weight:900">0</div></div></div><div class="actions"><button class="primary" onclick="runDebugAIScan()">今すぐ全体検査</button><button onclick="clearDebugAIResolved()">解決済みを整理</button><button onclick="copyDebugAIReport()">レポートをコピー</button></div><h3>検出・記録</h3><div id="debugAIIssues" class="targetList"><p class="muted">まだ検査していません。</p></div><p class="muted">※自動修正はゲームデータを壊す危険があるため、この版では行いません。原因候補と修正箇所を提示し、重大な変更は手動確認にします。</p><button style="width:100%" onclick="closeDebugAI()">閉じる</button></div></div>
 </body></html>
