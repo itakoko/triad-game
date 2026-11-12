@@ -761,8 +761,9 @@ async function showRankedServerResult(result){
  const me=state.players.find(p=>Number(p.number)===Number(state.me?.number));
  if(me)state.me=me;
  const solo=Number(result?.winner_seat)>0;
- const won=solo?Number(state.me?.number)===Number(result.winner_seat):String(state.me?.team)===String(result?.winner_faction);
- const winnerText=solo?(String(result.winner_role||"役職")+"の単独勝利"):((teamName(String(result.winner_faction||"unknown")))+"陣営の勝利");
+ const winningFactions=Array.isArray(result?.winner_factions)?result.winner_factions:[result?.winner_faction];
+ const won=solo?Number(state.me?.number)===Number(result.winner_seat):winningFactions.includes(String(state.me?.team));
+ const winnerText=solo?(String(result.winner_role||"役職")+"の単独勝利"):((winningFactions.filter(Boolean).map(f=>teamName(String(f))).join("・")||"不明")+"陣営の勝利");
  playSfx(won?"win":"lose");
  $("gameResultBadge").textContent=won?"あなたの勝利":"あなたは敗北";
  $("gameResultTitle").textContent=won?"勝利！":"敗北";
