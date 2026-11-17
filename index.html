@@ -1110,7 +1110,9 @@ async function loadGlobalRankedStatistics(){
  }catch(e){root.textContent="統計を取得できませんでした："+(e?.message||String(e))}
 }
 async function loadAccountRankedStatistics(type,id){
- const root=$("accountRankedStats");if(!root)return;root.textContent="ランク戦績を取得しています…";
+ const root=$("accountRankedStats");if(!root)return;
+ if(type==="player"&&String(id)==="player"){root.textContent="この端末だけのゲスト戦績です。オンラインアカウントに登録すると、サーバー集計のランク戦績を表示できます。";return}
+ root.textContent="ランク戦績を取得しています…";
  try{
   if(!supabaseClient)supabaseClient=window.supabase.createClient(SUPABASE_URL,SUPABASE_PUBLISHABLE_KEY);
   const {data,error}=await supabaseClient.rpc("ranked_public_account_statistics",{p_competitor_type:type,p_account_id:String(id)});if(error)throw error;
