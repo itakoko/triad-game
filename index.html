@@ -239,6 +239,12 @@ canvas#mapCanvas{aspect-ratio:16/10;background:#0b1522}
   <p class="muted">マッチング中は約3秒ごとに状況を確認します。試合開始後は自動的にゲーム画面へ移動します。</p>
  </div>
  <div class="card">
+  <h3>全アカウント統計</h3>
+  <p class="muted">完了したランク戦と、アカウントに保存された通常戦績を集計します。</p>
+  <div id="rankedGlobalStats" class="muted">統計を読み込んでいます…</div>
+  <button onclick="loadGlobalRankedStatistics()">統計を更新</button>
+ </div>
+ <div class="card">
   <h3>ランク帯</h3>
   <div class="rankedTierList">
    <div>ビギナー <span>0〜199 pt</span></div><div>ブロンズ <span>200〜499 pt</span></div>
@@ -1050,6 +1056,7 @@ function openRankedScreen(){
  if(!activateScreen("ranked"))return;
  loadRankedProfile();
  refreshRankedQueueStatus();
+ loadGlobalRankedStatistics();
 }
 async function loadRankedProfile(){
  const message=$("rankedProfileMessage");
@@ -1076,6 +1083,42 @@ async function loadRankedProfile(){
  }catch(error){
   if(message)message.textContent="ランク情報を取得できませんでした："+(error?.message||String(error));
  }
+}
+
+function statRate(w,m){return m?Math.round(100*w/m):0}
+function rankedFactionLabel(f){return f==="white"?"⚪ 白陣営":f==="black"?"⚫ 黒陣営":"🟣 第三陣営"}
+function rankedRoleFaction(role){
+ if(["クルー","サイエンティスト","占い師","狩人","保安官","僧侶","ライトキーパー","恋人"].includes(role))return "white";
+ if(["インポスター","イノシシ","百面相"].includes(role))return "black";
+ return "third";
+}
+function renderGlobalStatsBlock(rows,title){
+ const grouped={white:{matches:0,wins:0,roles:[]},black:{matches:0,wins:0,roles:[]},third:{matches:0,wins:0,roles:[]}};
+ (rows||[]).forEach(r=>{const f=r.faction||rankedRoleFaction(r.role_name||r.role);if(!grouped[f])return;const m=Number(r.matches||0),w=Number(r.wins||0);grouped[f].matches+=m;grouped[f].wins+=w;grouped[f].roles.push({role:r.role_name||r.role,matches:m,wins:w})});
+ return '<div class="accountSection"><h4>'+title+'</h4>'+Object.entries(grouped).map(([f,v])=>'<div class="roleStatRow"><b>'+rankedFactionLabel(f)+'</b><span>'+v.wins+'勝 / '+v.matches+'試合</span><b>'+statRate(v.wins,v.matches)+'%</b></div>'+v.roles.sort((a,b)=>b.matches-a.matches).map(r=>'<div class="roleStatRow" style="padding-left:18px"><span>'+escapeAccountText(r.role)+'</span><span>'+r.wins+'勝 / '+r.matches+'試合</span><span>'+statRate(r.wins,r.matches)+'%</span></div>').join("")).join("")+'</div>';
+}
+async function loadGlobalRankedStatistics(){
+ const root=$("rankedGlobalStats");if(!root)return;root.textContent="統計を集計しています…";
+ try{
+  if(!supabaseClient)supabaseClient=window.supabase.createClient(SUPABASE_URL,SUPABASE_PUBLISHABLE_KEY);
+  const {data,error}=await supabaseClient.rpc("ranked_public_statistics");if(error)throw error;
+  const normal=data?.normal||{},normalRoles=normal.roles||[];
+  const grouped={white:{matches:0,wins:0,roles:[]},black:{matches:0,wins:0,roles:[]},third:{matches:0,wins:0,roles:[]}};
+  normalRoles.forEach(r=>{const f=rankedRoleFaction(r.role_name);const g=grouped[f];g.matches+=Number(r.matches||0);g.wins+=Number(r.wins||0);g.roles.push(r)});
+  const normalHtml='<div class="accountSection"><h4>通常戦（保存済み通常戦績）</h4><div class="stats"><div class="stat"><strong>'+Number(normal.matches||0)+'</strong><span>試合</span></div><div class="stat"><strong>'+Number(normal.wins||0)+'</strong><span>勝利</span></div><div class="stat"><strong>'+statRate(Number(normal.wins||0),Number(normal.matches||0))+'%</strong><span>勝率</span></div></div>'+Object.entries(grouped).map(([f,v])=>'<div class="roleStatRow"><b>'+rankedFactionLabel(f)+'</b><span>'+v.wins+'勝 / '+v.matches+'試合</span><b>'+statRate(v.wins,v.matches)+'%</b></div>'+v.roles.map(r=>'<div class="roleStatRow" style="padding-left:18px"><span>'+escapeAccountText(r.role_name)+'</span><span>'+Number(r.wins||0)+'勝 / '+Number(r.matches||0)+'試合</span><span>'+statRate(Number(r.wins||0),Number(r.matches||0))+'%</span></div>').join("")).join("")+'</div>';
+  root.innerHTML=normalHtml+renderGlobalStatsBlock(data?.ranked10||[],"10人ランク戦")+renderGlobalStatsBlock(data?.ranked12||[],"12人ランク戦")+'<p class="muted">集計対象：プレイヤー '+Number(data?.playerAccounts||0)+'アカウント / AI '+Number(data?.aiAccounts||0)+'アカウント。ランク戦は完了済み試合のみ。</p>';
+ }catch(e){root.textContent="統計を取得できませんでした："+(e?.message||String(e))}
+}
+async function loadAccountRankedStatistics(type,id){
+ const root=$("accountRankedStats");if(!root)return;root.textContent="ランク戦績を取得しています…";
+ try{
+  if(!supabaseClient)supabaseClient=window.supabase.createClient(SUPABASE_URL,SUPABASE_PUBLISHABLE_KEY);
+  const {data,error}=await supabaseClient.rpc("ranked_public_account_statistics",{p_competitor_type:type,p_account_id:String(id)});if(error)throw error;
+  const render=(rows,title)=>'<div class="accountSection"><h4>'+title+'</h4>'+((rows||[]).length?(rows||[]).map(r=>'<div class="roleStatRow"><span>'+rankedFactionLabel(r.faction)+' / '+escapeAccountText(r.role)+'</span><span>'+Number(r.wins||0)+'勝 / '+Number(r.matches||0)+'試合</span><b>'+statRate(Number(r.wins||0),Number(r.matches||0))+'%</b></div>').join(""):'<div class="muted">まだ完了した試合はありません。</div>')+'</div>';
+  const normal=data?.normal||{},roles=normal.roles||{};
+  const normalRows=Object.entries(roles).map(([role,v])=>'<div class="roleStatRow"><span>'+rankedFactionLabel(rankedRoleFaction(role))+' / '+escapeAccountText(role)+'</span><span>'+Number(v.wins||0)+'勝 / '+Number(v.matches||0)+'試合</span><b>'+statRate(Number(v.wins||0),Number(v.matches||0))+'%</b></div>').join("");
+  root.innerHTML='<h3>個別アカウント戦績</h3><div class="muted">通常戦とランク戦を分けて表示します。</div><div class="accountSection"><h4>通常戦</h4><div class="stats"><div class="stat"><strong>'+Number(normal.matches||0)+'</strong><span>試合</span></div><div class="stat"><strong>'+Number(normal.wins||0)+'</strong><span>勝利</span></div><div class="stat"><strong>'+statRate(Number(normal.wins||0),Number(normal.matches||0))+'%</strong><span>勝率</span></div></div>'+(normalRows||'<div class="muted">通常戦の役職別データはありません。</div>')+'</div>'+render(data.ranked10,"10人ランク戦")+render(data.ranked12,"12人ランク戦");
+ }catch(e){root.textContent="ランク戦績を取得できませんでした："+(e?.message||String(e))}
 }
 
 function show(id){
@@ -2553,7 +2596,9 @@ function renderAccountDetail(id){
  '<div class="accountSection"><h3>得意な役職（キャラクター枠）</h3><div class="accountTrait">'+(best?escapeAccountText(best[0])+'（'+best[1].wins+'勝 / '+best[1].matches+'試合）':'まだ役職別データを蓄積中です。')+'</div></div>'+
  '<div class="accountSection"><h3>役職別の成績</h3><div class="muted">実戦と自動練習の合算。実戦・練習の内訳も表示します。</div>'+(roleRows||'<div class="muted">試合を重ねると役職ごとの成績が表示されます。</div>')+'</div>'+
  '<div class="accountSection"><h3>経験・プロフィール</h3><div class="muted">性格：'+escapeAccountText(p.personality||"未設定")+'</div><div class="muted" style="margin-top:6px">AI同士の自動実戦：'+Number(m.aiVsAIMatches||0)+'試合 ／ 自動実戦勝利：'+Number(m.aiVsAIWins||0)+'勝</div><div class="muted" style="margin-top:6px">自動練習：'+Number(m.practiceMatches||0)+'回 ／ 練習勝利：'+Number(m.practiceWins||0)+'回</div><div class="muted" style="margin-top:6px">最終役職：'+escapeAccountText(m.lastRole||"まだ記録なし")+' ／ 最終結果：'+escapeAccountText(m.lastResult||"まだ記録なし")+'</div><div class="muted" style="margin-top:6px">最終試合：'+(m.lastPlayedAt?new Date(m.lastPlayedAt).toLocaleString("ja-JP"):"まだ記録なし")+'</div></div>';
+ const statsBox=document.createElement("div");statsBox.id="accountRankedStats";statsBox.className="accountSection";statsBox.textContent="ランク戦績を読み込んでいます…";root.appendChild(statsBox);
  renderAccountList();
+ loadAccountRankedStatistics(p.type,p.id);
 }
 
 
