@@ -673,8 +673,8 @@ async function rankedEngineCall(action,extra={}){
   if(!error){if(data?.error)throw new Error(data.message||data.error);return data}
   lastError=error;
   const status=Number(error.context?.status||error.status||0);
-  if(status!==409||attempt===2)throw error;
-  await new Promise(resolve=>setTimeout(resolve,90*(attempt+1)));
+  if(status!==409||attempt===4)throw error;
+  await new Promise(resolve=>setTimeout(resolve,160*(attempt+1)));
  }
  throw lastError||new Error("サーバーとの同期に失敗しました。");
 }
