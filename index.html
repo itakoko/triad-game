@@ -668,7 +668,7 @@ async function rankedEngineCall(action,extra={}){
  if(!authUser){const {data,error}=await supabaseClient.auth.getSession();if(error)throw error;authUser=data.session?.user||null}
  if(!authUser)throw new Error("オンライン接続が必要です。");
  let lastError=null;
- for(let attempt=0;attempt<3;attempt++){
+ for(let attempt=0;attempt<5;attempt++){
   const {data,error}=await supabaseClient.functions.invoke("triad-engine",{body:{action,...extra}});
   if(!error){if(data?.error)throw new Error(data.message||data.error);return data}
   lastError=error;
