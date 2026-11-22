@@ -1368,6 +1368,12 @@ function recordAISightings(){
   });
  });
 }
+function recoverStuckAI(actor){
+ const point=randomSpawn();
+ actor.x=point[0];actor.y=point[1];
+ actor.aiGoal=null;actor.aiPath=[];actor.aiTaskIndex=null;
+ actor.aiStuck=0;actor.aiNextGoalAt=Date.now()+500;
+}
 function tick(){
  if(rankedServerMode){if(!state.running)return;updateRankedClockDisplay();updateRankedRemotePlayers();const p=state.me,mv=state.move||{x:0,y:0},mag=Math.hypot(mv.x,mv.y)||1;if(p?.alive&&!p.charging&&mag>0.08){const nx=p.x+(mv.x/mag)*2.5,ny=p.y+(mv.y/mag)*2.5;if(isWalkable(nx,p.y))p.x=nx;if(isWalkable(p.x,ny))p.y=ny}else if(p&&!p.alive&&deathViewMode==="ghost"){moveGhostPlayer(p)}rankedServerPulse();updateNearbyActions();draw();return}
   // Online clients only render host snapshots; they never simulate movement or AI.
@@ -1383,11 +1389,15 @@ function tick(){
    state.players.filter(p=>p.id!==state.me.id&&!p.isHuman).forEach(a=>{
     if(!a.alive||!a.aiGoal)return;
     while(a.aiPath.length&&Math.hypot(a.aiPath[0][0]-a.x,a.aiPath[0][1]-a.y)<12)a.aiPath.shift();
-    if(!a.aiPath.length){a.aiGoal=null;return}
+    if(!a.aiPath.length){
+     a.aiStuck=(a.aiStuck||0)+1;a.aiGoal=null;a.aiPath=[];
+     if(a.aiStuck>=3)recoverStuckAI(a);else a.aiNextGoalAt=Date.now()+500;
+     return;
+    }
     const [tx,ty]=a.aiPath[0],dx=tx-a.x,dy=ty-a.y,len=Math.hypot(dx,dy)||1,step=3.15+aiStat(a,"skill_level")*.035,oldX=a.x,oldY=a.y;
     const nx=a.x+dx/len*Math.min(step,len),ny=a.y+dy/len*Math.min(step,len);
     if(isWalkable(nx,a.y))a.x=nx;if(isWalkable(a.x,ny))a.y=ny;
-    if(a.x===oldX&&a.y===oldY){a.aiStuck=(a.aiStuck||0)+1;if(a.aiStuck>12){a.aiGoal=null;a.aiPath=[];a.aiNextGoalAt=Date.now()+500}}else a.aiStuck=0;
+    if(a.x===oldX&&a.y===oldY){a.aiStuck=(a.aiStuck||0)+1;if(a.aiStuck>=12)recoverStuckAI(a)}else a.aiStuck=0;
    });
   state.sightTick++;if(state.sightTick%8===0)recordAISightings();updateNearbyActions();draw();
 }
