@@ -179,7 +179,7 @@ canvas#mapCanvas{aspect-ratio:16/10;background:#0b1522}
 .meetingSummary h3{margin:0 0 6px;font-size:14px}.meetingSummary ul{padding-left:19px;margin:5px 0;font-size:12px;line-height:1.6}
 .meetingSummary .summaryMeta{font-size:11px;color:#b8cadd;margin-top:6px}
 @media(max-width:600px){.meetingChat{max-height:180px}.meetingSummary{padding:8px}.meetingTimerBar{padding:6px 9px}}
-</style>
+ .gachaRate,.gachaPoolItem,.gachaHistoryRow{display:flex;justify-content:space-between;gap:12px;align-items:center;padding:8px 10px;border-bottom:1px solid #30445d}.gachaPool,.gachaResults{display:grid;grid-template-columns:repeat(auto-fit,minmax(145px,1fr));gap:8px}.gachaResult{display:flex;flex-direction:column;gap:6px;padding:12px;border:2px solid;border-radius:12px;background:#14263c;animation:gachaReveal .35s ease-out}.gachaResult b{font-size:1.02rem}.gachaHistoryRow small{color:var(--muted)}@keyframes gachaReveal{from{opacity:.25;transform:translateY(8px) scale(.96)}to{opacity:1;transform:translateY(0) scale(1)}}</style>
 </head>
 <body>
 <header><div class="logo">TRI<span>AD</span></div><div class="row" style="align-items:center;gap:8px;flex:0 0 auto"><div class="tag">オンラインアカウント対応 · 常駐デバッグAI · v0.84</div><button class="headerAccountButton" type="button" onclick="openAccountsScreen()">アカウント</button></div></header>
@@ -193,6 +193,7 @@ canvas#mapCanvas{aspect-ratio:16/10;background:#0b1522}
   <div class="card"><h3>🏆 ランク戦</h3><p class="muted">ランクポイントと戦績を確認し、10人戦・12人戦に参加できます。</p><button class="primary" style="width:100%" onclick="openRankedScreen()">ランク戦を見る</button></div>
   <div class="card"><h3>👕 衣装・着せ替え</h3><p class="muted">帽子やアクセサリーを集めて、自分のキャラクターをカスタマイズ。</p><button class="primary" style="width:100%" onclick="openWardrobeScreen()">衣装を変更する</button></div>
   <div class="card"><h3>🪙 コイン・ショップ</h3><p class="muted">試合報酬でコインを集め、見た目アイテムを入手。フレンドとの交換もできます。</p><button class="primary" style="width:100%" onclick="openEconomyScreen()">ショップを開く</button></div>
+  <div class="card"><h3>🎰 コレクションガチャ</h3><p class="muted">ガチャ限定の衣装・帽子・アクセサリーをランダムで獲得。ショップとは別の限定ラインナップです。</p><button class="primary" style="width:100%" onclick="openGachaScreen()">ガチャを引く</button></div>
   <div class="card"><h3>🏅 プレイヤー成長</h3><p class="muted">レベル・経験値・実績・役職熟練度を確認。</p><button class="primary" style="width:100%" onclick="openProgressionScreen()">成長記録を見る</button></div>
   <div class="card"><h3>📘 遊び方</h3><p class="muted">試作版のルールと操作方法を確認します。</p><button style="width:100%" onclick="openHelp()">ルールを見る</button></div>
   <div class="card"><h3>👥 アカウント図鑑</h3><p class="muted">プレイヤーとAIアカウント全員の能力・成績・得意な役職を確認できます。</p><button style="width:100%" onclick="openAccountsScreen()">アカウントを見る</button></div>
@@ -295,6 +296,11 @@ canvas#mapCanvas{aspect-ratio:16/10;background:#0b1522}
 <section id="economy" class="screen">
  <div class="hero"><h1>🪙 コイン・ショップ</h1><p>試合でコインを獲得し、帽子やアクセサリーを集めましょう。アイテムはゲーム内だけで使用できます。</p></div>
  <div class="card" id="economyContent"><div class="muted">ショップ情報を読み込んでいます…</div></div>
+ <div class="actions"><button onclick="show('home')">ホームへ戻る</button></div>
+</section>
+<section id="gacha" class="screen">
+ <div class="hero"><h1>🎰 コレクションガチャ</h1><p>ガチャ限定の衣装・帽子・アクセサリーを集めましょう。抽選はサーバー側で行われ、結果はアカウントに保存されます。</p></div>
+ <div class="card" id="gachaContent"><div class="muted">ガチャ情報を読み込んでいます…</div></div>
  <div class="actions"><button onclick="show('home')">ホームへ戻る</button></div>
 </section>
 <section id="progression" class="screen">
@@ -2716,13 +2722,20 @@ const TRIAD_HATS=[
  {id:"headphones",name:"ヘッドホン",unlock:"Lv.2",level:2},
  {id:"flower",name:"お花",unlock:"Lv.3",level:3},
  {id:"crown",name:"王冠",unlock:"Lv.5",level:5},
- {id:"halo",name:"光輪",unlock:"初勝利",achievement:"first_win"}
+ {id:"halo",name:"光輪",unlock:"初勝利",achievement:"first_win"},
+ {id:"paper_bag",name:"紙袋ヘッド",unlock:"ガチャ限定",gacha:true},
+ {id:"cat_ears",name:"ねこ耳フード",unlock:"ガチャ限定",gacha:true},
+ {id:"wizard",name:"星詠みの帽子",unlock:"ガチャ限定",gacha:true},
+ {id:"dragon_horns",name:"竜角ヘルム",unlock:"ガチャ限定",gacha:true},
+ {id:"aurora_crown",name:"オーロラ王冠",unlock:"ガチャ限定",gacha:true}
 ];
 const TRIAD_SCARVES=[
  {id:"none",name:"なし",unlock:"最初から"},
  {id:"red",name:"赤いマフラー",unlock:"Lv.2",level:2},
  {id:"blue",name:"青いマフラー",unlock:"Lv.3",level:3},
- {id:"gold",name:"金色のスカーフ",unlock:"10勝",achievement:"ten_wins"}
+ {id:"gold",name:"金色のスカーフ",unlock:"10勝",achievement:"ten_wins"},
+ {id:"ribbon",name:"星結びリボン",unlock:"ガチャ限定",gacha:true},
+ {id:"stardust",name:"星屑マフラー",unlock:"ガチャ限定",gacha:true}
 ];
 function loadCosmetics(){
  try{const v=JSON.parse(localStorage.getItem(TRIAD_COSMETIC_KEY)||"{}");return {hat:v.hat||"none",scarf:v.scarf||"none",color:colors.includes(v.color)?v.color:colors[0]}}
@@ -2730,7 +2743,7 @@ function loadCosmetics(){
 }
 function cosmeticIsUnlocked(item,kind=null){
  const p=loadProgression(),purchased=!!(kind&&economyInventoryCodes.includes(kind+":"+item.id));
- return purchased||(!item.level||p.level>=item.level)&&(!item.achievement||p.achievements.includes(item.achievement));
+ return purchased||(!item.gacha&&(!item.level||p.level>=item.level)&&(!item.achievement||p.achievements.includes(item.achievement)));
 }
 function applyPlayerCosmetics(){
  const own=loadCosmetics();
@@ -2850,6 +2863,63 @@ async function loadEconomyScreen(){
    '<p class="muted">ゲスト接続でもこの端末のオンラインセッションに保存されます。別端末への引き継ぎにはアカウント登録が必要です。</p>';
  }catch(e){root.innerHTML='<div class="muted">ショップを読み込めませんでした：'+escapeAccountText(e.message||String(e))+'</div><button onclick="loadEconomyScreen()">再読み込み</button>'}
 }
+
+var triadGachaBusy=false;
+function gachaRarityLabel(r){return ({N:"ノーマル",R:"レア",SR:"スーパーレア",SSR:"ウルトラレア",UR:"レジェンド"})[r]||r}
+function gachaRarityColor(r){return ({N:"#9aa7b7",R:"#55b7ee",SR:"#b48cff",SSR:"#ffbd59",UR:"#ff6fba"})[r]||"#9aa7b7"}
+async function openGachaScreen(){if(!activateScreen("gacha"))return;await loadGachaScreen()}
+async function loadGachaScreen(lastResult=null){
+ const root=$("gachaContent");if(!root)return;
+ root.innerHTML='<div class="muted">ガチャ情報を読み込んでいます…</div>';
+ try{
+  if(!authUser||!supabaseClient)await initializeOnlineAccounts();
+  if(!authUser||!supabaseClient)throw new Error("オンライン接続が必要です。");
+  await ensureOwnPlayerProfile();
+  const {error:initError}=await supabaseClient.rpc("economy_initialize");if(initError)throw initError;
+  const [walletRes,bannerRes,poolRes,historyRes]=await Promise.all([
+   supabaseClient.from("player_wallets").select("coins").eq("user_id",authUser.id).single(),
+   supabaseClient.from("gacha_banners").select("banner_id,display_name,single_cost,ten_cost").eq("active",true).eq("banner_id","season1").single(),
+   supabaseClient.from("gacha_pool").select("item_code,display_name,rarity").eq("banner_id","season1").eq("active",true),
+   supabaseClient.from("gacha_history").select("display_name,rarity,duplicate,compensation,created_at").order("created_at",{ascending:false}).limit(20)
+  ]);
+  for(const x of [walletRes,bannerRes,poolRes,historyRes])if(x.error)throw x.error;
+  economyCoins=Number(walletRes.data?.coins||0);
+  const banner=bannerRes.data,pool=poolRes.data||[],history=historyRes.data||[];
+  const rates=[["N","50%"],["R","30%"],["SR","15%"],["SSR","4%"],["UR","1%"]];
+  const rateHtml=rates.map(([r,v])=>'<div class="gachaRate"><span style="color:'+gachaRarityColor(r)+'"><b>'+r+'</b> '+gachaRarityLabel(r)+'</span><b>'+v+'</b></div>').join("");
+  const poolHtml=pool.map(v=>'<div class="gachaPoolItem"><span>'+escapeAccountText(v.display_name)+'</span><b style="color:'+gachaRarityColor(v.rarity)+'">'+v.rarity+'</b></div>').join("");
+  const resultHtml=lastResult&&Array.isArray(lastResult.results)?'<div class="accountSection"><h3>🎉 今回の結果</h3><div class="gachaResults">'+lastResult.results.map(v=>'<div class="gachaResult" style="border-color:'+gachaRarityColor(v.rarity)+'"><small style="color:'+gachaRarityColor(v.rarity)+'">'+v.rarity+' '+gachaRarityLabel(v.rarity)+'</small><b>'+escapeAccountText(v.display_name)+'</b><small>'+(v.duplicate?'重複：+'+Number(v.compensation||0)+'コイン':'新規獲得！')+'</small></div>').join("")+'</div><p class="muted">消費：'+Number(lastResult.coin_cost||0)+'コイン ／ 重複補償：+'+Number(lastResult.duplicate_compensation||0)+'コイン</p></div>':'';
+  const historyHtml=history.length?history.map(v=>'<div class="gachaHistoryRow"><span>'+escapeAccountText(v.display_name)+'</span><b style="color:'+gachaRarityColor(v.rarity)+'">'+v.rarity+'</b><small>'+(v.duplicate?'重複 +'+v.compensation+'コイン':'新規')+'</small></div>').join(""):'<p class="muted">まだガチャ履歴はありません。</p>';
+  root.innerHTML='<div class="accountSection"><div class="row" style="justify-content:space-between;align-items:center"><div><h2 style="margin:0">🪙 '+economyCoins.toLocaleString("ja-JP")+' コイン</h2><p class="muted" style="margin:5px 0 0">試合で獲得する既存コインを使います。</p></div><button onclick="loadGachaScreen()">更新</button></div></div>'+
+   '<div class="accountSection"><h2>✨ '+escapeAccountText(banner.display_name)+'</h2><p class="muted">ガチャ限定アイテムのみ排出。通常ショップの商品は含まれません。</p><div class="row" style="flex-wrap:wrap"><button class="primary" '+(economyCoins<Number(banner.single_cost)?'disabled':'')+' onclick="pullTriadGacha(1)">1回引く · '+banner.single_cost+'コイン</button><button class="primary" '+(economyCoins<Number(banner.ten_cost)?'disabled':'')+' onclick="pullTriadGacha(10)">10回引く · '+banner.ten_cost+'コイン</button></div><p class="muted">10連は100コインお得です。各回の抽選確率は同じで、10連の確定枠はありません。</p></div>'+
+   resultHtml+
+   '<div class="accountSection"><h3>📊 排出確率</h3>'+rateHtml+'<p class="muted">レアリティごとの確率です。各レアリティ内のアイテムは均等抽選です。</p></div>'+
+   '<div class="accountSection"><h3>🎁 ガチャ限定ラインナップ</h3><div class="gachaPool">'+poolHtml+'</div></div>'+
+   '<div class="accountSection"><h3>📜 ガチャ履歴</h3>'+(historyHtml)+'</div>'+
+   '<p class="muted">重複アイテムはレアリティに応じたコインへ自動変換。N +20 / R +40 / SR +100 / SSR +300 / UR +1000。</p>';
+ }catch(e){root.innerHTML='<div class="muted">ガチャを読み込めませんでした：'+escapeAccountText(e.message||String(e))+'</div><button onclick="loadGachaScreen()">再読み込み</button>'}
+}
+async function pullTriadGacha(count){
+ if(triadGachaBusy)return;
+ if(!supabaseClient||!authUser){alert("オンライン接続が必要です。");return}
+ triadGachaBusy=true;
+ const root=$("gachaContent");if(root)root.insertAdjacentHTML("afterbegin",'<p class="muted" id="gachaBusyMessage">抽選中…</p>');
+ try{
+  const requestId=crypto.randomUUID();
+  const {data,error}=await supabaseClient.functions.invoke("triad-gacha",{body:{count:count,request_id:requestId}});
+  if(error)throw error;
+  if(data?.error==="NOT_ENOUGH_COINS")throw new Error("コインが足りません。");
+  if(!data||!Array.isArray(data.results))throw new Error("抽選結果を取得できませんでした。");
+  await refreshEconomyInventory();
+  await loadGachaScreen(data);
+  if($("wardrobe")?.classList.contains("active"))renderWardrobeScreen();
+ }catch(e){
+  const message=String(e?.message||e);
+  alert(message.includes("NOT_ENOUGH_COINS")?"コインが足りません。":"ガチャを引けませんでした："+message);
+  await loadGachaScreen();
+ }finally{triadGachaBusy=false}
+}
+
 async function buyEconomyItem(itemCode){
  if(economyBusy)return;economyBusy=true;
  try{const {data,error}=await supabaseClient.rpc("economy_buy_item",{p_item_code:itemCode});if(error)throw error;alert(escapeAccountText(data?.display_name||"アイテム")+"を獲得しました。");await loadEconomyScreen();if($("wardrobe")?.classList.contains("active"))renderWardrobeScreen()}
@@ -2908,8 +2978,8 @@ function renderWardrobe(m){
 function drawPlayerCosmetics(ctx,p){
  const c=p?.cosmetics||{},hat=c.hat||"none",scarf=c.scarf||"none";
  if(scarf!=="none"){
-  const colors={red:"#e34e5c",blue:"#4aa8e8",gold:"#e7bd4b"};
-  ctx.save();ctx.strokeStyle=colors[scarf]||"#e34e5c";ctx.lineWidth=4;ctx.lineCap="round";ctx.beginPath();ctx.moveTo(-7,6);ctx.quadraticCurveTo(0,11,7,6);ctx.stroke();ctx.beginPath();ctx.moveTo(4,8);ctx.lineTo(7,14);ctx.stroke();ctx.restore();
+  const colors={red:"#e34e5c",blue:"#4aa8e8",gold:"#e7bd4b",ribbon:"#e98acb",stardust:"#8d8bea"};
+  ctx.save();ctx.strokeStyle=colors[scarf]||"#e34e5c";ctx.lineWidth=4;ctx.lineCap="round";ctx.beginPath();ctx.moveTo(-7,6);ctx.quadraticCurveTo(0,11,7,6);ctx.stroke();ctx.beginPath();ctx.moveTo(4,8);ctx.lineTo(7,14);ctx.stroke();if(scarf==="ribbon"){ctx.fillStyle="#f6c5e5";ctx.beginPath();ctx.moveTo(0,8);ctx.lineTo(-5,4);ctx.lineTo(-5,12);ctx.closePath();ctx.fill();ctx.beginPath();ctx.moveTo(0,8);ctx.lineTo(5,4);ctx.lineTo(5,12);ctx.closePath();ctx.fill()}if(scarf==="stardust"){ctx.fillStyle="#fff1a8";ctx.font="6px sans-serif";ctx.fillText("✦",-2,14)}ctx.restore();
  }
  if(hat!=="none"){
   ctx.save();ctx.lineWidth=1.5;ctx.strokeStyle="#172334";
@@ -2918,6 +2988,11 @@ function drawPlayerCosmetics(ctx,p){
   else if(hat==="flower"){ctx.fillStyle="#ff8dbb";for(let a=0;a<5;a++){const t=a*Math.PI*2/5;ctx.beginPath();ctx.arc(Math.cos(t)*4,-13+Math.sin(t)*4,3,0,Math.PI*2);ctx.fill()}ctx.fillStyle="#ffdf69";ctx.beginPath();ctx.arc(0,-13,2.5,0,Math.PI*2);ctx.fill()}
   else if(hat==="crown"){ctx.fillStyle="#f5c84b";ctx.beginPath();ctx.moveTo(-8,-8);ctx.lineTo(-7,-17);ctx.lineTo(-2,-12);ctx.lineTo(0,-19);ctx.lineTo(3,-12);ctx.lineTo(8,-17);ctx.lineTo(8,-8);ctx.closePath();ctx.fill();ctx.stroke()}
   else if(hat==="halo"){ctx.strokeStyle="#ffe68a";ctx.lineWidth=2.5;ctx.beginPath();ctx.ellipse(0,-18,9,3,0,0,Math.PI*2);ctx.stroke()}
+  else if(hat==="paper_bag"){ctx.fillStyle="#b98a55";ctx.fillRect(-7,-16,14,10);ctx.strokeRect(-7,-16,14,10);ctx.fillStyle="#6b4b32";ctx.fillRect(-3,-13,2,2);ctx.fillRect(2,-13,2,2)}
+  else if(hat==="cat_ears"){ctx.fillStyle="#e9a7c4";ctx.beginPath();ctx.moveTo(-9,-7);ctx.lineTo(-8,-19);ctx.lineTo(0,-10);ctx.lineTo(8,-19);ctx.lineTo(9,-7);ctx.closePath();ctx.fill();ctx.stroke()}
+  else if(hat==="wizard"){ctx.fillStyle="#6354a8";ctx.beginPath();ctx.moveTo(-9,-7);ctx.lineTo(0,-23);ctx.lineTo(9,-7);ctx.closePath();ctx.fill();ctx.stroke();ctx.fillStyle="#f4d66a";ctx.beginPath();ctx.arc(0,-13,2,0,Math.PI*2);ctx.fill()}
+  else if(hat==="dragon_horns"){ctx.fillStyle="#b84f55";ctx.beginPath();ctx.moveTo(-8,-7);ctx.lineTo(-12,-19);ctx.lineTo(-3,-11);ctx.lineTo(0,-8);ctx.lineTo(3,-11);ctx.lineTo(12,-19);ctx.lineTo(8,-7);ctx.closePath();ctx.fill();ctx.stroke()}
+  else if(hat==="aurora_crown"){ctx.fillStyle="#83e6df";ctx.beginPath();ctx.moveTo(-9,-8);ctx.lineTo(-8,-17);ctx.lineTo(-3,-12);ctx.lineTo(0,-22);ctx.lineTo(3,-12);ctx.lineTo(8,-17);ctx.lineTo(9,-8);ctx.closePath();ctx.fill();ctx.strokeStyle="#d7fff7";ctx.stroke()}
   ctx.restore();
  }
 }
