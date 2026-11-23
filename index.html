@@ -192,6 +192,7 @@ canvas#mapCanvas{aspect-ratio:16/10;background:#0b1522}
   <div class="card"><h3>🌐 オンライン対戦</h3><p class="muted">フレンドと遊ぶ・公開ルームを探す・AI人数や特別ルールを設定。</p><button class="primary" style="width:100%" onclick="openSocialHub()">オンラインロビーへ</button></div>
   <div class="card"><h3>🏆 ランク戦</h3><p class="muted">ランクポイントと戦績を確認し、10人戦・12人戦に参加できます。</p><button class="primary" style="width:100%" onclick="openRankedScreen()">ランク戦を見る</button></div>
   <div class="card"><h3>👕 衣装・着せ替え</h3><p class="muted">帽子やアクセサリーを集めて、自分のキャラクターをカスタマイズ。</p><button class="primary" style="width:100%" onclick="openWardrobeScreen()">衣装を変更する</button></div>
+  <div class="card"><h3>🪙 コイン・ショップ</h3><p class="muted">試合報酬でコインを集め、見た目アイテムを入手。フレンドとの交換もできます。</p><button class="primary" style="width:100%" onclick="openEconomyScreen()">ショップを開く</button></div>
   <div class="card"><h3>🏅 プレイヤー成長</h3><p class="muted">レベル・経験値・実績・役職熟練度を確認。</p><button class="primary" style="width:100%" onclick="openProgressionScreen()">成長記録を見る</button></div>
   <div class="card"><h3>📘 遊び方</h3><p class="muted">試作版のルールと操作方法を確認します。</p><button style="width:100%" onclick="openHelp()">ルールを見る</button></div>
   <div class="card"><h3>👥 アカウント図鑑</h3><p class="muted">プレイヤーとAIアカウント全員の能力・成績・得意な役職を確認できます。</p><button style="width:100%" onclick="openAccountsScreen()">アカウントを見る</button></div>
@@ -289,6 +290,11 @@ canvas#mapCanvas{aspect-ratio:16/10;background:#0b1522}
 <section id="wardrobe" class="screen">
  <div class="hero"><h1>👕 衣装・着せ替え</h1><p>自分のキャラクターの帽子やアクセサリーを変更できます。衣装による能力差はありません。</p></div>
  <div class="card" id="wardrobeContent"></div>
+ <div class="actions"><button onclick="show('home')">ホームへ戻る</button></div>
+</section>
+<section id="economy" class="screen">
+ <div class="hero"><h1>🪙 コイン・ショップ</h1><p>試合でコインを獲得し、帽子やアクセサリーを集めましょう。アイテムはゲーム内だけで使用できます。</p></div>
+ <div class="card" id="economyContent"><div class="muted">ショップ情報を読み込んでいます…</div></div>
  <div class="actions"><button onclick="show('home')">ホームへ戻る</button></div>
 </section>
 <section id="progression" class="screen">
@@ -2559,6 +2565,16 @@ function loadProgression(){
  try{const p=JSON.parse(localStorage.getItem(TRIAD_PROGRESS_KEY)||"{}");const xp=Math.max(0,Number(p.experiencePoints)||0);return {experiencePoints:xp,level:Math.floor(xp/100)+1,achievements:Array.isArray(p.achievements)?p.achievements:[],roleMastery:p.roleMastery&&typeof p.roleMastery==="object"?p.roleMastery:{},completedMatches:Number(p.completedMatches)||0,totalWins:Number(p.totalWins)||0,totalSurvivals:Number(p.totalSurvivals)||0,lastReward:p.lastReward||null}}
  catch{return {experiencePoints:0,level:1,achievements:[],roleMastery:{},lastReward:null}}
 }
+async function awardEconomyMatch(matchKey,won,survived){
+ if(!supabaseClient||!authUser)await initializeOnlineAccounts();
+ if(!authUser||!supabaseClient)throw new Error("コインの保存にはオンライン接続が必要です。");
+ await ensureOwnPlayerProfile();
+ const {data,error}=await supabaseClient.rpc("economy_award_match",{p_match_key:String(matchKey),p_won:!!won,p_survived:!!survived});
+ if(error)throw error;
+ economyCoins=Number(data?.coins||economyCoins);
+ if($("economy")?.classList.contains("active"))await loadEconomyScreen();
+ return data;
+}
 function grantMatchProgress(won,role,alive,matchId=null){
  lastProgressReward=null;
  const key=String(matchId||("local-"+Date.now()+"-"+Math.random().toString(36).slice(2)));
@@ -2575,6 +2591,7 @@ function grantMatchProgress(won,role,alive,matchId=null){
  base.lastReward={xp:xpGain,levelUp:base.level>p.level,newAchievements:earned,role:r};
  try{localStorage.setItem(TRIAD_PROGRESS_KEY,JSON.stringify(base));done.push(key);localStorage.setItem(TRIAD_PROGRESS_PROCESSED_KEY,JSON.stringify(done.slice(-300)))}catch(e){console.warn("Progress save failed",e)}
  if(authUser&&supabaseClient)syncOnlinePlayerProgress(base).catch(e=>console.warn("Progress cloud sync failed",e));
+ awardEconomyMatch(key,won,alive).catch(e=>console.warn("Coin reward sync failed",e));
  lastProgressReward=base.lastReward;
  return base.lastReward;
 }
@@ -2691,6 +2708,7 @@ function renderAccountList(){
 }
 
 const TRIAD_COSMETIC_KEY="triad_cosmetics_v1";
+let economyInventoryCodes=[],economyCatalogCache=[],economyFriendsCache=[],economyCoins=0,economyBusy=false;
 const TRIAD_HATS=[
  {id:"none",name:"なし",unlock:"最初から"},
  {id:"cap",name:"ベースボールキャップ",unlock:"Lv.1"},
@@ -2709,8 +2727,9 @@ function loadCosmetics(){
  try{const v=JSON.parse(localStorage.getItem(TRIAD_COSMETIC_KEY)||"{}");return {hat:v.hat||"none",scarf:v.scarf||"none",color:colors.includes(v.color)?v.color:colors[0]}}
  catch{return {hat:"none",scarf:"none",color:colors[0]}}
 }
-function cosmeticIsUnlocked(item){
- const p=loadProgression();return (!item.level||p.level>=item.level)&&(!item.achievement||p.achievements.includes(item.achievement));
+function cosmeticIsUnlocked(item,kind=null){
+ const p=loadProgression(),purchased=!!(kind&&economyInventoryCodes.includes(kind+":"+item.id));
+ return purchased||(!item.level||p.level>=item.level)&&(!item.achievement||p.achievements.includes(item.achievement));
 }
 function applyPlayerCosmetics(){
  const own=loadCosmetics();
@@ -2727,7 +2746,7 @@ function applyPlayerCosmetics(){
 }
 async function equipCosmetic(kind,id){
  const list=kind==="hat"?TRIAD_HATS:TRIAD_SCARVES,item=list.find(v=>v.id===id);
- if(!item||!cosmeticIsUnlocked(item)){alert("このアイテムはまだ解放されていません。");return}
+ if(!item||!cosmeticIsUnlocked(item,kind)){alert("このアイテムはまだ解放されていません。");return}
  const current=loadCosmetics();current[kind]=id;
  try{localStorage.setItem(TRIAD_COSMETIC_KEY,JSON.stringify(current))}catch(e){console.warn("Cosmetic save failed",e)}
  if(state.me){state.me.cosmetics=current;if(current.color&&colors.includes(current.color)){state.me.color=current.color;state.me.colorName=colorNames[colors.indexOf(current.color)]||state.me.colorName}}
@@ -2739,7 +2758,7 @@ async function equipCosmetic(kind,id){
  renderWardrobeScreen();draw();
 }
 async function equipPlayerColor(color){if(!colors.includes(color))return;const current=loadCosmetics();current.color=color;try{localStorage.setItem(TRIAD_COSMETIC_KEY,JSON.stringify(current))}catch(e){console.warn("Player color save failed",e)}if(state.me){state.me.color=color;state.me.colorName=colorNames[colors.indexOf(color)]||state.me.colorName;state.me.cosmetics=current}if(authUser&&supabaseClient){const {error}=await supabaseClient.from("player_profiles").update({cosmetics:current,updated_at:new Date().toISOString()}).eq("user_id",authUser.id);if(error){console.warn("Color cloud save failed",error);setAccountAuthMessage("色のオンライン保存に失敗しました。端末内には保存されています。",true)}else await loadOnlinePlayerProfiles()}renderWardrobeScreen();draw()}
-function openWardrobeScreen(){if(!activateScreen("wardrobe"))return;renderWardrobeScreen()}
+async function openWardrobeScreen(){if(!activateScreen("wardrobe"))return;renderWardrobeScreen();try{await refreshEconomyInventory();renderWardrobeScreen()}catch(e){console.warn("Wardrobe inventory refresh failed",e)}}
 function renderWardrobeScreen(){
  const root=$("wardrobeContent");if(!root)return;
  const local=loadCosmetics();
@@ -2758,6 +2777,100 @@ function drawWardrobePreview(){
  ctx.fillStyle="#13243a";ctx.beginPath();ctx.arc(-3,-2,1.5,0,Math.PI*2);ctx.arc(3,-2,1.5,0,Math.PI*2);ctx.fill();
  drawPlayerCosmetics(ctx,p);ctx.restore();
 }
+async function refreshEconomyInventory(){
+ if(!supabaseClient||!authUser)return [];
+ const {data,error}=await supabaseClient.from("player_cosmetic_inventory").select("item_code");
+ if(error)throw error;
+ economyInventoryCodes=(data||[]).map(v=>String(v.item_code));
+ return economyInventoryCodes;
+}
+function economyItemName(code){
+ const item=economyCatalogCache.find(v=>v.item_code===code);
+ return item?.display_name||code;
+}
+async function openEconomyScreen(){
+ if(!activateScreen("economy"))return;
+ await loadEconomyScreen();
+}
+async function loadEconomyScreen(){
+ const root=$("economyContent");if(!root)return;
+ root.innerHTML='<div class="muted">コイン・アイテム・交換情報を読み込んでいます…</div>';
+ try{
+  if(!authUser||!supabaseClient)await initializeOnlineAccounts();
+  if(!authUser||!supabaseClient)throw new Error("オンライン接続を開始できません。通信状態を確認してください。");
+  await ensureOwnPlayerProfile();
+  const {error:initError}=await supabaseClient.rpc("economy_initialize");if(initError)throw initError;
+  const [walletRes,inventoryRes,catalogRes,tradeRes,friendRes]=await Promise.all([
+   supabaseClient.from("player_wallets").select("coins").eq("user_id",authUser.id).single(),
+   supabaseClient.from("player_cosmetic_inventory").select("item_code,source,acquired_at").eq("user_id",authUser.id),
+   supabaseClient.from("player_cosmetic_catalog").select("item_code,item_kind,cosmetic_id,display_name,price").eq("active",true).order("price"),
+   supabaseClient.from("player_item_trades").select("id,from_user_id,to_user_id,offered_item,requested_item,status,created_at").or("from_user_id.eq."+authUser.id+",to_user_id.eq."+authUser.id).order("created_at",{ascending:false}).limit(30),
+   supabaseClient.rpc("list_friends")
+  ]);
+  for(const x of [walletRes,inventoryRes,catalogRes,tradeRes,friendRes])if(x.error)throw x.error;
+  economyCoins=Number(walletRes.data?.coins||0);
+  economyInventoryCodes=(inventoryRes.data||[]).map(v=>String(v.item_code));
+  economyCatalogCache=catalogRes.data||[];
+  economyFriendsCache=(friendRes.data||[]).filter(v=>v.status==="accepted");
+  const tradeRows=tradeRes.data||[],otherIds=[...new Set(tradeRows.map(t=>t.from_user_id===authUser.id?t.to_user_id:t.from_user_id))];
+  let names={};
+  if(otherIds.length){
+   const {data,error}=await supabaseClient.from("player_profiles").select("user_id,display_name").in("user_id",otherIds);
+   if(error)throw error;(data||[]).forEach(v=>names[v.user_id]=v.display_name||"プレイヤー");
+  }
+  const available=economyCatalogCache.filter(v=>!economyInventoryCodes.includes(v.item_code));
+  const capsuleOptions=available.map(v=>'<option value="'+v.item_code+'">'+escapeAccountText(v.display_name)+'（'+v.price+'コイン）</option>').join("");
+  const shopRows=economyCatalogCache.map(v=>{
+   const owned=economyInventoryCodes.includes(v.item_code),reserved=tradeRows.some(t=>t.status==="pending"&&t.from_user_id===authUser.id&&t.offered_item===v.item_code);
+   return '<div class="socialItem"><span><b>'+escapeAccountText(v.display_name)+'</b><small style="display:block;color:var(--muted)">'+(owned?(reserved?"交換申請中・使用予約中":"所持中"):(v.price+"コイン"))+'</small></span><button '+(owned||economyCoins<v.price?'disabled':'')+' onclick="buyEconomyItem(\''+v.item_code+'\')">'+(owned?"所持済み":"交換")+'</button></div>';
+  }).join("");
+  const invOptions=economyInventoryCodes.map(code=>'<option value="'+code+'">'+escapeAccountText(economyItemName(code))+'</option>').join("");
+  const friendOptions=economyFriendsCache.map(f=>'<option value="'+f.user_id+'">'+escapeAccountText(f.display_name||"フレンド")+'</option>').join("");
+  const tradeRowsHtml=tradeRows.map(t=>{
+   const incoming=t.to_user_id===authUser.id,other=incoming?t.from_user_id:t.to_user_id,name=escapeAccountText(names[other]||"プレイヤー"),offer=escapeAccountText(economyItemName(t.offered_item)),request=escapeAccountText(economyItemName(t.requested_item));
+   const pending=t.status==="pending";
+   const actions=pending?(incoming?'<button class="primary" onclick="respondEconomyTrade(\''+t.id+'\',true)">交換を承認</button> <button onclick="respondEconomyTrade(\''+t.id+'\',false)">断る</button>':'<button onclick="respondEconomyTrade(\''+t.id+'\',false)">申請を取り消す</button>'):'<span class="pill">'+({accepted:"成立",declined:"辞退",cancelled:"取消"}[t.status]||t.status)+'</span>';
+   return '<div class="socialItem" style="align-items:flex-start"><div><b>'+(incoming?"受信：":"送信：")+name+'</b><small style="display:block;color:var(--muted)">相手：'+(incoming?offer:request)+' ／ あなた：'+(incoming?request:offer)+'</small></div><div>'+actions+'</div></div>';
+  }).join("");
+  root.innerHTML='<div class="accountSection"><div class="row" style="justify-content:space-between;align-items:center"><div><h2 style="margin:0">🪙 '+economyCoins.toLocaleString("ja-JP")+' コイン</h2><p class="muted" style="margin:5px 0 0">試合完了：20 ／ 勝利：+10 ／ 生存：+5</p></div><button onclick="loadEconomyScreen()">更新</button></div></div>'+
+   '<div class="accountSection"><h3>🎁 確定カプセル</h3><p class="muted">中身を選んでから開けます。表示されたアイテムを必ず獲得できます。ランダム排出ではありません。</p><div class="row"><select id="economyCapsuleItem" style="flex:1">'+(capsuleOptions||'<option value="">交換できるアイテムはありません</option>')+'</select><button class="primary" '+(!available.length?'disabled':'')+' onclick="buyEconomyCapsule()">選んで獲得</button></div></div>'+
+   '<div class="accountSection"><h3>🛍️ 交換所</h3><p class="muted">コインで見た目アイテムを直接入手できます。所持済みのアイテムは購入できません。</p>'+shopRows+'</div>'+
+   '<div class="accountSection"><h3>🎒 所持アイテム（'+economyInventoryCodes.length+'）</h3><p class="muted">'+(economyInventoryCodes.length?economyInventoryCodes.map(code=>escapeAccountText(economyItemName(code))).join("、"):"アイテムはまだありません。")+'</p></div>'+
+   '<div class="accountSection"><h3>🤝 フレンドとアイテム交換</h3><p class="muted">フレンド同士で見た目アイテムを1つずつ交換できます。交換成立まではアイテムが予約されます。コインや現実のお金は交換できません。</p>'+
+   (economyFriendsCache.length?'<div class="field"><label>交換相手</label><select id="economyTradeFriend">'+friendOptions+'</select></div><div class="row"><div class="field"><label>渡すアイテム</label><select id="economyTradeOffer">'+invOptions+'</select></div><div class="field"><label>受け取りたいアイテム</label><select id="economyTradeRequest">'+economyCatalogCache.map(v=>'<option value="'+v.item_code+'">'+escapeAccountText(v.display_name)+'</option>').join("")+'</select></div></div><button class="primary" '+(!economyInventoryCodes.length?'disabled':'')+' onclick="createEconomyTrade()">交換を申し込む</button>':'<p class="muted">フレンドがいません。オンラインロビーでフレンドを追加してください。</p>')+'</div>'+
+   '<div class="accountSection"><h3>📨 交換申請</h3>'+(tradeRowsHtml||'<p class="muted">交換申請はありません。</p>')+'</div>'+
+   '<p class="muted">ゲスト接続でもこの端末のオンラインセッションに保存されます。別端末への引き継ぎにはアカウント登録が必要です。</p>';
+ }catch(e){root.innerHTML='<div class="muted">ショップを読み込めませんでした：'+escapeAccountText(e.message||String(e))+'</div><button onclick="loadEconomyScreen()">再読み込み</button>'}
+}
+async function buyEconomyItem(itemCode){
+ if(economyBusy)return;economyBusy=true;
+ try{const {data,error}=await supabaseClient.rpc("economy_buy_item",{p_item_code:itemCode});if(error)throw error;alert(escapeAccountText(data?.display_name||"アイテム")+"を獲得しました。");await loadEconomyScreen();if($("wardrobe")?.classList.contains("active"))renderWardrobeScreen()}
+ catch(e){alert("交換できませんでした："+(e.message||String(e)))}
+ finally{economyBusy=false}
+}
+async function buyEconomyCapsule(){
+ const code=$("economyCapsuleItem")?.value;if(!code){alert("アイテムを選んでください。");return}
+ await buyEconomyItem(code);
+}
+async function createEconomyTrade(){
+ if(economyBusy)return;const target=$("economyTradeFriend")?.value,offer=$("economyTradeOffer")?.value,request=$("economyTradeRequest")?.value;
+ if(!target||!offer||!request){alert("交換相手とアイテムを選んでください。");return}
+ if(offer===request){alert("異なるアイテムを選んでください。");return}
+ if(!confirm("選んだアイテムで交換を申し込みます。よろしいですか？"))return;
+ economyBusy=true;
+ try{const {error}=await supabaseClient.rpc("economy_create_trade",{p_target_user:target,p_offered_item:offer,p_requested_item:request});if(error)throw error;alert("交換申請を送りました。相手が承認すると交換成立です。");await loadEconomyScreen()}
+ catch(e){alert("交換申請できませんでした："+(e.message||String(e)))}
+ finally{economyBusy=false}
+}
+async function respondEconomyTrade(tradeId,accept){
+ if(economyBusy)return;
+ const message=accept?"交換を成立させます。双方のアイテムが入れ替わります。よろしいですか？":"この交換申請を断る／取り消しますか？";
+ if(!confirm(message))return;
+ economyBusy=true;
+ try{const {error}=await supabaseClient.rpc("economy_respond_trade",{p_trade_id:tradeId,p_accept:!!accept});if(error)throw error;alert(accept?"交換が成立しました。":"交換申請を処理しました。");await loadEconomyScreen();if($("wardrobe")?.classList.contains("active"))renderWardrobeScreen()}
+ catch(e){alert("交換処理に失敗しました："+(e.message||String(e)))}
+ finally{economyBusy=false}
+}
 function openProgressionScreen(){
  if(!activateScreen("progression"))return;
  const root=$("progressionContent");if(!root)return;
@@ -2768,7 +2881,7 @@ function renderWardrobe(m){
  const own=$("wardrobe")?.classList.contains("active")||false;
  const local=loadCosmetics(),cloud=m.cosmetics||{},equipped=own?local:{hat:cloud.hat||"none",scarf:cloud.scarf||"none"};
  const render=(items,kind)=>items.map(item=>{
-  const unlocked=own?cosmeticIsUnlocked(item):true,active=equipped[kind]===item.id;
+  const unlocked=own?cosmeticIsUnlocked(item,kind):true,active=equipped[kind]===item.id;
   return '<button '+(own?'onclick="equipCosmetic(\''+kind+'\',\''+item.id+'\')"':'disabled')+' style="min-width:112px;padding:9px;border-radius:10px;border:1px solid '+(active?'#62d6c8':'#38506c')+';background:'+(active?'#214d50':'#14263c')+';color:inherit;opacity:'+(unlocked?1:.5)+';text-align:left"><b>'+(kind==="hat"?"🎩 ":"🧣 ")+item.name+'</b><small style="display:block;color:var(--muted);margin-top:4px">'+(active?"装備中":unlocked?(own?"タップして装備":"装備中ではありません"):"🔒 "+item.unlock)+'</small></button>';
  }).join("");
  const selectedColor=equipped.color||colors[0];
