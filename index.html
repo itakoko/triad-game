@@ -2988,27 +2988,46 @@ async function respondEconomyTrade(tradeId,accept){
  catch(e){alert("交換処理に失敗しました："+(e.message||String(e)))}
  finally{economyBusy=false}
 }
-const TRIAD_ROLE_MISSION_DEFS=[
- {role:"クルー",theme:"施設保全",metric:"tasks",label:"完了タスク",names:["初めての任務","熟練作業員","研究所の守護者"],descs:["クルーでタスクを3件完了","累計12件のタスクを完了","累計30件のタスクを完了"],targets:[3,12,30]},
- {role:"サイエンティスト",theme:"生命観測",metric:"scientist_checks",label:"生存者確認",names:["初期観測","精密な記録","究極の研究者"],descs:["生存者一覧を1回確認","生存者一覧を累計5回確認","生存者一覧を累計12回確認"],targets:[1,5,12]},
- {role:"恋人",theme:"運命の絆",metric:"partner_survivals",label:"相方と共に生存",names:["出会い","変わらぬ絆","永遠のパートナー"],descs:["相方と一緒に1試合を生き残る","相方と一緒に3試合を生き残る","相方と一緒に8試合を生き残る"],targets:[1,3,8]},
- {role:"占い師",theme:"未来視",metric:"seer_uses",label:"占い成功",names:["兆しを読む","真実の探究","運命を見通す者"],descs:["占いを1回成功させる","占いを累計3回成功させる","占いを累計6回成功させる"],targets:[1,3,6]},
- {role:"狩人",theme:"追跡訓練",metric:"kills",label:"攻撃成功",names:["足跡を追う","必中の狩人","伝説の追跡者"],descs:["狩人の能力で1人を倒す","能力で累計2人を倒す","能力で累計4人を倒す"],targets:[1,2,4]},
- {role:"保安官",theme:"治安維持",metric:"kills",label:"攻撃成功",names:["巡回任務","正義の執行","施設の守り手"],descs:["保安官の攻撃を1回成功させる","攻撃を累計2回成功させる","攻撃を累計3回成功させる"],targets:[1,2,3]},
- {role:"僧侶",theme:"救護活動",metric:"protections",label:"加護付与",names:["祈りの始まり","仲間を守る者","献身の聖職者"],descs:["仲間に加護を1回与える","加護を累計3回与える","加護を累計6回与える"],targets:[1,3,6]},
- {role:"ライトキーパー",theme:"光の管理",metric:"lightkeeper_survivals",label:"生存試合",names:["灯火をともす","光を絶やさず","希望の灯台"],descs:["ライトキーパーで1試合生存する","4試合生存する","10試合生存する"],targets:[1,4,10]},
- {role:"インポスター",theme:"潜伏工作",metric:"sabotages",label:"停電サボタージュ",names:["潜入開始","巧妙な工作","完全なる偽装"],descs:["停電サボタージュを1回成功させる","累計3回成功させる","累計6回成功させる"],targets:[1,3,6]},
- {role:"イノシシ",theme:"突破作戦",metric:"charges",label:"突進発動",names:["突進の練習","突破の常連","止められぬ猛進"],descs:["突進を1回発動する","突進を累計3回発動する","突進を累計6回発動する"],targets:[1,3,6]},
- {role:"百面相",theme:"変装技術",metric:"disguises",label:"変身成功",names:["仮面の新人","完璧な変身","千の顔を持つ者"],descs:["他人の姿に1回変身する","変身を累計3回成功させる","変身を累計6回成功させる"],targets:[1,3,6]},
- {role:"放浪者",theme:"放浪の旅",metric:"scents",label:"匂い付与",names:["旅立ち","遠方の探索者","果てなき旅人"],descs:["相手に匂いを1回移す","匂いを累計3回移す","匂いを累計6回移す"],targets:[1,3,6]},
- {role:"暗殺者",theme:"影の任務",metric:"bounty_kills",label:"手配対象の撃破",names:["影に潜む","静かな仕事人","闇に名を刻む"],descs:["手配対象を1人倒す","手配対象を累計2人倒す","手配対象を累計4人倒す"],targets:[1,2,4]},
- {role:"てるてる",theme:"逆転劇",metric:"jester_wins",label:"てるてる勝利",names:["注目を集める","疑いを操る","究極の道化師"],descs:["てるてる固有の勝利を1回達成","固有勝利を累計2回達成","固有勝利を累計4回達成"],targets:[1,2,4]},
- {role:"狂人",theme:"混乱工作",metric:"kills",label:"キル成功",names:["混乱の種","盤面をかき回す","混沌の演出家"],descs:["狂人で1人を倒す","累計2人を倒す","累計4人を倒す"],targets:[1,2,4]},
- {role:"ギャンブラー",theme:"勝負師の道",metric:"gambler_jackpots",label:"JACKPOT獲得",names:["最初の大当たり","幸運の連鎖","伝説の勝負師"],descs:["JACKPOTを1回引く","JACKPOTを累計2回引く","JACKPOTを累計4回引く"],targets:[1,2,4]}
-];
+const TRIAD_ROLE_MISSION_DEFS=[{"role":"クルー","theme":"施設保全","metric":"tasks","label":"完了タスク","names":["初めての任務","熟練作業員","研究所の守護者","不落の整備士","伝説の施設管理者","研究所の守護神"],"descs":["タスクを3件完了","累計12件完了","累計30件完了","累計45件完了","累計65件完了","累計90件完了"],"targets":[3,12,30,45,65,90],"specialTitles":["不落の整備士","伝説の施設管理者","研究所の守護神"]},{"role":"サイエンティスト","theme":"生命観測","metric":"scientist_checks","label":"生存者確認","names":["初期観測","精密な記録","究極の研究者","真理の観測者","生命記録の賢者","宇宙の研究者"],"descs":["生存者一覧を1回確認","累計5回確認","累計12回確認","累計18回確認","累計26回確認","累計36回確認"],"targets":[1,5,12,18,26,36],"specialTitles":["真理の観測者","生命記録の賢者","宇宙の研究者"]},{"role":"恋人","theme":"運命の絆","metric":"partner_survivals","label":"相方と共に生存","names":["出会い","変わらぬ絆","永遠のパートナー","永遠の絆","運命共同体","双星の誓い"],"descs":["相方と一緒に1試合生存","相方と一緒に3試合生存","相方と一緒に8試合生存","相方と一緒に12試合生存","相方と一緒に18試合生存","相方と一緒に25試合生存"],"targets":[1,3,8,12,18,25],"specialTitles":["永遠の絆","運命共同体","双星の誓い"]},{"role":"占い師","theme":"未来視","metric":"seer_uses","label":"占い成功","names":["兆しを読む","真実の探究","運命を見通す者","星詠みの預言者","運命の導き手","未来を見通す者"],"descs":["占いを1回成功","累計3回成功","累計6回成功","累計10回成功","累計16回成功","累計24回成功"],"targets":[1,3,6,10,16,24],"specialTitles":["星詠みの預言者","運命の導き手","未来を見通す者"]},{"role":"狩人","theme":"追跡訓練","metric":"kills","label":"攻撃成功","names":["足跡を追う","必中の狩人","伝説の追跡者","百戦錬磨の狩人","月影の追跡者","伝説の狩猟王"],"descs":["能力で1人撃破","累計2人撃破","累計4人撃破","累計6人撃破","累計9人撃破","累計12人撃破"],"targets":[1,2,4,6,9,12],"specialTitles":["百戦錬磨の狩人","月影の追跡者","伝説の狩猟王"]},{"role":"保安官","theme":"治安維持","metric":"kills","label":"攻撃成功","names":["巡回任務","正義の執行","施設の守り手","秩序の執行者","正義の象徴","絶対の保安官"],"descs":["攻撃を1回成功","累計2回成功","累計3回成功","累計5回成功","累計7回成功","累計10回成功"],"targets":[1,2,3,5,7,10],"specialTitles":["秩序の執行者","正義の象徴","絶対の保安官"]},{"role":"僧侶","theme":"救護活動","metric":"protections","label":"加護付与","names":["祈りの始まり","仲間を守る者","献身の聖職者","慈愛の守護者","聖域の番人","奇跡を呼ぶ祈り手"],"descs":["加護を1回付与","累計3回付与","累計6回付与","累計10回付与","累計15回付与","累計22回付与"],"targets":[1,3,6,10,15,22],"specialTitles":["慈愛の守護者","聖域の番人","奇跡を呼ぶ祈り手"]},{"role":"ライトキーパー","theme":"光の管理","metric":"lightkeeper_survivals","label":"生存試合","names":["灯火をともす","光を絶やさず","希望の灯台","灯火の継承者","暁を守る者","永遠の灯台守"],"descs":["1試合生存","累計4試合生存","累計10試合生存","累計15試合生存","累計22試合生存","累計30試合生存"],"targets":[1,4,10,15,22,30],"specialTitles":["灯火の継承者","暁を守る者","永遠の灯台守"]},{"role":"インポスター","theme":"潜伏工作","metric":"sabotages","label":"サボタージュ","names":["潜入開始","巧妙な工作","完全なる偽装","完全犯罪の演出家","暗黒の支配者","誰も知らぬ黒幕"],"descs":["サボタージュ1回","累計3回成功","累計6回成功","累計10回成功","累計15回成功","累計22回成功"],"targets":[1,3,6,10,15,22],"specialTitles":["完全犯罪の演出家","暗黒の支配者","誰も知らぬ黒幕"]},{"role":"イノシシ","theme":"突破作戦","metric":"charges","label":"突進発動","names":["突進の練習","突破の常連","止められぬ猛進","轟天の突進者","大地を砕く者","止められぬ暴走王"],"descs":["突進1回","累計3回","累計6回","累計10回","累計15回","累計22回"],"targets":[1,3,6,10,15,22],"specialTitles":["轟天の突進者","大地を砕く者","止められぬ暴走王"]},{"role":"百面相","theme":"変装技術","metric":"disguises","label":"変身成功","names":["仮面の新人","完璧な変身","千の顔を持つ者","千貌の幻影","真実なき変装者","究極の変幻自在"],"descs":["変身1回","累計3回","累計6回","累計10回","累計15回","累計22回"],"targets":[1,3,6,10,15,22],"specialTitles":["千貌の幻影","真実なき変装者","究極の変幻自在"]},{"role":"放浪者","theme":"放浪の旅","metric":"scents","label":"匂い付与","names":["旅立ち","遠方の探索者","果てなき旅人","星間放浪の旅人","境界を越える者","果てなき銀河の旅人"],"descs":["匂いを1回付与","累計3回付与","累計6回付与","累計10回付与","累計15回付与","累計22回付与"],"targets":[1,3,6,10,15,22],"specialTitles":["星間放浪の旅人","境界を越える者","果てなき銀河の旅人"]},{"role":"暗殺者","theme":"影の任務","metric":"bounty_kills","label":"手配対象撃破","names":["影に潜む","静かな仕事人","闇に名を刻む","無音の処刑人","影を統べる者","闇夜の伝説"],"descs":["手配対象を1人撃破","累計2人撃破","累計4人撃破","累計6人撃破","累計9人撃破","累計12人撃破"],"targets":[1,2,4,6,9,12],"specialTitles":["無音の処刑人","影を統べる者","闇夜の伝説"]},{"role":"てるてる","theme":"逆転劇","metric":"jester_wins","label":"固有勝利","names":["注目を集める","疑いを操る","究極の道化師","喝采の道化王","疑心を操る天才","舞台を支配する者"],"descs":["固有勝利1回","累計2回","累計4回","累計6回","累計9回","累計12回"],"targets":[1,2,4,6,9,12],"specialTitles":["喝采の道化王","疑心を操る天才","舞台を支配する者"]},{"role":"狂人","theme":"混乱工作","metric":"kills","label":"キル成功","names":["混乱の種","盤面をかき回す","混沌の演出家","混沌の指揮者","狂気の演出家","混沌そのもの"],"descs":["1人撃破","累計2人撃破","累計4人撃破","累計6人撃破","累計9人撃破","累計12人撃破"],"targets":[1,2,4,6,9,12],"specialTitles":["混沌の指揮者","狂気の演出家","混沌そのもの"]},{"role":"ギャンブラー","theme":"勝負師の道","metric":"gambler_jackpots","label":"JACKPOT獲得","names":["最初の大当たり","幸運の連鎖","伝説の勝負師","運命を賭ける者","奇跡の勝負師","JACKPOTの化身"],"descs":["JACKPOT1回","累計2回","累計4回","累計6回","累計9回","累計12回"],"targets":[1,2,4,6,9,12],"specialTitles":["運命を賭ける者","奇跡の勝負師","JACKPOTの化身"]}];
 function roleMissionRequirement(tier,v,def){
  const value=Number(v.metrics?.[def.metric]||0),need=Number(def.targets[tier-1]||1);
  return {ok:value>=need,progress:Math.min(1,value/need),value,need,label:def.label};
+}
+let triadMasteryFaction="white",triadMasteryRole="クルー";
+function selectRoleMasteryFaction(team){triadMasteryFaction=team;const g=ROLE_CONFIG_GROUPS.find(x=>x.team===team);triadMasteryRole=g?.roles?.[0]||"クルー";openProgressionScreen()}
+function selectRoleMasteryRole(role){triadMasteryRole=role;openProgressionScreen()}
+function triadCurrentPeriodKeys(){
+ const parts=new Date().toLocaleDateString("en-CA",{timeZone:"Asia/Tokyo"}).split("-").map(Number);
+ const utc=new Date(Date.UTC(parts[0],parts[1]-1,parts[2]));
+ const day=utc.getUTCDay()||7;utc.setUTCDate(utc.getUTCDate()-day+1);
+ return {daily:parts.map((n,i)=>String(n).padStart(i===0?4:2,"0")).join("-"),weekly:utc.toISOString().slice(0,10)};
+}
+function renderTriadPeriodMissions(rows){
+ const keys=triadCurrentPeriodKeys(),map=new Map((rows||[]).map(x=>[x.period_type+":"+x.mission_code,x]));
+ const groups=[
+  {type:"daily",title:"☀️ デイリーミッション",subtitle:"毎日、日本時間0:00に更新",items:[
+   ["daily_matches","今日の参加者","今日の試合を1回完了",1,40,20],
+   ["daily_wins","今日の勝利","今日の試合で1回勝利",1,60,30],
+   ["daily_tasks","今日の作業員","今日の試合でタスクを3件完了",3,50,25]
+  ]},
+  {type:"weekly",title:"📅 ウィークリーミッション",subtitle:"毎週月曜日、日本時間0:00に更新",items:[
+   ["weekly_matches","週間プレイヤー","今週の試合を10回完了",10,200,100],
+   ["weekly_wins","週間チャンピオン","今週5回勝利",5,250,125],
+   ["weekly_survivals","生還の達人","今週5回生存して試合を終える",5,200,100],
+   ["weekly_abilities","能力の使い手","今週、役職能力を合計15回使用",15,300,150],
+   ["weekly_tasks","研究所の働き者","今週タスクを20件完了",20,250,125]
+  ]}
+ ];
+ let html="";
+ for(const g of groups){
+  html+='<div class="card" style="margin:12px 0"><h3>'+g.title+'</h3><p class="muted">'+g.subtitle+'</p>';
+  for(const item of g.items){
+   const row=map.get(g.type+":"+item[0]),value=Number(row?.progress||0),need=item[3],done=!!row?.claimed_at,ready=value>=need;
+   html+='<div class="accountTrait" style="opacity:'+(done?'.72':'1')+'"><div class="row" style="justify-content:space-between"><b>'+item[1]+'</b><span class="pill">'+(done?"受取済み":ready?"達成！":"進行中")+'</span></div><div class="muted" style="margin:5px 0">'+item[2]+' · '+Math.min(value,need)+'/'+need+'</div><div class="taskbar"><div style="width:'+Math.min(100,value/need*100)+'%"></div></div><div class="row" style="justify-content:space-between;align-items:center;margin-top:7px"><small class="muted">🪙 '+item[4]+' ／ EXP '+item[5]+'</small><button '+(done||!ready?'disabled':'class="primary" onclick="claimTriadPeriodMission(\''+g.type+'\',\''+item[0]+'\')"')+'>'+(done?"受取済み":ready?"報酬を受け取る":"未達成")+'</button></div></div>';
+  }
+  html+='</div>';
+ }
+ return html;
 }
 const TRIAD_GENERAL_MISSIONS=[
  {code:"matches_1",name:"最初の一歩",desc:"試合を1回完了する",need:1,reward:30,xp:20,key:"matches_played"},
@@ -3019,7 +3038,7 @@ const TRIAD_GENERAL_MISSIONS=[
  {code:"roles_5",name:"多彩な戦術",desc:"5種類の役職で試合を完了する",need:5,reward:150,xp:75,key:"roles"},
  {code:"matches_30",name:"研究所のベテラン",desc:"試合を30回完了する",need:30,reward:250,xp:100,key:"matches_played"}
 ];
-function renderProgressionExtras(m,daily,claims,coins,generalClaims){
+function renderProgressionExtras(m,daily,claims,coins,generalClaims,periodRows){
  const today=new Date().toLocaleDateString("en-CA",{timeZone:"Asia/Tokyo"});
  const yesterday=new Date(Date.now()-86400000).toLocaleDateString("en-CA",{timeZone:"Asia/Tokyo"});
  const claimedToday=daily?.last_claim_date===today;
@@ -3037,18 +3056,25 @@ function renderProgressionExtras(m,daily,claims,coins,generalClaims){
   html+='<div class="accountTrait" style="opacity:'+(done?'.72':'1')+'"><div class="row" style="justify-content:space-between"><b>'+escapeAccountText(mission.name)+'</b><span class="pill">'+(done?"受取済み":ready?"達成！":"進行中")+'</span></div><div class="muted" style="margin:5px 0">'+escapeAccountText(mission.desc)+' · '+value+'/'+mission.need+'</div><div class="taskbar"><div style="width:'+Math.min(100,value/mission.need*100)+'%"></div></div><div class="row" style="margin-top:7px;align-items:center"><small class="muted">報酬：🪙 '+mission.reward+' ／ EXP '+mission.xp+'</small><button '+(done||!ready?'disabled':'class="primary" onclick="claimTriadGeneralMission(\''+mission.code+'\')"')+'>'+(done?"受取済み":ready?"報酬を受け取る":"未達成")+'</button></div></div>';
  }
  html+='</div>';
- html+='<div class="card" style="margin:12px 0"><h3>📜 役職熟練度ミッション</h3><p class="muted">各役職に3段階の専用テーマを用意。条件を達成するとコインとEXPを受け取れます。上位段階ほど難しくなります。</p>';
- const mastery=m.roleMastery||{};
- for(const def of TRIAD_ROLE_MISSION_DEFS){
-  const v=mastery[def.role]||{},matches=Number(v.matches||0),wins=Number(v.wins||0),survived=Number(v.survived||0);
-  html+='<div class="accountSection"><div class="row" style="justify-content:space-between"><b>'+escapeAccountText(def.role)+' · '+escapeAccountText(def.theme)+'</b><span class="pill">'+matches+'試合 / '+wins+'勝 / '+survived+'生存</span></div>';
-  for(let tier=1;tier<=3;tier++){
-   const req=roleMissionRequirement(tier,v,def),code='role:'+def.role+':'+tier,done=claimSet.has(code),previousClaimed=tier===1||claimSet.has('role:'+def.role+':'+(tier-1)),ready=req.ok&&previousClaimed,reward=[50,150,400][tier-1],xp=[25,75,200][tier-1];
+ html+='<div class="card" style="margin:12px 0"><h3>📜 役職熟練度</h3><p class="muted">陣営を選び、役職を開くと専用ミッションを確認できます。全6段階。後半3段階では役職専用称号を獲得できます。</p>';
+ const groups=ROLE_CONFIG_GROUPS;
+ const selectedGroup=groups.find(g=>g.team===triadMasteryFaction)||groups[0];
+ if(!selectedGroup.roles.includes(triadMasteryRole))triadMasteryRole=selectedGroup.roles[0];
+ html+='<div class="row" style="gap:7px;flex-wrap:wrap;margin:10px 0">'+groups.map(g=>'<button '+(g.team===selectedGroup.team?'class="primary"':'')+' onclick="selectRoleMasteryFaction(\''+g.team+'\')">'+escapeAccountText(g.label)+'</button>').join('')+'</div>';
+ html+='<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(112px,1fr));gap:7px;margin:10px 0">'+selectedGroup.roles.map(r=>'<button '+(r===triadMasteryRole?'class="primary"':'')+' onclick="selectRoleMasteryRole(\''+escapeAccountText(r)+'\')" style="padding:9px">'+escapeAccountText(r)+'</button>').join('')+'</div>';
+ const def=TRIAD_ROLE_MISSION_DEFS.find(x=>x.role===triadMasteryRole);
+ if(def){
+  const v=mastery[def.role]||{},ownedTitles=Array.isArray(v.titles)?v.titles:[];
+  html+='<div class="accountSection"><div class="row" style="justify-content:space-between"><b>'+escapeAccountText(def.role)+' · '+escapeAccountText(def.theme)+'</b><span class="pill">'+Number(v.matches||0)+'試合 / '+Number(v.wins||0)+'勝 / '+Number(v.survived||0)+'生存</span></div>';
+  if(ownedTitles.length)html+='<div class="muted" style="margin:8px 0">獲得済み専用称号：'+ownedTitles.map(t=>'<span class="pill" style="margin:2px">🏅 '+escapeAccountText(t)+'</span>').join('')+'</div>';
+  for(let tier=1;tier<=6;tier++){
+   const req=roleMissionRequirement(tier,v,def),code='role:'+def.role+':'+tier,done=claimSet.has(code),previousClaimed=tier===1||claimSet.has('role:'+def.role+':'+(tier-1)),ready=req.ok&&previousClaimed,reward=[50,150,400,650,1000,1600][tier-1],xp=[25,75,200,325,500,800][tier-1],title=tier>=4?def.specialTitles[tier-4]:null;
    const progress=req.progress*100;
-   html+='<div class="accountTrait" style="opacity:'+(done?.72:1)+'"><div class="row" style="justify-content:space-between"><b>段階 '+tier+'：'+escapeAccountText(def.names[tier-1])+'</b><span class="pill">'+(done?"受取済み":!previousClaimed?"前段階を先に受け取る":ready?"達成！":"進行中")+'</span></div><div class="muted" style="margin:5px 0">'+escapeAccountText(def.descs[tier-1])+'</div><div class="muted">'+req.label+'：'+req.value+'/'+req.need+'</div><div class="taskbar"><div style="width:'+progress+'%"></div></div><div class="row" style="margin-top:7px;align-items:center"><small class="muted">報酬：🪙 '+reward+' ／ EXP '+xp+'</small><button '+(done||!ready?'disabled':'class="primary" onclick="claimTriadRoleMission(\''+escapeAccountText(def.role)+'\','+tier+')"')+'>'+(done?"受取済み":!previousClaimed?"前段階を先に受け取る":ready?"報酬を受け取る":"未達成")+'</button></div></div>';
+   html+='<div class="accountTrait" style="opacity:'+(done?'.72':'1')+'"><div class="row" style="justify-content:space-between"><b>段階 '+tier+'：'+escapeAccountText(def.names[tier-1])+'</b><span class="pill">'+(done?"受取済み":!previousClaimed?"前段階を先に受け取る":ready?"達成！":"進行中")+'</span></div><div class="muted" style="margin:5px 0">'+escapeAccountText(def.descs[tier-1])+'</div><div class="muted">'+req.label+'：'+req.value+'/'+req.need+'</div><div class="taskbar"><div style="width:'+progress+'%"></div></div><div class="row" style="margin-top:7px;align-items:center;flex-wrap:wrap"><small class="muted">報酬：🪙 '+reward+' ／ EXP '+xp+(title?' ／ 🏅 専用称号「'+escapeAccountText(title)+'」':'')+'</small><button '+(done||!ready?'disabled':'class="primary" onclick="claimTriadRoleMission(\''+escapeAccountText(def.role)+'\','+tier+')"')+'>'+(done?"受取済み":!previousClaimed?"前段階を先に受け取る":ready?"報酬を受け取る":"未達成")+'</button></div></div>';
   }
   html+='</div>';
  }
+ html+='</div>';
  html+='</div>';
  return html;
 }
