@@ -2572,6 +2572,7 @@ async function awardEconomyMatch(matchKey,won,survived){
  const {data,error}=await supabaseClient.rpc("economy_award_match",{p_match_key:String(matchKey),p_won:!!won,p_survived:!!survived});
  if(error)throw error;
  economyCoins=Number(data?.coins||economyCoins);
+ if(Number(data?.awarded||0)>0&&$("gameOverModal")?.classList.contains("show")){const detail=$("gameResultDetail");if(detail)detail.textContent+="\n獲得コイン：+"+Number(data.awarded)}
  if($("economy")?.classList.contains("active"))await loadEconomyScreen();
  return data;
 }
@@ -2869,12 +2870,21 @@ async function createEconomyTrade(){
  catch(e){alert("交換申請できませんでした："+(e.message||String(e)))}
  finally{economyBusy=false}
 }
+async function refreshOwnCosmeticsFromCloud(){
+ if(!authUser||!supabaseClient)return;
+ const {data,error}=await supabaseClient.from("player_profiles").select("cosmetics").eq("user_id",authUser.id).maybeSingle();
+ if(error)throw error;
+ const cloud=data?.cosmetics||{},old=loadCosmetics(),next={hat:cloud.hat||"none",scarf:cloud.scarf||"none",color:colors.includes(cloud.color)?cloud.color:old.color||colors[0]};
+ try{localStorage.setItem(TRIAD_COSMETIC_KEY,JSON.stringify(next))}catch(e){console.warn("Cosmetic refresh save failed",e)}
+ economyInventoryCodes=await refreshEconomyInventory();
+ if(state.me){state.me.cosmetics=next;if(colors.includes(next.color)){state.me.color=next.color;state.me.colorName=colorNames[colors.indexOf(next.color)]||state.me.colorName}}
+}
 async function respondEconomyTrade(tradeId,accept){
  if(economyBusy)return;
  const message=accept?"交換を成立させます。双方のアイテムが入れ替わります。よろしいですか？":"この交換申請を断る／取り消しますか？";
  if(!confirm(message))return;
  economyBusy=true;
- try{const {error}=await supabaseClient.rpc("economy_respond_trade",{p_trade_id:tradeId,p_accept:!!accept});if(error)throw error;alert(accept?"交換が成立しました。":"交換申請を処理しました。");await loadEconomyScreen();if($("wardrobe")?.classList.contains("active"))renderWardrobeScreen()}
+ try{const {error}=await supabaseClient.rpc("economy_respond_trade",{p_trade_id:tradeId,p_accept:!!accept});if(error)throw error;if(accept)await refreshOwnCosmeticsFromCloud();alert(accept?"交換が成立しました。":"交換申請を処理しました。");await loadEconomyScreen();if($("wardrobe")?.classList.contains("active"))renderWardrobeScreen()}
  catch(e){alert("交換処理に失敗しました："+(e.message||String(e)))}
  finally{economyBusy=false}
 }
