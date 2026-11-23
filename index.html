@@ -3203,7 +3203,7 @@ function renderWardrobe(m){
  const local=loadCosmetics(),cloud=m.cosmetics||{},equipped=own?local:{hat:cloud.hat||"none",scarf:cloud.scarf||"none",suit:cloud.suit||"none"};
  const render=(items,kind)=>items.map(item=>{
   const unlocked=own?cosmeticIsUnlocked(item,kind):true,active=equipped[kind]===item.id;
-  return '<button '+(own?'onclick="equipCosmetic(\\''+kind+'\\',\\''+item.id+'\\')"':'disabled')+' style="min-width:112px;padding:9px;border-radius:10px;border:1px solid '+(active?'#62d6c8':'#38506c')+';background:'+(active?'#214d50':'#14263c')+';color:inherit;opacity:'+(unlocked?1:.5)+';text-align:left"><b>'+(kind==="hat"?"🎩 ":"🧣 ")+item.name+'</b><small style="display:block;color:var(--muted);margin-top:4px">'+(active?"装備中":unlocked?(own?"タップして装備":"装備中ではありません"):"🔒 "+item.unlock)+'</small></button>';
+  return '<button '+(own?'onclick="equipCosmetic(\''+kind+'\',\''+item.id+'\')"':'disabled')+' style="min-width:112px;padding:9px;border-radius:10px;border:1px solid '+(active?'#62d6c8':'#38506c')+';background:'+(active?'#214d50':'#14263c')+';color:inherit;opacity:'+(unlocked?1:.5)+';text-align:left"><b>'+(kind==="hat"?"🎩 ":"🧣 ")+item.name+'</b><small style="display:block;color:var(--muted);margin-top:4px">'+(active?"装備中":unlocked?(own?"タップして装備":"装備中ではありません"):"🔒 "+item.unlock)+'</small></button>';
  }).join("");
  const selectedColor=equipped.color||colors[0];
  const colorPicker=colors.map((color,i)=>'<button '+(own?'onclick="equipPlayerColor(&quot;'+color+'&quot;)"':"disabled")+' title="'+(colorNames[i]||color)+'" aria-label="'+(colorNames[i]||color)+'" style="width:42px;height:42px;min-width:42px;padding:0;border-radius:50%;background:'+color+';border:3px solid '+(selectedColor===color?"#ffffff":"#38506c")+'"></button>').join("");
