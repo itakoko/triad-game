@@ -1095,7 +1095,7 @@ function rankedRoleFaction(role){
 function renderGlobalStatsBlock(rows,title){
  const grouped={white:{matches:0,wins:0,roles:[]},black:{matches:0,wins:0,roles:[]},third:{matches:0,wins:0,roles:[]}};
  (rows||[]).forEach(r=>{const f=r.faction||rankedRoleFaction(r.role_name||r.role);if(!grouped[f])return;const m=Number(r.matches||0),w=Number(r.wins||0);grouped[f].matches+=m;grouped[f].wins+=w;grouped[f].roles.push({role:r.role_name||r.role,matches:m,wins:w})});
- return '<div class="accountSection"><h4>'+title+'</h4>'+Object.entries(grouped).map(([f,v])=>'<div class="roleStatRow"><b>'+rankedFactionLabel(f)+'</b><span>'+v.wins+'勝 / '+v.matches+'試合</span><b>'+statRate(v.wins,v.matches)+'%</b></div>'+v.roles.sort((a,b)=>b.matches-a.matches).map(r=>'<div class="roleStatRow" style="padding-left:18px"><span>'+escapeAccountText(r.role)+'</span><span>'+r.wins+'勝 / '+r.matches+'試合</span><span>'+statRate(r.wins,r.matches)+'%</span></div>').join("")).join("")+'</div>';
+ return '<div class="accountSection"><h4>'+title+'</h4>'+Object.entries(grouped).map(([f,v])=>'<div class="roleStatRow"><b>'+rankedFactionLabel(f)+'</b><span>'+v.wins+'勝 / '+v.matches+'参加回数</span><b>'+statRate(v.wins,v.matches)+'%</b></div>'+v.roles.sort((a,b)=>b.matches-a.matches).map(r=>'<div class="roleStatRow" style="padding-left:18px"><span>'+escapeAccountText(r.role)+'</span><span>'+r.wins+'勝 / '+r.matches+'参加回数</span><span>'+statRate(r.wins,r.matches)+'%</span></div>').join("")).join("")+'</div>';
 }
 async function loadGlobalRankedStatistics(){
  const root=$("rankedGlobalStats");if(!root)return;root.textContent="統計を集計しています…";
@@ -1105,8 +1105,10 @@ async function loadGlobalRankedStatistics(){
   const normal=data?.normal||{},normalRoles=normal.roles||[];
   const grouped={white:{matches:0,wins:0,roles:[]},black:{matches:0,wins:0,roles:[]},third:{matches:0,wins:0,roles:[]}};
   normalRoles.forEach(r=>{const f=rankedRoleFaction(r.role_name);const g=grouped[f];g.matches+=Number(r.matches||0);g.wins+=Number(r.wins||0);g.roles.push(r)});
-  const normalHtml='<div class="accountSection"><h4>通常戦（保存済み通常戦績）</h4><div class="stats"><div class="stat"><strong>'+Number(normal.matches||0)+'</strong><span>試合</span></div><div class="stat"><strong>'+Number(normal.wins||0)+'</strong><span>勝利</span></div><div class="stat"><strong>'+statRate(Number(normal.wins||0),Number(normal.matches||0))+'%</strong><span>勝率</span></div></div>'+Object.entries(grouped).map(([f,v])=>'<div class="roleStatRow"><b>'+rankedFactionLabel(f)+'</b><span>'+v.wins+'勝 / '+v.matches+'試合</span><b>'+statRate(v.wins,v.matches)+'%</b></div>'+v.roles.map(r=>'<div class="roleStatRow" style="padding-left:18px"><span>'+escapeAccountText(r.role_name)+'</span><span>'+Number(r.wins||0)+'勝 / '+Number(r.matches||0)+'試合</span><span>'+statRate(Number(r.wins||0),Number(r.matches||0))+'%</span></div>').join("")).join("")+'</div>';
-  root.innerHTML=normalHtml+renderGlobalStatsBlock(data?.ranked10||[],"10人ランク戦")+renderGlobalStatsBlock(data?.ranked12||[],"12人ランク戦")+'<p class="muted">集計対象：プレイヤー '+Number(data?.playerAccounts||0)+'アカウント / AI '+Number(data?.aiAccounts||0)+'アカウント。ランク戦は完了済み試合のみ。</p>';
+  const normalHtml='<div class="accountSection"><h4>通常戦（人間プレイヤーの保存済み戦績）</h4><div class="stats"><div class="stat"><strong>'+Number(normal.matches||0)+'</strong><span>参加回数</span></div><div class="stat"><strong>'+Number(normal.wins||0)+'</strong><span>勝利</span></div><div class="stat"><strong>'+statRate(Number(normal.wins||0),Number(normal.matches||0))+'%</strong><span>勝率</span></div></div>'+Object.entries(grouped).map(([f,v])=>'<div class="roleStatRow"><b>'+rankedFactionLabel(f)+'</b><span>'+v.wins+'勝 / '+v.matches+'参加回数</span><b>'+statRate(v.wins,v.matches)+'%</b></div>'+v.roles.map(r=>'<div class="roleStatRow" style="padding-left:18px"><span>'+escapeAccountText(r.role_name)+'</span><span>'+Number(r.wins||0)+'勝 / '+Number(r.matches||0)+'参加回数</span><span>'+statRate(Number(r.wins||0),Number(r.matches||0))+'%</span></div>').join("")+'</div>';
+  const aiNormal=data?.normalAI||{};
+  const aiNormalHtml='<div class="accountSection"><h4>AI練習戦（参考データ・人間の戦績には含めない）</h4><div class="stats"><div class="stat"><strong>'+Number(aiNormal.matches||0)+'</strong><span>参加回数</span></div><div class="stat"><strong>'+Number(aiNormal.wins||0)+'</strong><span>勝利</span></div><div class="stat"><strong>'+statRate(Number(aiNormal.wins||0),Number(aiNormal.matches||0))+'%</strong><span>勝率</span></div></div>'+renderGlobalStatsBlock(aiNormal.roles||[],"AI役職別")+'</div>';
+  root.innerHTML=normalHtml+renderGlobalStatsBlock(data?.ranked10||[],"10人ランク戦（人間参加試合）")+renderGlobalStatsBlock(data?.ranked12||[],"12人ランク戦（人間参加試合）")+aiNormalHtml+renderGlobalStatsBlock(data?.rankedAI10||[],"10人AIのみ自動ランク戦（参考データ）")+renderGlobalStatsBlock(data?.rankedAI12||[],"12人AIのみ自動ランク戦（参考データ）")+'<p class="muted">通常戦・ランク戦の実績は人間プレイヤー分を表示。AIの練習戦・AIのみの自動ランク戦は別枠です。表示する「参加回数」は、開催試合数ではなく参加者ごとの記録数です。プレイヤー '+Number(data?.playerAccounts||0)+'アカウント / AI '+Number(data?.aiAccounts||0)+'アカウント。</p>';
  }catch(e){root.textContent="統計を取得できませんでした："+(e?.message||String(e))}
 }
 async function loadAccountRankedStatistics(type,id){
@@ -2505,15 +2507,16 @@ function checkWin(){
  if(!state.running||state._checkingWin)return;
  state._checkingWin=true;
  try{
- const alive=state.players.filter(p=>p.alive),b=alive.filter(p=>p.team==="black").length,w=alive.filter(p=>p.team==="white").length;
+ const alive=state.players.filter(p=>p.alive),b=alive.filter(p=>p.team==="black").length,w=alive.filter(p=>p.team==="white").length,t=alive.filter(p=>p.team==="third").length;
  const assassin=alive.find(p=>p.role==="暗殺者");
  if(assassin&&state.bountyIds.length===3&&state.bountyIds.every(id=>!state.players.find(p=>p.id===id)?.alive)){endGame("暗殺者が手配対象全員を倒したため、暗殺者の単独勝利",{roles:["暗殺者"]});return}
  const wanderer=alive.find(p=>p.role==="放浪者");
  if(wanderer&&alive.every(p=>state.scentedIds.has(p.id))){endGame("放浪者が生存者全員に匂いを移したため、放浪者の単独勝利",{roles:["放浪者"]});return}
  const madman=alive.find(p=>p.role==="狂人");
  if(madman){const others=alive.filter(p=>p.team==="white"||(p.team==="third"&&p.role!=="狂人")).length;if(others<b+1){endGame("狂人の条件達成：白陣営と他の第三陣営が黒陣営＋狂人を下回ったため、狂人の単独勝利",{roles:["狂人"]});return}}
- if(b===0)endGame("黒陣営が全滅しました。白・第三陣営の勝利です。",{teams:["white","third"]});
- else if(b>=w)endGame("黒陣営が人数で優位になりました。",{teams:["black"]});
+ if(b===0&&w>0)endGame("黒陣営が全滅しました。白陣営の勝利です。",{teams:["white"]});
+ else if(b===0&&w===0&&t>0)endGame("白・黒陣営が全滅しました。第三陣営の勝利です。",{teams:["third"]});
+ else if(b>0&&b>=w)endGame("黒陣営が人数で優位になりました。",{teams:["black"]});
  }finally{state._checkingWin=false}
 }
 function loadAILongTermMemory(profileId){try{return JSON.parse(localStorage.getItem("triad_ai_memory_"+profileId)||"{}")}catch{return {}}}
