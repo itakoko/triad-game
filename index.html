@@ -2610,6 +2610,13 @@ function collectRoleMatchMetrics(role,won,alive){
   gambler_prediction_hits:Number(me.gamblerPredictionHits||0)
  };
 }
+async function recordTriadPeriodMissionMatch(matchKey,role,won,alive,metrics){
+ if(!authUser||!supabaseClient)return;
+ const {error}=await supabaseClient.rpc("triad_record_period_mission_match",{
+  p_match_key:String(matchKey),p_role:String(role||""),p_won:!!won,p_survived:!!alive,p_metrics:metrics||{}
+ });
+ if(error)throw error;
+}
 function grantMatchProgress(won,role,alive,matchId=null){
  lastProgressReward=null;
  const key=String(matchId||("local-"+Date.now()+"-"+Math.random().toString(36).slice(2)));
@@ -2627,7 +2634,10 @@ function grantMatchProgress(won,role,alive,matchId=null){
  base.achievements=[...base.achievements,...earned];base.level=Math.floor(base.experiencePoints/100)+1;
  base.lastReward={xp:xpGain,levelUp:base.level>p.level,newAchievements:earned,role:r};
  try{localStorage.setItem(TRIAD_PROGRESS_KEY,JSON.stringify(base));done.push(key);localStorage.setItem(TRIAD_PROGRESS_PROCESSED_KEY,JSON.stringify(done.slice(-300)))}catch(e){console.warn("Progress save failed",e)}
- if(authUser&&supabaseClient)syncOnlinePlayerProgress(base).catch(e=>console.warn("Progress cloud sync failed",e));
+ if(authUser&&supabaseClient){
+  syncOnlinePlayerProgress(base).catch(e=>console.warn("Progress cloud sync failed",e));
+  recordTriadPeriodMissionMatch(key,r,won,alive,matchMetrics).catch(e=>console.warn("Period mission sync failed",e));
+ }
  awardEconomyMatch(key,won,alive).catch(e=>console.warn("Coin reward sync failed",e));
  lastProgressReward=base.lastReward;
  return base.lastReward;
@@ -2639,7 +2649,7 @@ function mergeCloudProgressionIntoLocal(){
  const local=loadProgression(),cloudStats=row.progression_stats||{};
  const xp=Math.max(local.experiencePoints,Number(row.experience_points||0));
  const mastery={...local.roleMastery};
- for(const [role,v] of Object.entries(row.role_mastery||{})){const old=mastery[role]||{};mastery[role]={matches:Math.max(Number(old.matches||0),Number(v.matches||0)),wins:Math.max(Number(old.wins||0),Number(v.wins||0)),survived:Math.max(Number(old.survived||0),Number(v.survived||0)),experience:Math.max(Number(old.experience||0),Number(v.experience||0)),metrics:Object.fromEntries([...new Set([...Object.keys(old.metrics||{}),...Object.keys(v.metrics||{})])].map(k=>[k,Math.max(Number(old.metrics?.[k]||0),Number(v.metrics?.[k]||0))]))}}
+ for(const [role,v] of Object.entries(row.role_mastery||{})){const old=mastery[role]||{};mastery[role]={matches:Math.max(Number(old.matches||0),Number(v.matches||0)),wins:Math.max(Number(old.wins||0),Number(v.wins||0)),survived:Math.max(Number(old.survived||0),Number(v.survived||0)),experience:Math.max(Number(old.experience||0),Number(v.experience||0)),metrics:Object.fromEntries([...new Set([...Object.keys(old.metrics||{}),...Object.keys(v.metrics||{})])].map(k=>[k,Math.max(Number(old.metrics?.[k]||0),Number(v.metrics?.[k]||0))])),titles:[...new Set([...(old.titles||[]),...(v.titles||[])])]}}
  const merged={...local,experiencePoints:xp,level:Math.floor(xp/100)+1,achievements:[...new Set([...local.achievements,...(Array.isArray(row.achievement_codes)?row.achievement_codes:[])])],roleMastery:mastery,completedMatches:Math.max(local.completedMatches,Number(cloudStats.completedMatches||0)),totalWins:Math.max(local.totalWins,Number(cloudStats.totalWins||0)),totalSurvivals:Math.max(local.totalSurvivals,Number(cloudStats.totalSurvivals||0))};
  try{localStorage.setItem(TRIAD_PROGRESS_KEY,JSON.stringify(merged))}catch(e){console.warn("Progress hydration failed",e)}
 }
@@ -2654,7 +2664,7 @@ async function syncOnlinePlayerProgress(progress=loadProgression()){
  const mastery={...(cloud?.role_mastery||{})};
  for(const [role,v] of Object.entries(progress.roleMastery||{})){
   const old=mastery[role]||{};
-  mastery[role]={matches:Math.max(Number(old.matches||0),Number(v.matches||0)),wins:Math.max(Number(old.wins||0),Number(v.wins||0)),survived:Math.max(Number(old.survived||0),Number(v.survived||0)),experience:Math.max(Number(old.experience||0),Number(v.experience||0)),metrics:Object.fromEntries([...new Set([...Object.keys(old.metrics||{}),...Object.keys(v.metrics||{})])].map(k=>[k,Math.max(Number(old.metrics?.[k]||0),Number(v.metrics?.[k]||0))]))};
+  mastery[role]={matches:Math.max(Number(old.matches||0),Number(v.matches||0)),wins:Math.max(Number(old.wins||0),Number(v.wins||0)),survived:Math.max(Number(old.survived||0),Number(v.survived||0)),experience:Math.max(Number(old.experience||0),Number(v.experience||0)),metrics:Object.fromEntries([...new Set([...Object.keys(old.metrics||{}),...Object.keys(v.metrics||{})])].map(k=>[k,Math.max(Number(old.metrics?.[k]||0),Number(v.metrics?.[k]||0))])),titles:[...new Set([...(old.titles||[]),...(v.titles||[])])]};
  }
  const {error}=await supabaseClient.from("player_profiles").update({experience_points:xp,player_level:Math.floor(xp/100)+1,achievement_codes:achievements,role_mastery:mastery,progression_stats:progressionStats,updated_at:new Date().toISOString()}).eq("user_id",authUser.id);
  if(error)throw error;
