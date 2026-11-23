@@ -968,7 +968,7 @@ Deno.serve(async (req: Request) => {
           clearLineOfSight(Number(ai.x),Number(ai.y),Number(p.x),Number(p.y)));
         if(wanted){
           ai.kill_ready_at=nowMs+20000;
-          if(wanted.protected)wanted.protected=false;
+          if(recordProtectionBlock(state,wanted)){}
           else{recordElimination(state,ai,wanted,nowMs);wanted.alive=false;wanted.death_reason="暗殺";wanted.died_at=new Date(nowMs).toISOString();}
         }
       }
