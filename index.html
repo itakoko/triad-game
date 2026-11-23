@@ -191,6 +191,8 @@ canvas#mapCanvas{aspect-ratio:16/10;background:#0b1522}
   <div class="card"><h3>🎮 ゲームを始める</h3><p class="muted">AIと対戦するオフライン試合を開始します。</p><button class="primary" style="width:100%" onclick="show('setup')">試合設定へ</button></div>
   <div class="card"><h3>🌐 オンライン対戦</h3><p class="muted">フレンドと遊ぶ・公開ルームを探す・AI人数や特別ルールを設定。</p><button class="primary" style="width:100%" onclick="openSocialHub()">オンラインロビーへ</button></div>
   <div class="card"><h3>🏆 ランク戦</h3><p class="muted">ランクポイントと戦績を確認し、10人戦・12人戦に参加できます。</p><button class="primary" style="width:100%" onclick="openRankedScreen()">ランク戦を見る</button></div>
+  <div class="card"><h3>👕 衣装・着せ替え</h3><p class="muted">帽子やアクセサリーを集めて、自分のキャラクターをカスタマイズ。</p><button class="primary" style="width:100%" onclick="openWardrobeScreen()">衣装を変更する</button></div>
+  <div class="card"><h3>🏅 プレイヤー成長</h3><p class="muted">レベル・経験値・実績・役職熟練度を確認。</p><button class="primary" style="width:100%" onclick="openProgressionScreen()">成長記録を見る</button></div>
   <div class="card"><h3>📘 遊び方</h3><p class="muted">試作版のルールと操作方法を確認します。</p><button style="width:100%" onclick="openHelp()">ルールを見る</button></div>
   <div class="card"><h3>👥 アカウント図鑑</h3><p class="muted">プレイヤーとAIアカウント全員の能力・成績・得意な役職を確認できます。</p><button style="width:100%" onclick="openAccountsScreen()">アカウントを見る</button></div>
   <div class="card" id="debugAIAccessCard" hidden><h3>🛠️ TRIAD DEBUG AI</h3><p class="muted">管理者専用：画面・ボタン・役職データなどを簡易診断します。</p><button class="primary" style="width:100%" onclick="openDebugAI()">デバッグAIを開く</button></div>
@@ -284,6 +286,16 @@ canvas#mapCanvas{aspect-ratio:16/10;background:#0b1522}
  <div class="actions"><button onclick="show('home')">戻る</button><button class="primary" onclick="startGame()">試合開始</button></div>
 </section>
 
+<section id="wardrobe" class="screen">
+ <div class="hero"><h1>👕 衣装・着せ替え</h1><p>自分のキャラクターの帽子やアクセサリーを変更できます。衣装による能力差はありません。</p></div>
+ <div class="card" id="wardrobeContent"></div>
+ <div class="actions"><button onclick="show('home')">ホームへ戻る</button></div>
+</section>
+<section id="progression" class="screen">
+ <div class="hero"><h1>🏅 プレイヤー成長</h1><p>試合を重ねてレベルを上げ、実績を獲得し、役職ごとの熟練度を高めましょう。</p></div>
+ <div id="progressionContent"></div>
+ <div class="actions"><button onclick="show('home')">ホームへ戻る</button></div>
+</section>
 <section id="accounts" class="screen">
  <div class="hero"><h1>アカウント図鑑</h1><p>オンラインプレイヤーとAIアカウントのプロフィール、能力、戦績、得意・苦手を確認できます。</p></div>
  <div class="card accountAuthCard"><div class="row" style="justify-content:space-between"><div><h3 style="margin:0">プレイヤーアカウント（任意）</h3><p class="muted">オンライン対戦はゲストで参加できます。登録は戦績やプロフィールを別端末へ引き継ぐ場合のみ必要です。</p></div><span class="pill" id="accountAuthStatus">未ログイン</span></div><div id="accountSignedOut"><div class="field"><label>公開ニックネーム（20文字以内）</label><input id="accountDisplayName" maxlength="20" autocomplete="nickname" placeholder="ゲーム内で表示する名前"></div><div class="field"><label>メールアドレス</label><input id="accountEmail" type="email" autocomplete="email" placeholder="登録用メールアドレス"></div><div class="field"><label>パスワード（8文字以上）</label><input id="accountPassword" type="password" minlength="8" autocomplete="new-password" placeholder="パスワード"></div><div class="row"><button class="primary" onclick="registerOnlineAccount()">新規登録</button><button onclick="loginOnlineAccount()">ログイン</button></div></div><div id="accountSignedIn" hidden><div class="muted" id="accountSignedInText">ログイン中</div><div class="accountTrait" id="emailLinkRewardStatus" style="margin:10px 0">メール確認状態を確認中…</div><div class="field"><label>公開ニックネームの変更</label><input id="accountNewDisplayName" maxlength="20" placeholder="新しいニックネーム"></div><div class="row"><button onclick="updateOnlineDisplayName()">名前を保存</button><button onclick="logoutOnlineAccount()">ログアウト</button></div></div><p class="muted" id="accountAuthMessage" aria-live="polite">アカウント登録は任意です。ゲスト参加中はこの端末用のゲストIDでオンライン対戦できます。メール確認済みアカウントには限定称号と限定バッジを付与します。公開されるのはニックネームと戦績です。</p></div>
@@ -2715,10 +2727,22 @@ async function equipCosmetic(kind,id){
   if(error){console.warn("Cosmetic cloud save failed",error);setAccountAuthMessage("衣装のオンライン保存に失敗しました。端末内には保存されています。",true)}
   else await loadOnlinePlayerProfiles();
  }
- const selected=$("accountDetail")?.dataset.selected||"player";renderAccountDetail(selected);draw();
+ renderWardrobeScreen();draw();
+}
+function openWardrobeScreen(){if(!activateScreen("wardrobe"))return;renderWardrobeScreen()}
+function renderWardrobeScreen(){
+ const root=$("wardrobeContent");if(!root)return;
+ const local=loadCosmetics();
+ root.innerHTML=renderWardrobe({cosmetics:local});
+}
+function openProgressionScreen(){
+ if(!activateScreen("progression"))return;
+ const root=$("progressionContent");if(!root)return;
+ const p=loadProgression(),stats=loadHumanStats();
+ root.innerHTML=renderProgressionSection({experiencePoints:p.experiencePoints,achievementCodes:p.achievements,roleMastery:p.roleMastery,matchesPlayed:stats.matchesPlayed||0,wins:stats.wins||0,survived:stats.survived||0});
 }
 function renderWardrobe(m){
- const selectedId=$("accountDetail")?.dataset.selected,own=authUser?selectedId===authUser.id:selectedId==="player";
+ const own=$("wardrobe")?.classList.contains("active")||false;
  const local=loadCosmetics(),cloud=m.cosmetics||{},equipped=own?local:{hat:cloud.hat||"none",scarf:cloud.scarf||"none"};
  const render=(items,kind)=>items.map(item=>{
   const unlocked=own?cosmeticIsUnlocked(item):true,active=equipped[kind]===item.id;
@@ -2762,7 +2786,7 @@ function renderAccountDetail(id){
  '<div class="accountSection"><h3>得意な役職（キャラクター枠）</h3><div class="accountTrait">'+(best?escapeAccountText(best[0])+'（'+best[1].wins+'勝 / '+best[1].matches+'試合）':'まだ役職別データを蓄積中です。')+'</div></div>'+
  '<div class="accountSection"><h3>役職別の成績</h3><div class="muted">実戦と自動練習の合算。実戦・練習の内訳も表示します。</div>'+(roleRows||'<div class="muted">試合を重ねると役職ごとの成績が表示されます。</div>')+'</div>'+
  '<div class="accountSection"><h3>経験・プロフィール</h3><div class="muted">性格：'+escapeAccountText(p.personality||"未設定")+'</div><div class="muted" style="margin-top:6px">AI同士の自動実戦：'+Number(m.aiVsAIMatches||0)+'試合 ／ 自動実戦勝利：'+Number(m.aiVsAIWins||0)+'勝</div><div class="muted" style="margin-top:6px">自動練習：'+Number(m.practiceMatches||0)+'回 ／ 練習勝利：'+Number(m.practiceWins||0)+'回</div><div class="muted" style="margin-top:6px">最終役職：'+escapeAccountText(m.lastRole||"まだ記録なし")+' ／ 最終結果：'+escapeAccountText(m.lastResult||"まだ記録なし")+'</div><div class="muted" style="margin-top:6px">最終試合：'+(m.lastPlayedAt?new Date(m.lastPlayedAt).toLocaleString("ja-JP"):"まだ記録なし")+'</div></div>';
- if(p.type==="player"){root.insertAdjacentHTML("beforeend",renderWardrobe(m));let growth=m;if(authUser&&p.id===authUser.id){const localGrowth=loadProgression();growth={...m,experiencePoints:Math.max(Number(m.experiencePoints||0),localGrowth.experiencePoints),achievementCodes:[...new Set([...(m.achievementCodes||[]),...localGrowth.achievements])],roleMastery:{...(m.roleMastery||{}),...localGrowth.roleMastery}}}root.insertAdjacentHTML("beforeend",renderProgressionSection(growth))}const statsBox=document.createElement("div");statsBox.id="accountRankedStats";statsBox.className="accountSection";statsBox.textContent="ランク戦績を読み込んでいます…";root.appendChild(statsBox);
+ const statsBox=document.createElement("div");statsBox.id="accountRankedStats";statsBox.className="accountSection";statsBox.textContent="ランク戦績を読み込んでいます…";root.appendChild(statsBox);
  renderAccountList();
  loadAccountRankedStatistics(p.type,p.id);
 }
