@@ -1743,7 +1743,7 @@ function markPlayerDead(victim,source="死亡",attacker=null){
  if(state.combatProtectionUntil&&Date.now()<state.combatProtectionUntil)return false;
  if(attacker&&attacker.id!==victim.id){
   const nearby=state.players.filter(p=>p.alive&&p.id!==attacker.id&&p.id!==victim.id&&Math.hypot(p.x-victim.x,p.y-victim.y)<=140&&hasLineOfSight(p,victim));
-  state.killEvents.push({victimId:victim.id,killerId:attacker.id,room:roomNameAt(victim.x,victim.y),at:Date.now(),witnessIds:nearby.filter(p=>Math.hypot(p.x-victim.x,p.y-victim.y)<=88).map(p=>p.id),nearbyIds:nearby.map(p=>p.id)});
+  state.killEvents.push({victimId:victim.id,killerId:attacker.id,source:String(source||"キル"),room:roomNameAt(victim.x,victim.y),at:Date.now(),witnessIds:nearby.filter(p=>Math.hypot(p.x-victim.x,p.y-victim.y)<=88).map(p=>p.id),nearbyIds:nearby.map(p=>p.id)});
  }
  victim.alive=false;victim.ghost=victim.id===state.me?.id;state.dead.push({...victim,alive:false});
  if(victim.id===state.me?.id){state.move={x:0,y:0};stopMove();deathViewMode="spectate";deathChoicePending=true;spectatorTargetId=state.players.find(p=>p.alive&&p.id!==victim.id)?.id??null;$("deathChoice").hidden=false;}
@@ -1797,7 +1797,7 @@ function useSabotage(){if(rankedServerMode){
  return;
  }if(isOnlineClient()){sendOnlineInput({kind:"action",action:"sabotage"});return}
  const actor=state.me;if(!state.running||!actor.alive||actor.team!=="black"||remainingText(actor.sabotageReadyAt)>0)return;
- state.sabotageUntil=Date.now()+10000;actor.sabotageReadyAt=Date.now()+35000;playSfx("sabotage");
+ state.sabotageUntil=Date.now()+10000;actor.sabotageUses=(actor.sabotageUses||0)+1;actor.sabotageReadyAt=Date.now()+35000;playSfx("sabotage");
  alert("停電サボタージュ！ 10秒間、黒陣営以外の視界が狭くなります。");updateNearbyActions();draw();
 }
 function openBounty(){
@@ -1807,6 +1807,7 @@ function openBounty(){
 }
 function closeBounty(){if(!$("bountyModal").classList.contains("show"))return;$("bountyModal").classList.remove("show");if(state.me?.role==="暗殺者")state.me.roleReadyAt=Date.now()+20000;updateNearbyActions()}
 function showAliveList(){
+ if(state.me?.role==="サイエンティスト")state.me.scientistChecks=(state.me.scientistChecks||0)+1;
  const alive=state.players.filter(p=>p.alive);
  $("aliveSummary").textContent=`現在の生存者：${alive.length}人 / ${state.players.length}人`;
  $("aliveList").innerHTML=alive.map(p=>`<div class="pill">● ${p.name}${p.id===state.me.id?"（あなた）":""}</div>`).join("");
@@ -1861,6 +1862,7 @@ function resolveGamblerPredictionCycle(){
 }
 function resolveGamblerRoll(actor,now=Date.now()){
  if(!actor?.alive||actor.role!=="ギャンブラー"||remainingText(actor.roleReadyAt)>0)return;
+ actor.gamblerRolls=(actor.gamblerRolls||0)+1;
  const roll=1+Math.floor(Math.random()*6);actor.roleReadyAt=now+25000;
  if(roll<=3)actor.gamblerLowCount=(actor.gamblerLowCount||0)+1;else actor.gamblerHighCount=(actor.gamblerHighCount||0)+1;
  const announce=(message)=>{actor.gamblerNotice=message;actor.gamblerNoticeUntil=now+12000;log(actor.name+"："+message)};
@@ -1924,7 +1926,7 @@ function useAbility(){if(rankedServerMode){
  if(role==="暗殺者"){if(remainingText(actor.roleReadyAt)===0){playSfx("ability");openBounty()}return}
  if(["イノシシ","百面相","放浪者"].includes(role)&&remainingText(actor.roleReadyAt)>0)return;
  if(role==="ギャンブラー"){if(actor.gamblerKillReady){playSfx("ability");openTargetSelection("JACKPOTキル","近くの相手1人をキルできます。",targetCandidates(actor,100,false,p=>p.team!==actor.team),"gamblerKill");return}resolveGamblerRoll(actor,now);updateNearbyActions();draw();return}
-  if(role==="イノシシ"){playSfx("ability");actor.charging=true;actor.charge={...state.lastDirection};state.move={x:0,y:0};$("nearHint").textContent="突進中！壁に当たるまで操作できません。";return}
+  if(role==="イノシシ"){playSfx("ability");actor.chargeUses=(actor.chargeUses||0)+1;actor.charging=true;actor.charge={...state.lastDirection};state.move={x:0,y:0};$("nearHint").textContent="突進中！壁に当たるまで操作できません。";return}
  if(role==="占い師"){playSfx("ability");openTargetSelection("占う相手を選択","近くの相手を1人だけ占えます。",targetCandidates(actor,100),"seer");return}
  if(role==="狩人"||role==="保安官"){playSfx("ability");openTargetSelection("能力を使う相手を選択","近くの相手を1人選べます。能力は一度だけです。",targetCandidates(actor,100),"roleKill");return}
  if(role==="僧侶"){playSfx("ability");openTargetSelection("加護を与える相手を選択","指定した相手1人を次の攻撃から守ります。",targetCandidates(actor,Infinity,true),"protect");return}
@@ -1962,12 +1964,12 @@ function selectTarget(id){if(rankedServerMode){
  const action=state.targetAction,actor=state.me,target=state.players.find(p=>p.id===Number(id));closeTargetModal();
  if(!action||!target||!target.alive||!actor?.alive)return;
  const now=Date.now();
- if(action.kind==="seer"){actor.abilityUsed=true;showSeerResult(target)}
+ if(action.kind==="seer"){actor.abilityUsed=true;actor.seerUses=(actor.seerUses||0)+1;showSeerResult(target)}
  else if(action.kind==="gamblerKill"){if(actor.role==="ギャンブラー"&&actor.gamblerKillReady&&Math.hypot(target.x-actor.x,target.y-actor.y)<=100&&hasLineOfSight(actor,target)){actor.gamblerKillReady=false;performKill(target,actor,"ギャンブラーのJACKPOTキル")}}
  else if(action.kind==="roleKill"){actor.abilityUsed=true;performKill(target,actor,actor.role==="狩人"?"狩人の攻撃":"保安官の攻撃")}
- else if(action.kind==="protect"){actor.abilityUsed=true;target.protected=true;alert(`${target.name} に加護を与えました。次の攻撃を1度防ぎます。`)}
- else if(action.kind==="disguise"){actor.disguiseId=target.id;actor.disguiseUntil=now+10000;actor.roleReadyAt=now+35000;alert(`${target.name} の姿に10秒間変身しました。`)}
- else if(action.kind==="scent"){target.scented=true;state.scentedIds.add(target.id);actor.roleReadyAt=now+15000;alert("匂いを移しました。相手には知られていません。");checkWin()}
+ else if(action.kind==="protect"){actor.abilityUsed=true;actor.protectionUses=(actor.protectionUses||0)+1;target.protected=true;alert(`${target.name} に加護を与えました。次の攻撃を1度防ぎます。`)}
+ else if(action.kind==="disguise"){actor.disguiseUses=(actor.disguiseUses||0)+1;actor.disguiseId=target.id;actor.disguiseUntil=now+10000;actor.roleReadyAt=now+35000;alert(`${target.name} の姿に10秒間変身しました。`)}
+ else if(action.kind==="scent"){actor.scentUses=(actor.scentUses||0)+1;target.scented=true;state.scentedIds.add(target.id);actor.roleReadyAt=now+15000;alert("匂いを移しました。相手には知られていません。");checkWin()}
  else if(action.kind==="kill"){
   const cd=actor.team==="black"?30000:actor.role==="暗殺者"?20000:30000;actor.killReadyAt=now+cd;
   if(actor.role==="暗殺者"&&!state.bountyIds.includes(target.id)){const killed=performKill(target,actor,"暗殺者の攻撃");if(killed&&actor.alive)killPlayer(actor,actor,"手配書外の暗殺");updateNearbyActions();draw();checkWin()}
@@ -2583,6 +2585,29 @@ async function awardEconomyMatch(matchKey,won,survived){
  if($("economy")?.classList.contains("active"))await loadEconomyScreen();
  return data;
 }
+function collectRoleMatchMetrics(role,won,alive){
+ const me=state.me||{},events=Array.isArray(state.killEvents)?state.killEvents:[];
+ const ownKills=events.filter(e=>Number(e.killerId)===Number(me.id));
+ const partner=me.partnerId==null?null:state.players?.find(p=>p.id===me.partnerId);
+ return {
+  tasks:Number(me.taskCount||0),
+  scientist_checks:Number(me.scientistChecks||0),
+  partner_survivals:partner&&partner.alive?1:0,
+  seer_uses:Number(me.seerUses||0),
+  kills:ownKills.length,
+  protections:Number(me.protectionUses||0),
+  lightkeeper_survivals:alive?1:0,
+  sabotages:Number(me.sabotageUses||0),
+  charges:Number(me.chargeUses||0),
+  disguises:Number(me.disguiseUses||0),
+  scents:Number(me.scentUses||0),
+  bounty_kills:ownKills.filter(e=>String(e.source||"").includes("暗殺")).length,
+  jester_wins:role==="てるてる"&&won?1:0,
+  gambler_jackpots:Number(me.gamblerJackpots||0),
+  gambler_rolls:Number(me.gamblerRolls||0),
+  gambler_prediction_hits:Number(me.gamblerPredictionHits||0)
+ };
+}
 function grantMatchProgress(won,role,alive,matchId=null){
  lastProgressReward=null;
  const key=String(matchId||("local-"+Date.now()+"-"+Math.random().toString(36).slice(2)));
@@ -2590,7 +2615,9 @@ function grantMatchProgress(won,role,alive,matchId=null){
  if(done.includes(key))return null;
  const p=loadProgression(),r=String(role||"未設定");
  const mastery={...p.roleMastery},old={...(mastery[r]||{})};
- mastery[r]={matches:Number(old.matches||0)+1,wins:Number(old.wins||0)+(won?1:0),survived:Number(old.survived||0)+(alive?1:0),experience:Number(old.experience||0)+25+(won?15:0)+(alive?10:0)};
+ const matchMetrics=collectRoleMatchMetrics(r,won,alive),oldMetrics=old.metrics||{},metrics={...oldMetrics};
+ Object.entries(matchMetrics).forEach(([k,v])=>metrics[k]=Number(metrics[k]||0)+Number(v||0));
+ mastery[r]={matches:Number(old.matches||0)+1,wins:Number(old.wins||0)+(won?1:0),survived:Number(old.survived||0)+(alive?1:0),experience:Number(old.experience||0)+25+(won?15:0)+(alive?10:0),metrics};
  const xpGain=30+(won?20:0)+(alive?10:0)+(Number(old.matches||0)===0?5:0);
  const base={...p,experiencePoints:p.experiencePoints+xpGain,roleMastery:mastery,completedMatches:Number(p.completedMatches||0)+1,totalWins:Number(p.totalWins||0)+(won?1:0),totalSurvivals:Number(p.totalSurvivals||0)+(alive?1:0)};
  const achievementStats={matchesPlayed:base.completedMatches,wins:base.totalWins,survived:base.totalSurvivals,roleMastery:mastery};
@@ -2610,7 +2637,7 @@ function mergeCloudProgressionIntoLocal(){
  const local=loadProgression(),cloudStats=row.progression_stats||{};
  const xp=Math.max(local.experiencePoints,Number(row.experience_points||0));
  const mastery={...local.roleMastery};
- for(const [role,v] of Object.entries(row.role_mastery||{})){const old=mastery[role]||{};mastery[role]={matches:Math.max(Number(old.matches||0),Number(v.matches||0)),wins:Math.max(Number(old.wins||0),Number(v.wins||0)),survived:Math.max(Number(old.survived||0),Number(v.survived||0)),experience:Math.max(Number(old.experience||0),Number(v.experience||0))}}
+ for(const [role,v] of Object.entries(row.role_mastery||{})){const old=mastery[role]||{};mastery[role]={matches:Math.max(Number(old.matches||0),Number(v.matches||0)),wins:Math.max(Number(old.wins||0),Number(v.wins||0)),survived:Math.max(Number(old.survived||0),Number(v.survived||0)),experience:Math.max(Number(old.experience||0),Number(v.experience||0)),metrics:Object.fromEntries(new Set([...Object.keys(old.metrics||{}),...Object.keys(v.metrics||{})]).values().map(k=>[k,Math.max(Number(old.metrics?.[k]||0),Number(v.metrics?.[k]||0))]))}}
  const merged={...local,experiencePoints:xp,level:Math.floor(xp/100)+1,achievements:[...new Set([...local.achievements,...(Array.isArray(row.achievement_codes)?row.achievement_codes:[])])],roleMastery:mastery,completedMatches:Math.max(local.completedMatches,Number(cloudStats.completedMatches||0)),totalWins:Math.max(local.totalWins,Number(cloudStats.totalWins||0)),totalSurvivals:Math.max(local.totalSurvivals,Number(cloudStats.totalSurvivals||0))};
  try{localStorage.setItem(TRIAD_PROGRESS_KEY,JSON.stringify(merged))}catch(e){console.warn("Progress hydration failed",e)}
 }
@@ -2625,7 +2652,7 @@ async function syncOnlinePlayerProgress(progress=loadProgression()){
  const mastery={...(cloud?.role_mastery||{})};
  for(const [role,v] of Object.entries(progress.roleMastery||{})){
   const old=mastery[role]||{};
-  mastery[role]={matches:Math.max(Number(old.matches||0),Number(v.matches||0)),wins:Math.max(Number(old.wins||0),Number(v.wins||0)),survived:Math.max(Number(old.survived||0),Number(v.survived||0)),experience:Math.max(Number(old.experience||0),Number(v.experience||0))};
+  mastery[role]={matches:Math.max(Number(old.matches||0),Number(v.matches||0)),wins:Math.max(Number(old.wins||0),Number(v.wins||0)),survived:Math.max(Number(old.survived||0),Number(v.survived||0)),experience:Math.max(Number(old.experience||0),Number(v.experience||0)),metrics:Object.fromEntries([...new Set([...Object.keys(old.metrics||{}),...Object.keys(v.metrics||{})])].map(k=>[k,Math.max(Number(old.metrics?.[k]||0),Number(v.metrics?.[k]||0))]))};
  }
  const {error}=await supabaseClient.from("player_profiles").update({experience_points:xp,player_level:Math.floor(xp/100)+1,achievement_codes:achievements,role_mastery:mastery,progression_stats:progressionStats,updated_at:new Date().toISOString()}).eq("user_id",authUser.id);
  if(error)throw error;
@@ -2960,28 +2987,26 @@ async function respondEconomyTrade(tradeId,accept){
  finally{economyBusy=false}
 }
 const TRIAD_ROLE_MISSION_DEFS=[
- {role:"クルー",theme:"施設保全",names:["施設巡回","任務の積み重ね","研究所の守護者"],descs:["クルーで3試合完了","クルーで10試合し、3回勝利","クルーで25試合し、10回勝利・8回生存"]},
- {role:"サイエンティスト",theme:"生命観測",names:["初期観測","精密な記録","究極の研究者"],descs:["サイエンティストで3試合完了","10試合し、3回勝利","25試合し、10回勝利・8回生存"]},
- {role:"恋人",theme:"運命の絆",names:["出会い","変わらぬ絆","永遠のパートナー"],descs:["恋人で3試合完了","10試合し、3回勝利","25試合し、10回勝利・8回生存"]},
- {role:"占い師",theme:"未来視",names:["兆しを読む","真実の探究","運命を見通す者"],descs:["占い師で3試合完了","10試合し、3回勝利","25試合し、10回勝利・8回生存"]},
- {role:"狩人",theme:"追跡訓練",names:["足跡を追う","必中の狩人","伝説の追跡者"],descs:["狩人で3試合完了","10試合し、3回勝利","25試合し、10回勝利・8回生存"]},
- {role:"保安官",theme:"治安維持",names:["巡回任務","正義の執行","施設の守り手"],descs:["保安官で3試合完了","10試合し、3回勝利","25試合し、10回勝利・8回生存"]},
- {role:"僧侶",theme:"救護活動",names:["祈りの始まり","仲間を守る者","献身の聖職者"],descs:["僧侶で3試合完了","10試合し、3回勝利","25試合し、10回勝利・8回生存"]},
- {role:"ライトキーパー",theme:"光の管理",names:["灯火をともす","光を絶やさず","希望の灯台"],descs:["ライトキーパーで3試合完了","10試合し、3回勝利","25試合し、10回勝利・8回生存"]},
- {role:"インポスター",theme:"潜伏工作",names:["潜入開始","巧妙な工作","完全なる偽装"],descs:["インポスターで3試合完了","10試合し、3回勝利","25試合し、10回勝利・8回生存"]},
- {role:"イノシシ",theme:"突破作戦",names:["突進の練習","突破の常連","止められぬ猛進"],descs:["イノシシで3試合完了","10試合し、3回勝利","25試合し、10回勝利・8回生存"]},
- {role:"百面相",theme:"変装技術",names:["仮面の新人","完璧な変身","千の顔を持つ者"],descs:["百面相で3試合完了","10試合し、3回勝利","25試合し、10回勝利・8回生存"]},
- {role:"放浪者",theme:"放浪の旅",names:["旅立ち","遠方の探索者","果てなき旅人"],descs:["放浪者で3試合完了","10試合し、3回勝利","25試合し、10回勝利・8回生存"]},
- {role:"暗殺者",theme:"影の任務",names:["影に潜む","静かな仕事人","闇に名を刻む"],descs:["暗殺者で3試合完了","10試合し、3回勝利","25試合し、10回勝利・8回生存"]},
- {role:"てるてる",theme:"逆転劇",names:["注目を集める","疑いを操る","究極の道化師"],descs:["てるてるで3試合完了","10試合し、3回勝利","25試合し、10回勝利・8回生存"]},
- {role:"狂人",theme:"混乱工作",names:["混乱の種","盤面をかき回す","混沌の演出家"],descs:["狂人で3試合完了","10試合し、3回勝利","25試合し、10回勝利・8回生存"]},
- {role:"ギャンブラー",theme:"勝負師の道",names:["最初の賭け","勝負勘を磨く","伝説の勝負師"],descs:["ギャンブラーで3試合完了","10試合し、3回勝利","25試合し、10回勝利・8回生存"]}
+ {role:"クルー",theme:"施設保全",metric:"tasks",label:"完了タスク",names:["初めての任務","熟練作業員","研究所の守護者"],descs:["クルーでタスクを3件完了","累計12件のタスクを完了","累計30件のタスクを完了"],targets:[3,12,30]},
+ {role:"サイエンティスト",theme:"生命観測",metric:"scientist_checks",label:"生存者確認",names:["初期観測","精密な記録","究極の研究者"],descs:["生存者一覧を1回確認","生存者一覧を累計5回確認","生存者一覧を累計12回確認"],targets:[1,5,12]},
+ {role:"恋人",theme:"運命の絆",metric:"partner_survivals",label:"相方と共に生存",names:["出会い","変わらぬ絆","永遠のパートナー"],descs:["相方と一緒に1試合を生き残る","相方と一緒に3試合を生き残る","相方と一緒に8試合を生き残る"],targets:[1,3,8]},
+ {role:"占い師",theme:"未来視",metric:"seer_uses",label:"占い成功",names:["兆しを読む","真実の探究","運命を見通す者"],descs:["占いを1回成功させる","占いを累計3回成功させる","占いを累計6回成功させる"],targets:[1,3,6]},
+ {role:"狩人",theme:"追跡訓練",metric:"kills",label:"攻撃成功",names:["足跡を追う","必中の狩人","伝説の追跡者"],descs:["狩人の能力で1人を倒す","能力で累計2人を倒す","能力で累計4人を倒す"],targets:[1,2,4]},
+ {role:"保安官",theme:"治安維持",metric:"kills",label:"攻撃成功",names:["巡回任務","正義の執行","施設の守り手"],descs:["保安官の攻撃を1回成功させる","攻撃を累計2回成功させる","攻撃を累計3回成功させる"],targets:[1,2,3]},
+ {role:"僧侶",theme:"救護活動",metric:"protections",label:"加護付与",names:["祈りの始まり","仲間を守る者","献身の聖職者"],descs:["仲間に加護を1回与える","加護を累計3回与える","加護を累計6回与える"],targets:[1,3,6]},
+ {role:"ライトキーパー",theme:"光の管理",metric:"lightkeeper_survivals",label:"生存試合",names:["灯火をともす","光を絶やさず","希望の灯台"],descs:["ライトキーパーで1試合生存する","4試合生存する","10試合生存する"],targets:[1,4,10]},
+ {role:"インポスター",theme:"潜伏工作",metric:"sabotages",label:"停電サボタージュ",names:["潜入開始","巧妙な工作","完全なる偽装"],descs:["停電サボタージュを1回成功させる","累計3回成功させる","累計6回成功させる"],targets:[1,3,6]},
+ {role:"イノシシ",theme:"突破作戦",metric:"charges",label:"突進発動",names:["突進の練習","突破の常連","止められぬ猛進"],descs:["突進を1回発動する","突進を累計3回発動する","突進を累計6回発動する"],targets:[1,3,6]},
+ {role:"百面相",theme:"変装技術",metric:"disguises",label:"変身成功",names:["仮面の新人","完璧な変身","千の顔を持つ者"],descs:["他人の姿に1回変身する","変身を累計3回成功させる","変身を累計6回成功させる"],targets:[1,3,6]},
+ {role:"放浪者",theme:"放浪の旅",metric:"scents",label:"匂い付与",names:["旅立ち","遠方の探索者","果てなき旅人"],descs:["相手に匂いを1回移す","匂いを累計3回移す","匂いを累計6回移す"],targets:[1,3,6]},
+ {role:"暗殺者",theme:"影の任務",metric:"bounty_kills",label:"手配対象の撃破",names:["影に潜む","静かな仕事人","闇に名を刻む"],descs:["手配対象を1人倒す","手配対象を累計2人倒す","手配対象を累計4人倒す"],targets:[1,2,4]},
+ {role:"てるてる",theme:"逆転劇",metric:"jester_wins",label:"てるてる勝利",names:["注目を集める","疑いを操る","究極の道化師"],descs:["てるてる固有の勝利を1回達成","固有勝利を累計2回達成","固有勝利を累計4回達成"],targets:[1,2,4]},
+ {role:"狂人",theme:"混乱工作",metric:"kills",label:"キル成功",names:["混乱の種","盤面をかき回す","混沌の演出家"],descs:["狂人で1人を倒す","累計2人を倒す","累計4人を倒す"],targets:[1,2,4]},
+ {role:"ギャンブラー",theme:"勝負師の道",metric:"gambler_jackpots",label:"JACKPOT獲得",names:["最初の大当たり","幸運の連鎖","伝説の勝負師"],descs:["JACKPOTを1回引く","JACKPOTを累計2回引く","JACKPOTを累計4回引く"],targets:[1,2,4]}
 ];
-function roleMissionRequirement(tier,v){
- const m=Number(v.matches||0),w=Number(v.wins||0),s=Number(v.survived||0);
- if(tier===1)return {ok:m>=3,progress:m,need:3,label:"試合完了"};
- if(tier===2)return {ok:m>=10&&w>=3,progress:Math.min(1,m/10,w/3),need:"10試合・3勝",label:"10試合・3勝"};
- return {ok:m>=25&&w>=10&&s>=8,progress:Math.min(1,m/25,w/10,s/8),need:"25試合・10勝・8生存",label:"25試合・10勝・8生存"};
+function roleMissionRequirement(tier,v,def){
+ const value=Number(v.metrics?.[def.metric]||0),need=Number(def.targets[tier-1]||1);
+ return {ok:value>=need,progress:Math.min(1,value/need),value,need,label:def.label};
 }
 const TRIAD_GENERAL_MISSIONS=[
  {code:"matches_1",name:"最初の一歩",desc:"試合を1回完了する",need:1,reward:30,xp:20,key:"matches_played"},
@@ -3013,9 +3038,9 @@ function renderProgressionExtras(m,daily,claims,coins,generalClaims){
   const v=mastery[def.role]||{},matches=Number(v.matches||0),wins=Number(v.wins||0),survived=Number(v.survived||0);
   html+='<div class="accountSection"><div class="row" style="justify-content:space-between"><b>'+escapeAccountText(def.role)+' · '+escapeAccountText(def.theme)+'</b><span class="pill">'+matches+'試合 / '+wins+'勝 / '+survived+'生存</span></div>';
   for(let tier=1;tier<=3;tier++){
-   const req=roleMissionRequirement(tier,v),code='role:'+def.role+':'+tier,done=claimSet.has(code),reward=[50,150,400][tier-1],xp=[25,75,200][tier-1];
-   const progress=tier===1?Math.min(100,matches/3*100):tier===2?Math.min(100,matches/10*100,wins/3*100):Math.min(100,matches/25*100,wins/10*100,survived/8*100);
-   html+='<div class="accountTrait" style="opacity:'+(done?.72:1)+'"><div class="row" style="justify-content:space-between"><b>段階 '+tier+'：'+escapeAccountText(def.names[tier-1])+'</b><span class="pill">'+(done?"受取済み":req.ok?"達成！":"進行中")+'</span></div><div class="muted" style="margin:5px 0">'+escapeAccountText(def.descs[tier-1])+'</div><div class="taskbar"><div style="width:'+progress+'%"></div></div><div class="row" style="margin-top:7px;align-items:center"><small class="muted">報酬：🪙 '+reward+' ／ EXP '+xp+'</small><button '+(done||!req.ok?'disabled':'class="primary" onclick="claimTriadRoleMission(\''+escapeAccountText(def.role)+'\','+tier+')"')+'>'+(done?"受取済み":req.ok?"報酬を受け取る":"未達成")+'</button></div></div>';
+   const req=roleMissionRequirement(tier,v,def),code='role:'+def.role+':'+tier,done=claimSet.has(code),reward=[50,150,400][tier-1],xp=[25,75,200][tier-1];
+   const progress=req.progress*100;
+   html+='<div class="accountTrait" style="opacity:'+(done?.72:1)+'"><div class="row" style="justify-content:space-between"><b>段階 '+tier+'：'+escapeAccountText(def.names[tier-1])+'</b><span class="pill">'+(done?"受取済み":req.ok?"達成！":"進行中")+'</span></div><div class="muted" style="margin:5px 0">'+escapeAccountText(def.descs[tier-1])+'</div><div class="muted">'+req.label+'：'+req.value+'/'+req.need+'</div><div class="taskbar"><div style="width:'+progress+'%"></div></div><div class="row" style="margin-top:7px;align-items:center"><small class="muted">報酬：🪙 '+reward+' ／ EXP '+xp+'</small><button '+(done||!req.ok?'disabled':'class="primary" onclick="claimTriadRoleMission(\''+escapeAccountText(def.role)+'\','+tier+')"')+'>'+(done?"受取済み":req.ok?"報酬を受け取る":"未達成")+'</button></div></div>';
   }
   html+='</div>';
  }
