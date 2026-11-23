@@ -622,7 +622,7 @@ async function syncOnlinePlayerStats(stats){
   });
   const {error}=await supabaseClient.from("player_profiles").upsert({
    user_id:authUser.id,display_name:displayName,matches_played:matches,
-   wins,losses,survived,role_stats:roleStats,experience_points:loadProgression().experiencePoints,player_level:loadProgression().level,achievement_codes:loadProgression().achievements,role_mastery:loadProgression().roleMastery,updated_at:new Date().toISOString()
+   wins,losses,survived,role_stats:roleStats,updated_at:new Date().toISOString()
   },{onConflict:"user_id"});
   if(error)throw error;
   await loadOnlinePlayerProfiles();
@@ -2543,12 +2543,13 @@ function grantMatchProgress(won,role,alive,matchId=null){
  const key=String(matchId||("local-"+Date.now()+"-"+Math.random().toString(36).slice(2)));
  let done=[];try{done=JSON.parse(localStorage.getItem(TRIAD_PROGRESS_PROCESSED_KEY)||"[]")}catch{}
  if(done.includes(key))return null;
- const p=loadProgression(),stats=loadHumanStats(),r=String(role||"未設定");
+ const p=loadProgression(),r=String(role||"未設定");
  const mastery={...p.roleMastery},old={...(mastery[r]||{})};
  mastery[r]={matches:Number(old.matches||0)+1,wins:Number(old.wins||0)+(won?1:0),survived:Number(old.survived||0)+(alive?1:0),experience:Number(old.experience||0)+25+(won?15:0)+(alive?10:0)};
  const xpGain=30+(won?20:0)+(alive?10:0)+(Number(old.matches||0)===0?5:0);
- const base={...p,experiencePoints:p.experiencePoints+xpGain,roleMastery:mastery};
- const earned=TRIAD_ACHIEVEMENTS.filter(a=>!base.achievements.includes(a.code)&&a.test({...stats,roleMastery:mastery})).map(a=>a.code);
+ const base={...p,experiencePoints:p.experiencePoints+xpGain,roleMastery:mastery,completedMatches:Number(p.completedMatches||0)+1,totalWins:Number(p.totalWins||0)+(won?1:0),totalSurvivals:Number(p.totalSurvivals||0)+(alive?1:0)};
+ const achievementStats={matchesPlayed:base.completedMatches,wins:base.totalWins,survived:base.totalSurvivals,roleMastery:mastery};
+ const earned=TRIAD_ACHIEVEMENTS.filter(a=>!base.achievements.includes(a.code)&&a.test(achievementStats)).map(a=>a.code);
  base.achievements=[...base.achievements,...earned];base.level=Math.floor(base.experiencePoints/100)+1;
  base.lastReward={xp:xpGain,levelUp:base.level>p.level,newAchievements:earned,role:r};
  try{localStorage.setItem(TRIAD_PROGRESS_KEY,JSON.stringify(base));done.push(key);localStorage.setItem(TRIAD_PROGRESS_PROCESSED_KEY,JSON.stringify(done.slice(-300)))}catch(e){console.warn("Progress save failed",e)}
@@ -2557,7 +2558,16 @@ function grantMatchProgress(won,role,alive,matchId=null){
 }
 async function syncOnlinePlayerProgress(progress=loadProgression()){
  if(!authUser||!supabaseClient)return;
- const {error}=await supabaseClient.from("player_profiles").update({experience_points:progress.experiencePoints,player_level:progress.level,achievement_codes:progress.achievements,role_mastery:progress.roleMastery,updated_at:new Date().toISOString()}).eq("user_id",authUser.id);
+ const {data:cloud,error:readError}=await supabaseClient.from("player_profiles").select("experience_points,achievement_codes,role_mastery").eq("user_id",authUser.id).maybeSingle();
+ if(readError)throw readError;
+ const xp=Math.max(Number(cloud?.experience_points||0),Number(progress.experiencePoints||0));
+ const achievements=[...new Set([...(Array.isArray(cloud?.achievement_codes)?cloud.achievement_codes:[]),...(progress.achievements||[])])];
+ const mastery={...(cloud?.role_mastery||{})};
+ for(const [role,v] of Object.entries(progress.roleMastery||{})){
+  const old=mastery[role]||{};
+  mastery[role]={matches:Math.max(Number(old.matches||0),Number(v.matches||0)),wins:Math.max(Number(old.wins||0),Number(v.wins||0)),survived:Math.max(Number(old.survived||0),Number(v.survived||0)),experience:Math.max(Number(old.experience||0),Number(v.experience||0))};
+ }
+ const {error}=await supabaseClient.from("player_profiles").update({experience_points:xp,player_level:Math.floor(xp/100)+1,achievement_codes:achievements,role_mastery:mastery,updated_at:new Date().toISOString()}).eq("user_id",authUser.id);
  if(error)throw error;
  await loadOnlinePlayerProfiles();
 }
