@@ -3069,6 +3069,7 @@ function renderProgressionExtras(m,daily,claims,coins,generalClaims,periodRows){
  }
  html+='</div>';
  html+='<div class="card" style="margin:12px 0"><h3>📜 役職熟練度</h3><p class="muted">陣営を選び、役職を開くと専用ミッションを確認できます。全6段階。後半3段階では役職専用称号を獲得できます。</p>';
+ const mastery=m.roleMastery||{};
  const groups=ROLE_CONFIG_GROUPS;
  const selectedGroup=groups.find(g=>g.team===triadMasteryFaction)||groups[0];
  if(!selectedGroup.roles.includes(triadMasteryRole))triadMasteryRole=selectedGroup.roles[0];
