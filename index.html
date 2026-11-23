@@ -1207,7 +1207,7 @@ async function startGame(){
  if(!roleQueues.white||!roleQueues.black||(third>0&&!roleQueues.third)){alert("この人数では役職を割り当てられません。役職設定を調整してください。");return}
  await loadAIProfiles();startAudio();
  const teams=shuffle(Array(black).fill("black").concat(Array(third).fill("third"),Array(white).fill("white")));
- const startedAt=Date.now(),profileDeck=shuffle([...aiProfilePool]);state.matchStartedAt=startedAt;gameNameDeck=shuffle([...naturalAINames]);profileDeck.forEach(profile=>{profile.memory={...loadAILongTermMemory(profile.id),...(profile.memory||{})}});
+ const startedAt=Date.now(),profileDeck=shuffle([...aiProfilePool]);state.matchStartedAt=startedAt;state.winCheckEnabledAt=startedAt+5000;gameNameDeck=shuffle([...naturalAINames]);profileDeck.forEach(profile=>{profile.memory={...loadAILongTermMemory(profile.id),...(profile.memory||{})}});
  for(let i=0;i<totalPlayers;i++){
   const member=i<members.length?members[i]:null,aiIndex=i-members.length,isHuman=!!(onlineHost&&member);
   const spawn=isHuman&&member.user_id===authUser.id?[250,250]:randomSpawn(),team=teams[i],profile=member?null:(profileDeck[aiIndex]||null),guestNumber=member&&!member.is_host?members.slice(0,i).filter(m=>!m.is_host).length+1:0;
@@ -2519,7 +2519,7 @@ function closeMeeting(){if(isOnlineClient()){sendOnlineInput({kind:"action",acti
  },1050);
 }
 function checkWin(){
- if(!state.running||state._checkingWin)return;
+ if(!state.running||state._checkingWin||Date.now()<(state.winCheckEnabledAt||0))return;
  state._checkingWin=true;
  try{
  const alive=state.players.filter(p=>p.alive),b=alive.filter(p=>p.team==="black").length,w=alive.filter(p=>p.team==="white").length,t=alive.filter(p=>p.team==="third").length;
@@ -2734,6 +2734,19 @@ function renderWardrobeScreen(){
  const root=$("wardrobeContent");if(!root)return;
  const local=loadCosmetics();
  root.innerHTML=renderWardrobe({cosmetics:local});
+ drawWardrobePreview();
+}
+function drawWardrobePreview(){
+ const canvas=$("wardrobePreview");if(!canvas)return;
+ const ctx=canvas.getContext("2d");if(!ctx)return;
+ const w=canvas.width,h=canvas.height;ctx.clearRect(0,0,w,h);
+ ctx.fillStyle="#0d192a";ctx.fillRect(0,0,w,h);
+ const p={id:0,color:colors[0]||"#52c8d9",shape:0,alive:true,cosmetics:loadCosmetics()};
+ ctx.save();ctx.translate(w/2,h/2+8);ctx.scale(3.2,3.2);
+ ctx.fillStyle=p.color;ctx.strokeStyle="#ffffff";ctx.lineWidth=1.1;
+ ctx.beginPath();ctx.ellipse(0,0,9,11,0,0,Math.PI*2);ctx.fill();ctx.stroke();
+ ctx.fillStyle="#13243a";ctx.beginPath();ctx.arc(-3,-2,1.5,0,Math.PI*2);ctx.arc(3,-2,1.5,0,Math.PI*2);ctx.fill();
+ drawPlayerCosmetics(ctx,p);ctx.restore();
 }
 function openProgressionScreen(){
  if(!activateScreen("progression"))return;
@@ -2748,7 +2761,7 @@ function renderWardrobe(m){
   const unlocked=own?cosmeticIsUnlocked(item):true,active=equipped[kind]===item.id;
   return '<button '+(own?'onclick="equipCosmetic(\''+kind+'\',\''+item.id+'\')"':'disabled')+' style="min-width:112px;padding:9px;border-radius:10px;border:1px solid '+(active?'#62d6c8':'#38506c')+';background:'+(active?'#214d50':'#14263c')+';color:inherit;opacity:'+(unlocked?1:.5)+';text-align:left"><b>'+(kind==="hat"?"🎩 ":"🧣 ")+item.name+'</b><small style="display:block;color:var(--muted);margin-top:4px">'+(active?"装備中":unlocked?(own?"タップして装備":"装備中ではありません"):"🔒 "+item.unlock)+'</small></button>';
  }).join("");
- return '<div class="accountSection"><h3>👕 衣装・着せ替え</h3><p class="muted">帽子や首元のアクセサリーを変更できます。衣装による能力差はありません。</p><h4 style="margin:12px 0 7px">帽子</h4><div style="display:flex;gap:7px;flex-wrap:wrap">'+render(TRIAD_HATS,"hat")+'</div><h4 style="margin:14px 0 7px">首元アクセサリー</h4><div style="display:flex;gap:7px;flex-wrap:wrap">'+render(TRIAD_SCARVES,"scarf")+'</div>'+(own?"":'<p class="muted" style="margin-top:8px">他のプレイヤーの装備を表示しています。</p>')+'</div>';
+ return '<div class="accountSection"><h3>👕 現在の見た目</h3><div style="display:flex;justify-content:center;align-items:center;background:#0d192a;border:1px solid #38506c;border-radius:14px;padding:12px;margin:8px 0 14px"><canvas id="wardrobePreview" width="220" height="180" style="width:min(100%,220px);height:auto;image-rendering:auto" aria-label="現在装備中のキャラクター"></canvas></div><p class="muted" style="text-align:center">装備を変更すると、ここにすぐ反映されます。</p><h3>衣装・着せ替え</h3><p class="muted">帽子や首元のアクセサリーを変更できます。衣装による能力差はありません。</p><h4 style="margin:12px 0 7px">帽子</h4><div style="display:flex;gap:7px;flex-wrap:wrap">'+render(TRIAD_HATS,"hat")+'</div><h4 style="margin:14px 0 7px">首元アクセサリー</h4><div style="display:flex;gap:7px;flex-wrap:wrap">'+render(TRIAD_SCARVES,"scarf")+'</div>'+(own?"":'<p class="muted" style="margin-top:8px">他のプレイヤーの装備を表示しています。</p>')+'</div>';
 }
 function drawPlayerCosmetics(ctx,p){
  const c=p?.cosmetics||{},hat=c.hat||"none",scarf=c.scarf||"none";
