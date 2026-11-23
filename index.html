@@ -2983,13 +2983,30 @@ function roleMissionRequirement(tier,v){
  if(tier===2)return {ok:m>=10&&w>=3,progress:Math.min(1,m/10,w/3),need:"10試合・3勝",label:"10試合・3勝"};
  return {ok:m>=25&&w>=10&&s>=8,progress:Math.min(1,m/25,w/10,s/8),need:"25試合・10勝・8生存",label:"25試合・10勝・8生存"};
 }
-function renderProgressionExtras(m,daily,claims,coins){
+const TRIAD_GENERAL_MISSIONS=[
+ {code:"matches_1",name:"最初の一歩",desc:"試合を1回完了する",need:1,reward:30,xp:20,key:"matches_played"},
+ {code:"wins_1",name:"初勝利",desc:"1回勝利する",need:1,reward:50,xp:25,key:"wins"},
+ {code:"survive_5",name:"生還の記録",desc:"5回生存して試合を終える",need:5,reward:100,xp:50,key:"survived"},
+ {code:"matches_10",name:"常連プレイヤー",desc:"試合を10回完了する",need:10,reward:100,xp:50,key:"matches_played"},
+ {code:"wins_5",name:"勝利を重ねて",desc:"5回勝利する",need:5,reward:150,xp:75,key:"wins"},
+ {code:"roles_5",name:"多彩な戦術",desc:"5種類の役職で試合を完了する",need:5,reward:150,xp:75,key:"roles"},
+ {code:"matches_30",name:"研究所のベテラン",desc:"試合を30回完了する",need:30,reward:250,xp:100,key:"matches_played"}
+];
+function renderProgressionExtras(m,daily,claims,coins,generalClaims){
  const today=new Date().toLocaleDateString("en-CA",{timeZone:"Asia/Tokyo"});
  const claimedToday=daily?.last_claim_date===today;
  const streak=Number(daily?.streak||0),nextStreak=claimedToday?streak+1:(streak>0?streak+1:1);
  const dailyRewards=[50,60,70,80,100,120,200],nextReward=dailyRewards[(nextStreak-1)%7];
  const claimSet=new Set((claims||[]).map(x=>x.mission_code));
  let html='<div class="card" style="margin:12px 0;border-color:#d5ad58"><div class="row" style="justify-content:space-between"><h3 style="margin:0">🎁 毎日のログインボーナス</h3><span class="pill">日本時間 0:00 更新</span></div><div class="accountStats"><div class="accountStat"><b>'+streak+'日</b><span>現在の連続ログイン</span></div><div class="accountStat"><b>+'+(claimedToday?nextReward:nextReward)+'</b><span>次回の獲得コイン</span></div><div class="accountStat"><b>+'+(claimedToday?20:20)+'</b><span>獲得EXP</span></div></div><p class="muted">'+(claimedToday?"本日のログインボーナスは受け取り済みです。":"本日のログインボーナスを受け取れます。")+' 7日目は200コイン！</p><button class="primary" style="width:100%" '+(claimedToday?'disabled':'onclick="claimTriadDailyBonus()"')+'>'+(claimedToday?"本日分は受取済み":"ログインボーナスを受け取る")+'</button><p class="muted" style="margin-bottom:0">所持コイン：'+Number(coins||0).toLocaleString("ja-JP")+'</p></div>';
+ const generalClaimSet=new Set((generalClaims||[]).map(x=>x.mission_code));
+ const totalStats={matches_played:Number(m.completedMatches||0),wins:Number(m.totalWins||0),survived:Number(m.totalSurvivals||0),roles:Object.keys(m.roleMastery||{}).filter(k=>Number(m.roleMastery[k]?.matches||0)>0).length};
+ html+='<div class="card" style="margin:12px 0"><h3>🧭 共通ミッション</h3><p class="muted">全プレイヤー共通の目標です。達成したミッションはいつでも報酬を受け取れます。</p>';
+ for(const mission of TRIAD_GENERAL_MISSIONS){
+  const value=totalStats[mission.key]||0,done=generalClaimSet.has(mission.code),ready=value>=mission.need;
+  html+='<div class="accountTrait" style="opacity:'+(done?'.72':'1')+'"><div class="row" style="justify-content:space-between"><b>'+escapeAccountText(mission.name)+'</b><span class="pill">'+(done?"受取済み":ready?"達成！":"進行中")+'</span></div><div class="muted" style="margin:5px 0">'+escapeAccountText(mission.desc)+' · '+value+'/'+mission.need+'</div><div class="taskbar"><div style="width:'+Math.min(100,value/mission.need*100)+'%"></div></div><div class="row" style="margin-top:7px;align-items:center"><small class="muted">報酬：🪙 '+mission.reward+' ／ EXP '+mission.xp+'</small><button '+(done||!ready?'disabled':'class="primary" onclick="claimTriadGeneralMission(\''+mission.code+'\')"')+'>'+(done?"受取済み":ready?"報酬を受け取る":"未達成")+'</button></div></div>';
+ }
+ html+='</div>';
  html+='<div class="card" style="margin:12px 0"><h3>📜 役職熟練度ミッション</h3><p class="muted">各役職に3段階の専用テーマを用意。条件を達成するとコインとEXPを受け取れます。上位段階ほど難しくなります。</p>';
  const mastery=m.roleMastery||{};
  for(const def of TRIAD_ROLE_MISSION_DEFS){
@@ -3012,16 +3029,17 @@ async function loadProgressionExtras(){
   if(!authUser||!supabaseClient)await initializeOnlineAccounts();
   if(!authUser||!supabaseClient)throw new Error("報酬の受け取りにはアカウント接続が必要です。");
   await ensureOwnPlayerProfile();
-  const [profileRes,dailyRes,claimsRes,walletRes]=await Promise.all([
+  const [profileRes,dailyRes,claimsRes,walletRes,generalClaimsRes]=await Promise.all([
    supabaseClient.from("player_profiles").select("role_mastery,experience_points").eq("user_id",authUser.id).maybeSingle(),
    supabaseClient.from("triad_login_bonus_state").select("last_claim_date,streak,total_claims").eq("user_id",authUser.id).maybeSingle(),
    supabaseClient.from("triad_role_mission_claims").select("mission_code").eq("user_id",authUser.id),
-   supabaseClient.from("player_wallets").select("coins").eq("user_id",authUser.id).maybeSingle()
+   supabaseClient.from("player_wallets").select("coins").eq("user_id",authUser.id).maybeSingle(),
+   supabaseClient.from("triad_mission_claims").select("mission_code").eq("user_id",authUser.id)
   ]);
-  for(const x of [profileRes,dailyRes,claimsRes,walletRes])if(x.error)throw x.error;
+  for(const x of [profileRes,dailyRes,claimsRes,walletRes,generalClaimsRes])if(x.error)throw x.error;
   const p=loadProgression(),cloud=profileRes.data?.role_mastery||{},mastery={...p.roleMastery};
   for(const [role,v] of Object.entries(cloud)){const old=mastery[role]||{};mastery[role]={matches:Math.max(Number(old.matches||0),Number(v.matches||0)),wins:Math.max(Number(old.wins||0),Number(v.wins||0)),survived:Math.max(Number(old.survived||0),Number(v.survived||0)),experience:Math.max(Number(old.experience||0),Number(v.experience||0))}}
-  extras.innerHTML=renderProgressionExtras({...p,roleMastery:mastery},dailyRes.data,claimsRes.data||[],walletRes.data?.coins||0);
+  extras.innerHTML=renderProgressionExtras({...p,roleMastery:mastery},dailyRes.data,claimsRes.data||[],walletRes.data?.coins||0,generalClaimsRes.data||[]);
  }catch(e){extras.innerHTML='<div class="card"><b>ミッション情報を読み込めませんでした</b><p class="muted">'+escapeAccountText(e.message||String(e))+'</p><button onclick="loadProgressionExtras()">再読み込み</button></div>'}
 }
 async function claimTriadDailyBonus(){
@@ -3032,6 +3050,14 @@ async function claimTriadDailyBonus(){
   else alert("本日のログインボーナスは受け取り済みです。");
   openProgressionScreen();
  }catch(e){alert("ログインボーナスを受け取れませんでした："+(e.message||String(e)))}
+}
+async function claimTriadGeneralMission(code){
+ try{
+  if(!authUser||!supabaseClient)await initializeOnlineAccounts();
+  const {data,error}=await supabaseClient.rpc("triad_claim_mission",{p_mission_code:code});if(error)throw error;
+  alert("共通ミッション報酬を獲得！\\nコイン：+"+data.coins+"\\nEXP：+"+data.xp);
+  openProgressionScreen();
+ }catch(e){alert("報酬を受け取れませんでした："+(e.message||String(e)))}
 }
 async function claimTriadRoleMission(role,tier){
  try{
