@@ -3006,10 +3006,12 @@ let triadMasteryFaction="white",triadMasteryRole="クルー";
 function selectRoleMasteryFaction(team){triadMasteryFaction=team;const g=ROLE_CONFIG_GROUPS.find(x=>x.team===team);triadMasteryRole=g?.roles?.[0]||"クルー";openProgressionScreen()}
 function selectRoleMasteryRole(role){triadMasteryRole=role;openProgressionScreen()}
 function triadCurrentPeriodKeys(){
- const parts=new Date().toLocaleDateString("en-CA",{timeZone:"Asia/Tokyo"}).split("-").map(Number);
- const utc=new Date(Date.UTC(parts[0],parts[1]-1,parts[2]));
- const day=utc.getUTCDay()||7;utc.setUTCDate(utc.getUTCDate()-day+1);
- return {daily:parts.map((n,i)=>String(n).padStart(i===0?4:2,"0")).join("-"),weekly:utc.toISOString().slice(0,10)};
+ const parts=new Intl.DateTimeFormat("en-CA",{timeZone:"Asia/Tokyo",year:"numeric",month:"2-digit",day:"2-digit"}).formatToParts(new Date());
+ const get=k=>parts.find(p=>p.type===k)?.value||"00";
+ const daily=get("year")+"-"+get("month")+"-"+get("day");
+ const utc=new Date(daily+"T00:00:00Z"),day=utc.getUTCDay()||7;
+ utc.setUTCDate(utc.getUTCDate()-day+1);
+ return {daily,weekly:utc.toISOString().slice(0,10)};
 }
 function renderTriadPeriodMissions(rows){
  const keys=triadCurrentPeriodKeys(),map=new Map((rows||[]).map(x=>[x.period_type+":"+x.mission_code,x]));
