@@ -2777,8 +2777,8 @@ const TRIAD_SCARVES=[
  {id:"stardust",name:"星屑マフラー",unlock:"ガチャ限定",gacha:true}
 ];
 function loadCosmetics(){
- try{const v=JSON.parse(localStorage.getItem(TRIAD_COSMETIC_KEY)||"{}");return {hat:v.hat||"none",scarf:v.scarf||"none",color:colors.includes(v.color)?v.color:colors[0]}}
- catch{return {hat:"none",scarf:"none",color:colors[0]}}
+ try{const v=JSON.parse(localStorage.getItem(TRIAD_COSMETIC_KEY)||"{}");return {hat:v.hat||"none",scarf:v.scarf||"none",suit:v.suit||"none",color:colors.includes(v.color)?v.color:colors[0]}}
+ catch{return {hat:"none",scarf:"none",suit:"none",color:colors[0]}}
 }
 function cosmeticIsUnlocked(item,kind=null){
  const p=loadProgression(),purchased=!!(kind&&economyInventoryCodes.includes(kind+":"+item.id));
@@ -2788,7 +2788,7 @@ function applyPlayerCosmetics(){
  const own=loadCosmetics();
  (state.players||[]).forEach(p=>{
   const cloud=onlinePlayerProfiles.find(v=>v.user_id&&v.user_id===p.userId);
-  p.cosmetics=cloud?.cosmetics?{hat:cloud.cosmetics.hat||"none",scarf:cloud.cosmetics.scarf||"none",color:colors.includes(cloud.cosmetics.color)?cloud.cosmetics.color:p.color}:{hat:"none",scarf:"none",color:p.color};
+  p.cosmetics=cloud?.cosmetics?{hat:cloud.cosmetics.hat||"none",scarf:cloud.cosmetics.scarf||"none",suit:cloud.cosmetics.suit||"none",color:colors.includes(cloud.cosmetics.color)?cloud.cosmetics.color:p.color}:{hat:"none",scarf:"none",suit:"none",color:p.color};
   if(p.cosmetics.color&&colors.includes(p.cosmetics.color))p.color=p.cosmetics.color;
   p.colorName=colorNames[colors.indexOf(p.color)]||p.colorName;
   if(p.userId&&authUser&&p.userId===authUser.id)p.cosmetics=own;
@@ -2811,7 +2811,7 @@ async function equipCosmetic(kind,id){
  renderWardrobeScreen();draw();
 }
 async function equipPlayerColor(color){if(!colors.includes(color))return;const current=loadCosmetics();current.color=color;try{localStorage.setItem(TRIAD_COSMETIC_KEY,JSON.stringify(current))}catch(e){console.warn("Player color save failed",e)}if(state.me){state.me.color=color;state.me.colorName=colorNames[colors.indexOf(color)]||state.me.colorName;state.me.cosmetics=current}if(authUser&&supabaseClient){const {error}=await supabaseClient.from("player_profiles").update({cosmetics:current,updated_at:new Date().toISOString()}).eq("user_id",authUser.id);if(error){console.warn("Color cloud save failed",error);setAccountAuthMessage("色のオンライン保存に失敗しました。端末内には保存されています。",true)}else await loadOnlinePlayerProfiles()}renderWardrobeScreen();draw()}
-async function openWardrobeScreen(){if(!activateScreen("wardrobe"))return;renderWardrobeScreen();try{await refreshEconomyInventory();renderWardrobeScreen()}catch(e){console.warn("Wardrobe inventory refresh failed",e)}}
+async function openWardrobeScreen(){if(!activateScreen("wardrobe"))return;renderWardrobeScreen();try{await refreshEconomyInventory();await refreshRoleMasteryOutfits();renderWardrobeScreen()}catch(e){console.warn("Wardrobe inventory refresh failed",e)}}
 function renderWardrobeScreen(){
  const root=$("wardrobeContent");if(!root)return;
  const local=loadCosmetics();
@@ -2998,6 +2998,46 @@ async function respondEconomyTrade(tradeId,accept){
  finally{economyBusy=false}
 }
 const TRIAD_ROLE_MISSION_DEFS=[{"role":"クルー","theme":"施設保全","metric":"tasks","label":"完了タスク","names":["初めての任務","熟練作業員","研究所の守護者","不落の整備士","伝説の施設管理者","研究所の守護神"],"descs":["タスクを3件完了","累計12件完了","累計30件完了","累計45件完了","累計65件完了","累計90件完了"],"targets":[3,12,30,45,65,90],"specialTitles":["不落の整備士","伝説の施設管理者","研究所の守護神"]},{"role":"サイエンティスト","theme":"生命観測","metric":"scientist_checks","label":"生存者確認","names":["初期観測","精密な記録","究極の研究者","真理の観測者","生命記録の賢者","宇宙の研究者"],"descs":["生存者一覧を1回確認","累計5回確認","累計12回確認","累計18回確認","累計26回確認","累計36回確認"],"targets":[1,5,12,18,26,36],"specialTitles":["真理の観測者","生命記録の賢者","宇宙の研究者"]},{"role":"恋人","theme":"運命の絆","metric":"partner_survivals","label":"相方と共に生存","names":["出会い","変わらぬ絆","永遠のパートナー","永遠の絆","運命共同体","双星の誓い"],"descs":["相方と一緒に1試合生存","相方と一緒に3試合生存","相方と一緒に8試合生存","相方と一緒に12試合生存","相方と一緒に18試合生存","相方と一緒に25試合生存"],"targets":[1,3,8,12,18,25],"specialTitles":["永遠の絆","運命共同体","双星の誓い"]},{"role":"占い師","theme":"未来視","metric":"seer_uses","label":"占い成功","names":["兆しを読む","真実の探究","運命を見通す者","星詠みの預言者","運命の導き手","未来を見通す者"],"descs":["占いを1回成功","累計3回成功","累計6回成功","累計10回成功","累計16回成功","累計24回成功"],"targets":[1,3,6,10,16,24],"specialTitles":["星詠みの預言者","運命の導き手","未来を見通す者"]},{"role":"狩人","theme":"追跡訓練","metric":"kills","label":"攻撃成功","names":["足跡を追う","必中の狩人","伝説の追跡者","百戦錬磨の狩人","月影の追跡者","伝説の狩猟王"],"descs":["能力で1人撃破","累計2人撃破","累計4人撃破","累計6人撃破","累計9人撃破","累計12人撃破"],"targets":[1,2,4,6,9,12],"specialTitles":["百戦錬磨の狩人","月影の追跡者","伝説の狩猟王"]},{"role":"保安官","theme":"治安維持","metric":"kills","label":"攻撃成功","names":["巡回任務","正義の執行","施設の守り手","秩序の執行者","正義の象徴","絶対の保安官"],"descs":["攻撃を1回成功","累計2回成功","累計3回成功","累計5回成功","累計7回成功","累計10回成功"],"targets":[1,2,3,5,7,10],"specialTitles":["秩序の執行者","正義の象徴","絶対の保安官"]},{"role":"僧侶","theme":"救護活動","metric":"protections","label":"加護付与","names":["祈りの始まり","仲間を守る者","献身の聖職者","慈愛の守護者","聖域の番人","奇跡を呼ぶ祈り手"],"descs":["加護を1回付与","累計3回付与","累計6回付与","累計10回付与","累計15回付与","累計22回付与"],"targets":[1,3,6,10,15,22],"specialTitles":["慈愛の守護者","聖域の番人","奇跡を呼ぶ祈り手"]},{"role":"ライトキーパー","theme":"光の管理","metric":"lightkeeper_survivals","label":"生存試合","names":["灯火をともす","光を絶やさず","希望の灯台","灯火の継承者","暁を守る者","永遠の灯台守"],"descs":["1試合生存","累計4試合生存","累計10試合生存","累計15試合生存","累計22試合生存","累計30試合生存"],"targets":[1,4,10,15,22,30],"specialTitles":["灯火の継承者","暁を守る者","永遠の灯台守"]},{"role":"インポスター","theme":"潜伏工作","metric":"sabotages","label":"サボタージュ","names":["潜入開始","巧妙な工作","完全なる偽装","完全犯罪の演出家","暗黒の支配者","誰も知らぬ黒幕"],"descs":["サボタージュ1回","累計3回成功","累計6回成功","累計10回成功","累計15回成功","累計22回成功"],"targets":[1,3,6,10,15,22],"specialTitles":["完全犯罪の演出家","暗黒の支配者","誰も知らぬ黒幕"]},{"role":"イノシシ","theme":"突破作戦","metric":"charges","label":"突進発動","names":["突進の練習","突破の常連","止められぬ猛進","轟天の突進者","大地を砕く者","止められぬ暴走王"],"descs":["突進1回","累計3回","累計6回","累計10回","累計15回","累計22回"],"targets":[1,3,6,10,15,22],"specialTitles":["轟天の突進者","大地を砕く者","止められぬ暴走王"]},{"role":"百面相","theme":"変装技術","metric":"disguises","label":"変身成功","names":["仮面の新人","完璧な変身","千の顔を持つ者","千貌の幻影","真実なき変装者","究極の変幻自在"],"descs":["変身1回","累計3回","累計6回","累計10回","累計15回","累計22回"],"targets":[1,3,6,10,15,22],"specialTitles":["千貌の幻影","真実なき変装者","究極の変幻自在"]},{"role":"放浪者","theme":"放浪の旅","metric":"scents","label":"匂い付与","names":["旅立ち","遠方の探索者","果てなき旅人","星間放浪の旅人","境界を越える者","果てなき銀河の旅人"],"descs":["匂いを1回付与","累計3回付与","累計6回付与","累計10回付与","累計15回付与","累計22回付与"],"targets":[1,3,6,10,15,22],"specialTitles":["星間放浪の旅人","境界を越える者","果てなき銀河の旅人"]},{"role":"暗殺者","theme":"影の任務","metric":"bounty_kills","label":"手配対象撃破","names":["影に潜む","静かな仕事人","闇に名を刻む","無音の処刑人","影を統べる者","闇夜の伝説"],"descs":["手配対象を1人撃破","累計2人撃破","累計4人撃破","累計6人撃破","累計9人撃破","累計12人撃破"],"targets":[1,2,4,6,9,12],"specialTitles":["無音の処刑人","影を統べる者","闇夜の伝説"]},{"role":"てるてる","theme":"逆転劇","metric":"jester_wins","label":"固有勝利","names":["注目を集める","疑いを操る","究極の道化師","喝采の道化王","疑心を操る天才","舞台を支配する者"],"descs":["固有勝利1回","累計2回","累計4回","累計6回","累計9回","累計12回"],"targets":[1,2,4,6,9,12],"specialTitles":["喝采の道化王","疑心を操る天才","舞台を支配する者"]},{"role":"狂人","theme":"混乱工作","metric":"kills","label":"キル成功","names":["混乱の種","盤面をかき回す","混沌の演出家","混沌の指揮者","狂気の演出家","混沌そのもの"],"descs":["1人撃破","累計2人撃破","累計4人撃破","累計6人撃破","累計9人撃破","累計12人撃破"],"targets":[1,2,4,6,9,12],"specialTitles":["混沌の指揮者","狂気の演出家","混沌そのもの"]},{"role":"ギャンブラー","theme":"勝負師の道","metric":"gambler_jackpots","label":"JACKPOT獲得","names":["最初の大当たり","幸運の連鎖","伝説の勝負師","運命を賭ける者","奇跡の勝負師","JACKPOTの化身"],"descs":["JACKPOT1回","累計2回","累計4回","累計6回","累計9回","累計12回"],"targets":[1,2,4,6,9,12],"specialTitles":["運命を賭ける者","奇跡の勝負師","JACKPOTの化身"]}];
+const ROLE_MASTER_OUTFITS={
+ "クルー":{id:"crew_guardian",name:"守護整備士スーツ",colors:["#2d9b91","#a9f1d9"],emblem:"⚙"},
+ "サイエンティスト":{id:"quantum_labcoat",name:"量子研究コート",colors:["#4d9ed1","#d8f4ff"],emblem:"✧"},
+ "恋人":{id:"twin_star",name:"双星のペアスーツ",colors:["#d66aa7","#ffe0f1"],emblem:"♡"},
+ "占い師":{id:"oracle",name:"星詠みのローブ",colors:["#6651b8","#e8d6ff"],emblem:"✦"},
+ "狩人":{id:"moon_hunter",name:"月影ハンターアーマー",colors:["#597b4c","#d9e6a5"],emblem:"弓"},
+ "保安官":{id:"marshal",name:"治安執行ジャケット",colors:["#b18a3e","#ffe3a0"],emblem:"★"},
+ "僧侶":{id:"sanctuary",name:"聖域の法衣",colors:["#e7e1d1","#b9a5e8"],emblem:"✚"},
+ "ライトキーパー":{id:"aurora_lantern",name:"オーロラ灯守装束",colors:["#43aeb2","#d4fff2"],emblem:"☼"},
+ "インポスター":{id:"phantom",name:"深淵の潜伏スーツ",colors:["#8c354e","#f39bb0"],emblem:"◇"},
+ "イノシシ":{id:"tusk_breaker",name:"轟天ブレイカーアーマー",colors:["#9a633d","#f0bd78"],emblem:"牙"},
+ "百面相":{id:"chameleon",name:"千貌カメレオンスーツ",colors:["#538e71","#b6f0b4"],emblem:"◈"},
+ "放浪者":{id:"starfarer",name:"銀河放浪コート",colors:["#4264a8","#c1d9ff"],emblem:"☄"},
+ "暗殺者":{id:"shadow",name:"影縫いステルススーツ",colors:["#45405f","#c0b7e8"],emblem:"✕"},
+ "てるてる":{id:"jester_royal",name:"喝采の道化王衣装",colors:["#a64db2","#f4c1ff"],emblem:"♛"},
+ "狂人":{id:"chaos",name:"混沌オーバーローブ",colors:["#a33d3d","#ffd06b"],emblem:"※"},
+ "ギャンブラー":{id:"jackpot",name:"JACKPOTディーラースーツ",colors:["#277c69","#f3d56b"],emblem:"7"}
+};
+let ownedRoleMasteryOutfits=new Set();
+async function refreshRoleMasteryOutfits(){
+ if(!authUser||!supabaseClient){ownedRoleMasteryOutfits=new Set();return ownedRoleMasteryOutfits}
+ await ensureOwnPlayerProfile();
+ const {data,error}=await supabaseClient.from("player_profiles").select("role_mastery").eq("user_id",authUser.id).maybeSingle();
+ if(error)throw error;
+ const mastery=data?.role_mastery||{},ids=[];
+ for(const [role,item] of Object.entries(ROLE_MASTER_OUTFITS))if(Array.isArray(mastery[role]?.outfits)&&mastery[role].outfits.includes(item.id))ids.push(item.id);
+ ownedRoleMasteryOutfits=new Set(ids);return ownedRoleMasteryOutfits;
+}
+async function equipRoleMasteryOutfit(id){
+ if(!ownedRoleMasteryOutfits.has(id)){alert("この役職衣装はまだ獲得していません。");return}
+ const current=loadCosmetics();current.suit=id;
+ try{localStorage.setItem(TRIAD_COSMETIC_KEY,JSON.stringify(current))}catch(e){console.warn("Outfit save failed",e)}
+ if(state.me)state.me.cosmetics=current;
+ if(authUser&&supabaseClient){
+  const {error}=await supabaseClient.from("player_profiles").update({cosmetics:current,updated_at:new Date().toISOString()}).eq("user_id",authUser.id);
+  if(error){console.warn("Outfit cloud save failed",error);setAccountAuthMessage("衣装のオンライン保存に失敗しました。端末内には保存されています。",true)}
+  else await loadOnlinePlayerProfiles();
+ }
+ renderWardrobeScreen();draw();
+}
 function roleMissionRequirement(tier,v,def){
  const value=Number(v.metrics?.[def.metric]||0),need=Number(def.targets[tier-1]||1);
  return {ok:value>=need,progress:Math.min(1,value/need),value,need,label:def.label};
@@ -3143,7 +3183,7 @@ async function claimTriadRoleMission(role,tier){
  try{
   if(!authUser||!supabaseClient)await initializeOnlineAccounts();
   const {data,error}=await supabaseClient.rpc("triad_claim_role_mission",{p_role:role,p_tier:tier});if(error)throw error;
-  alert("ミッション達成報酬を獲得！\nコイン：+"+data.coins+"\nEXP：+"+data.xp+(data.title?"\n専用称号： "+data.title:""));
+  alert("ミッション達成報酬を獲得！\nコイン：+"+data.coins+"\nEXP：+"+data.xp+(data.title?"\n専用称号： "+data.title:"")+(data.outfit?"\n役職専用衣装： "+data.outfit:""));
   openProgressionScreen();
  }catch(e){alert("報酬を受け取れませんでした："+(e.message||String(e)))}
 }
@@ -3156,17 +3196,27 @@ async function openProgressionScreen(){
 }
 function renderWardrobe(m){
  const own=$("wardrobe")?.classList.contains("active")||false;
- const local=loadCosmetics(),cloud=m.cosmetics||{},equipped=own?local:{hat:cloud.hat||"none",scarf:cloud.scarf||"none"};
+ const local=loadCosmetics(),cloud=m.cosmetics||{},equipped=own?local:{hat:cloud.hat||"none",scarf:cloud.scarf||"none",suit:cloud.suit||"none"};
  const render=(items,kind)=>items.map(item=>{
   const unlocked=own?cosmeticIsUnlocked(item,kind):true,active=equipped[kind]===item.id;
   return '<button '+(own?'onclick="equipCosmetic(\''+kind+'\',\''+item.id+'\')"':'disabled')+' style="min-width:112px;padding:9px;border-radius:10px;border:1px solid '+(active?'#62d6c8':'#38506c')+';background:'+(active?'#214d50':'#14263c')+';color:inherit;opacity:'+(unlocked?1:.5)+';text-align:left"><b>'+(kind==="hat"?"🎩 ":"🧣 ")+item.name+'</b><small style="display:block;color:var(--muted);margin-top:4px">'+(active?"装備中":unlocked?(own?"タップして装備":"装備中ではありません"):"🔒 "+item.unlock)+'</small></button>';
  }).join("");
  const selectedColor=equipped.color||colors[0];
  const colorPicker=colors.map((color,i)=>'<button '+(own?'onclick="equipPlayerColor(&quot;'+color+'&quot;)"':"disabled")+' title="'+(colorNames[i]||color)+'" aria-label="'+(colorNames[i]||color)+'" style="width:42px;height:42px;min-width:42px;padding:0;border-radius:50%;background:'+color+';border:3px solid '+(selectedColor===color?"#ffffff":"#38506c")+'"></button>').join("");
- return '<div class="accountSection"><h3>👕 現在の見た目</h3><div style="display:flex;justify-content:center;align-items:center;background:#0d192a;border:1px solid #38506c;border-radius:14px;padding:12px;margin:8px 0 14px"><canvas id="wardrobePreview" width="220" height="180" style="width:min(100%,220px);height:auto;image-rendering:auto" aria-label="現在装備中のキャラクター"></canvas></div><p class="muted" style="text-align:center">装備を変更すると、ここにすぐ反映されます。</p><h3>衣装・着せ替え</h3><p class="muted">帽子・首元アクセサリー・キャラクターの色を変更できます。見た目のみが変化します。</p><h4 style="margin:12px 0 7px">キャラクターの色</h4><div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">'+colorPicker+'</div><p class="muted">選択中：'+(colorNames[colors.indexOf(selectedColor)]||"赤")+'</p><h4 style="margin:12px 0 7px">帽子</h4><div style="display:flex;gap:7px;flex-wrap:wrap">'+render(TRIAD_HATS,"hat")+'</div><h4 style="margin:14px 0 7px">首元アクセサリー</h4><div style="display:flex;gap:7px;flex-wrap:wrap">'+render(TRIAD_SCARVES,"scarf")+'</div>'+(own?"":'<p class="muted" style="margin-top:8px">他のプレイヤーの装備を表示しています。</p>')+'</div>';
+ return '<div class="accountSection"><h3>👕 現在の見た目</h3><div style="display:flex;justify-content:center;align-items:center;background:#0d192a;border:1px solid #38506c;border-radius:14px;padding:12px;margin:8px 0 14px"><canvas id="wardrobePreview" width="220" height="180" style="width:min(100%,220px);height:auto;image-rendering:auto" aria-label="現在装備中のキャラクター"></canvas></div><p class="muted" style="text-align:center">装備を変更すると、ここにすぐ反映されます。</p><h3>衣装・着せ替え</h3><p class="muted">帽子・首元アクセサリー・キャラクターの色を変更できます。見た目のみが変化します。</p><h4 style="margin:12px 0 7px">キャラクターの色</h4><div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">'+colorPicker+'</div><p class="muted">選択中：'+(colorNames[colors.indexOf(selectedColor)]||"赤")+'</p><h4 style="margin:12px 0 7px">帽子</h4><div style="display:flex;gap:7px;flex-wrap:wrap">'+render(TRIAD_HATS,"hat")+'</div><h4 style="margin:14px 0 7px">首元アクセサリー</h4><div style="display:flex;gap:7px;flex-wrap:wrap">'+render(TRIAD_SCARVES,"scarf")+'</div><h4 style="margin:14px 0 7px">🏅 役職マスタリー専用衣装</h4><p class="muted">各役職のマスタリー第6段階を達成して報酬を受け取ると、その役職だけの衣装が解放されます。</p><div style="display:flex;gap:7px;flex-wrap:wrap">'+Object.entries(ROLE_MASTER_OUTFITS).map(([role,item])=>{const unlocked=ownedRoleMasteryOutfits.has(item.id),active=equipped.suit===item.id;return '<button '+(own&&unlocked?'onclick="equipRoleMasteryOutfit(&quot;'+item.id+'&quot;)"':'disabled')+' style="min-width:145px;padding:9px;border-radius:10px;border:1px solid '+(active?'#62d6c8':'#38506c')+';background:'+(active?'#214d50':'#14263c')+';color:inherit;opacity:'+(unlocked?1:.48)+';text-align:left"><b>🎖 '+item.name+'</b><small style="display:block;color:var(--muted);margin-top:4px">'+(active?'装備中':unlocked?'タップして装備':'🔒 '+role+'のマスタリー第6段階')+'</small></button>'}).join('')+'</div>'+(own?"":'<p class="muted" style="margin-top:8px">他のプレイヤーの装備を表示しています。</p>')+'</div>';
 }
 function drawPlayerCosmetics(ctx,p){
- const c=p?.cosmetics||{},hat=c.hat||"none",scarf=c.scarf||"none";
+ const c=p?.cosmetics||{},hat=c.hat||"none",scarf=c.scarf||"none",suit=c.suit||"none";
+ const outfit=Object.values(ROLE_MASTER_OUTFITS).find(x=>x.id===suit);
+ if(outfit){
+  ctx.save();ctx.beginPath();ctx.ellipse(0,0,8.8,10.8,0,0,Math.PI*2);ctx.clip();
+  ctx.fillStyle=outfit.colors[0];ctx.fillRect(-10,-1,20,13);
+  ctx.fillStyle=outfit.colors[1];ctx.fillRect(-10,1,20,2);
+  ctx.fillStyle=outfit.colors[0];ctx.beginPath();ctx.moveTo(-8,-8);ctx.lineTo(-3,-5);ctx.lineTo(0,-7);ctx.lineTo(3,-5);ctx.lineTo(8,-8);ctx.lineTo(8,10);ctx.lineTo(-8,10);ctx.closePath();ctx.fill();
+  ctx.strokeStyle=outfit.colors[1];ctx.lineWidth=1.3;ctx.beginPath();ctx.moveTo(0,-5);ctx.lineTo(0,9);ctx.moveTo(-6,4);ctx.lineTo(6,4);ctx.stroke();
+  ctx.fillStyle=outfit.colors[1];ctx.font="bold 6px sans-serif";ctx.textAlign="center";ctx.textBaseline="middle";ctx.fillText(outfit.emblem,0,-1);
+  ctx.restore();
+ }
  if(scarf!=="none"){
   const colors={red:"#e34e5c",blue:"#4aa8e8",gold:"#e7bd4b",ribbon:"#e98acb",stardust:"#8d8bea"};
   ctx.save();ctx.strokeStyle=colors[scarf]||"#e34e5c";ctx.lineWidth=4;ctx.lineCap="round";ctx.beginPath();ctx.moveTo(-7,6);ctx.quadraticCurveTo(0,11,7,6);ctx.stroke();ctx.beginPath();ctx.moveTo(4,8);ctx.lineTo(7,14);ctx.stroke();if(scarf==="ribbon"){ctx.fillStyle="#f6c5e5";ctx.beginPath();ctx.moveTo(0,8);ctx.lineTo(-5,4);ctx.lineTo(-5,12);ctx.closePath();ctx.fill();ctx.beginPath();ctx.moveTo(0,8);ctx.lineTo(5,4);ctx.lineTo(5,12);ctx.closePath();ctx.fill()}if(scarf==="stardust"){ctx.fillStyle="#fff1a8";ctx.font="6px sans-serif";ctx.fillText("✦",-2,14)}ctx.restore();
