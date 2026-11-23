@@ -792,6 +792,8 @@ async function showRankedServerResult(result){
  }
  const me=state.players.find(p=>Number(p.number)===Number(state.me?.number));
  if(me)state.me=me;
+ const ownMetrics=(Array.isArray(result?.role_metrics)?result.role_metrics:[]).find(v=>Number(v.seat)===Number(state.me?.number));
+ if(ownMetrics&&state.me){state.me.chargeKills=Number(ownMetrics.charge_kills)||0;state.me.protectionBlocks=Number(ownMetrics.protection_blocks)||0;state.me.sabotageKills=Number(ownMetrics.sabotage_kills)||0;state.me.disguiseKills=Number(ownMetrics.disguise_kills)||0;state.me.gamblerJackpotKills=Number(ownMetrics.gambler_jackpot_kills)||0}
  const solo=Number(result?.winner_seat)>0;
  const winningFactions=Array.isArray(result?.winner_factions)?result.winner_factions:[result?.winner_faction];
  const won=solo?Number(state.me?.number)===Number(result.winner_seat):winningFactions.includes(String(state.me?.team));
