@@ -787,6 +787,7 @@ async function showRankedServerResult(result){
    if(delta!==null)detail+="（今回 "+(delta>=0?"+":"")+delta+" pt）";
   }else detail+="\nランクポイントはプロフィール画面で確認できます。";
  }catch(e){detail+="\nランクポイントはプロフィール画面で確認できます。"}
+ detail+=progressRewardSummary();
  $("gameResultDetail").textContent=detail;
  $("roleReveal").innerHTML=state.players.map(p=>'<div class="pill"><span class="dot" style="background:'+p.color+'"></span> '+escapeMeetingText(playerTag(p))+' — '+escapeMeetingText(teamName(p.team))+'「'+escapeMeetingText(p.role||"未設定")+'」'+(p.alive?"":"（脱落）")+'</div>').join("");
  $("gameOverModal").classList.add("show");
@@ -2525,6 +2526,7 @@ function loadAILongTermMemory(profileId){try{return JSON.parse(localStorage.getI
 function saveAILongTermMemories(winners={teams:[]},interrupted=false){state.players.filter(p=>p.id!==0&&p.aiProfile?.id).forEach(ai=>{const old=ai.aiProfile.memory||{},won=(winners.roles||[]).includes(ai.role)||(winners.teams||[]).includes(ai.team),sus=Number(ai.aiMemory?.suspicion?.[0]||0),trust=Number(ai.aiMemory?.trust?.[0]||0),roleStats={...(old.roleStats||{})},rs={...(roleStats[ai.role]||{})};if(!interrupted){rs.matches=(rs.matches||0)+1;rs.wins=(rs.wins||0)+(won?1:0);rs.survived=(rs.survived||0)+(ai.alive?1:0);roleStats[ai.role]=rs}const memory={...old,matchesPlayed:(old.matchesPlayed||0)+(interrupted?0:1),wins:(old.wins||0)+(!interrupted&&won?1:0),losses:(old.losses||0)+(!interrupted&&!won?1:0),survived:(old.survived||0)+(!interrupted&&ai.alive?1:0),roleStats,lastRole:ai.role,lastFaction:ai.team,lastResult:interrupted?"中断":won?"勝利":"敗北",humanSuspicion:Math.max(0,Math.min(10,(old.humanSuspicion||0)*.72+sus*.28)),humanTrust:Math.max(0,Math.min(10,(old.humanTrust||0)*.72+trust*.28)),roleHistory:[...(old.roleHistory||[]),ai.role].slice(-8),lastPlayedAt:Date.now()};ai.aiProfile.memory=memory;try{localStorage.setItem("triad_ai_memory_"+ai.aiProfile.id,JSON.stringify(memory))}catch(e){console.warn("AI memory save failed",e)}/* AI match records are written only by the server-side scheduled simulation. Browser results are not trusted. */})}
 function loadHumanStats(){try{return JSON.parse(localStorage.getItem("triad_human_stats_v1")||"{}")}catch{return {}}}
 
+let lastProgressReward=null;
 const TRIAD_PROGRESS_KEY="triad_progression_v1";
 const TRIAD_PROGRESS_PROCESSED_KEY="triad_progression_processed_v1";
 const TRIAD_ACHIEVEMENTS=[
@@ -2541,6 +2543,7 @@ function loadProgression(){
  catch{return {experiencePoints:0,level:1,achievements:[],roleMastery:{},lastReward:null}}
 }
 function grantMatchProgress(won,role,alive,matchId=null){
+ lastProgressReward=null;
  const key=String(matchId||("local-"+Date.now()+"-"+Math.random().toString(36).slice(2)));
  let done=[];try{done=JSON.parse(localStorage.getItem(TRIAD_PROGRESS_PROCESSED_KEY)||"[]")}catch{}
  if(done.includes(key))return null;
@@ -2555,8 +2558,10 @@ function grantMatchProgress(won,role,alive,matchId=null){
  base.lastReward={xp:xpGain,levelUp:base.level>p.level,newAchievements:earned,role:r};
  try{localStorage.setItem(TRIAD_PROGRESS_KEY,JSON.stringify(base));done.push(key);localStorage.setItem(TRIAD_PROGRESS_PROCESSED_KEY,JSON.stringify(done.slice(-300)))}catch(e){console.warn("Progress save failed",e)}
  if(authUser&&supabaseClient)syncOnlinePlayerProgress(base).catch(e=>console.warn("Progress cloud sync failed",e));
+ lastProgressReward=base.lastReward;
  return base.lastReward;
 }
+function progressRewardSummary(){if(!lastProgressReward)return "";const r=lastProgressReward;return "\n獲得EXP：+"+r.xp+(r.levelUp?" ／ レベルアップ！":"")+(r.newAchievements?.length?" ／ 実績獲得："+r.newAchievements.map(code=>TRIAD_ACHIEVEMENTS.find(a=>a.code===code)?.name||code).join("・"):"")}
 function mergeCloudProgressionIntoLocal(){
  if(!authUser)return;
  const row=onlinePlayerProfiles.find(p=>p.user_id===authUser.id);if(!row)return;
@@ -2594,6 +2599,7 @@ function renderProgressionSection(m){
 function saveHumanStats(won,interrupted=false){if(interrupted||!state.me)return;const old=loadHumanStats(),role=state.me.role,roleStats={...(old.roleStats||{})},rs={...(roleStats[role]||{})};rs.matches=(rs.matches||0)+1;rs.wins=(rs.wins||0)+(won?1:0);rs.survived=(rs.survived||0)+(state.me.alive?1:0);roleStats[role]=rs;const next={...old,matchesPlayed:(old.matchesPlayed||0)+1,wins:(old.wins||0)+(won?1:0),losses:(old.losses||0)+(won?0:1),survived:(old.survived||0)+(state.me.alive?1:0),roleStats,lastRole:role,lastFaction:state.me.team,lastResult:won?"勝利":"敗北",lastPlayedAt:Date.now()};try{localStorage.setItem("triad_human_stats_v1",JSON.stringify(next))}catch(e){console.warn("Player stats save failed",e)}grantMatchProgress(won,role,!!state.me.alive);if(authUser)syncOnlinePlayerStats(next)}
 
 function endGame(msg,winners={teams:[]}){
+ if(!state.running)return;
  if(onlineGame?.isHost){const players=state.players.map(p=>({...p,aiProfile:null,aiMemory:null,aiPath:[],aiGoal:null}));broadcastOnlineToUsers("match_end",{message:msg,winners,players}).catch(e=>console.warn("match end broadcast",e))}
  if(onlineSnapshotTimer){clearInterval(onlineSnapshotTimer);onlineSnapshotTimer=null}stopMatchAutosave();discardSavedGame();
  saveAILongTermMemories(winners);
@@ -2605,7 +2611,7 @@ function endGame(msg,winners={teams:[]}){
  $("gameResultTitle").textContent=won?"勝利！":"敗北";
  $("gameResultTitle").className=won?"win":"loss";
  $("gameResultReason").textContent=msg;
- $("gameResultDetail").textContent=`あなた：${teamName(state.me.team)}「${state.me.role}」／ ${state.me.alive?"生存":"幽霊"}`;
+ $("gameResultDetail").textContent=`あなた：${teamName(state.me.team)}「${state.me.role}」／ ${state.me.alive?"生存":"幽霊"}`+progressRewardSummary();
  $("roleReveal").innerHTML=state.players.map(p=>`<div class="pill"><span class="dot" style="background:${p.color}"></span> ${playerTag(p)} — ${teamName(p.team)}「${p.role}」${p.alive?"":"（死亡）"}</div>`).join("");
  $("gameOverModal").classList.add("show");
 }
