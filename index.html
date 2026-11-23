@@ -1207,7 +1207,7 @@ async function startGame(){
  if(!roleQueues.white||!roleQueues.black||(third>0&&!roleQueues.third)){alert("この人数では役職を割り当てられません。役職設定を調整してください。");return}
  await loadAIProfiles();startAudio();
  const teams=shuffle(Array(black).fill("black").concat(Array(third).fill("third"),Array(white).fill("white")));
- const startedAt=Date.now(),profileDeck=shuffle([...aiProfilePool]);state.matchStartedAt=startedAt;state.winCheckEnabledAt=startedAt+5000;gameNameDeck=shuffle([...naturalAINames]);profileDeck.forEach(profile=>{profile.memory={...loadAILongTermMemory(profile.id),...(profile.memory||{})}});
+ const startedAt=Date.now(),profileDeck=shuffle([...aiProfilePool]);state.matchStartedAt=startedAt;state.winCheckEnabledAt=startedAt+5000;state.combatProtectionUntil=startedAt+10000;gameNameDeck=shuffle([...naturalAINames]);profileDeck.forEach(profile=>{profile.memory={...loadAILongTermMemory(profile.id),...(profile.memory||{})}});
  for(let i=0;i<totalPlayers;i++){
   const member=i<members.length?members[i]:null,aiIndex=i-members.length,isHuman=!!(onlineHost&&member);
   const spawn=isHuman&&member.user_id===authUser.id?[250,250]:randomSpawn(),team=teams[i],profile=member?null:(profileDeck[aiIndex]||null),guestNumber=member&&!member.is_host?members.slice(0,i).filter(m=>!m.is_host).length+1:0;
@@ -1231,8 +1231,10 @@ async function startGame(){
 }
 function randomSpawn(){
  const areas=[[250,250],[600,250],[1180,250],[1540,260],[250,800],[670,800],[1160,800],[1540,800],[900,520]];
- for(let n=0;n<120;n++){const a=areas[Math.floor(Math.random()*areas.length)],x=a[0]+rand(-45,45),y=a[1]+rand(-45,45);if(isWalkable(x,y)&&state.players.every(p=>Math.hypot(p.x-x,p.y-y)>25))return [x,y]}
- return [250+rand(-20,20),250+rand(-20,20)];
+ for(let n=0;n<420;n++){const a=areas[Math.floor(Math.random()*areas.length)],x=a[0]+rand(-55,55),y=a[1]+rand(-55,55);if(isWalkable(x,y)&&state.players.every(p=>Math.hypot(p.x-x,p.y-y)>=42))return [x,y]}
+ let best=null,bestGap=-1;
+ for(let n=0;n<900;n++){const room=state.map.rooms[Math.floor(Math.random()*state.map.rooms.length)];if(!room)break;const x=room[1]+20+Math.random()*Math.max(1,room[3]-40),y=room[2]+20+Math.random()*Math.max(1,room[4]-40);if(!isWalkable(x,y))continue;const gap=state.players.length?Math.min(...state.players.map(p=>Math.hypot(p.x-x,p.y-y))):Infinity;if(gap>bestGap){bestGap=gap;best=[x,y]}if(gap>=42)return [x,y]}
+ return best||[250,250];
 }
 const meetingSpawnZones=[
  {x:250,y:250,rx:85,ry:65},{x:610,y:250,rx:80,ry:65},
@@ -1725,6 +1727,7 @@ function showPersonalEffect(type,title,detail){
 }
 function markPlayerDead(victim,source="死亡",attacker=null){
  if(!victim||!victim.alive)return false;
+ if(state.combatProtectionUntil&&Date.now()<state.combatProtectionUntil)return false;
  if(attacker&&attacker.id!==victim.id){
   const nearby=state.players.filter(p=>p.alive&&p.id!==attacker.id&&p.id!==victim.id&&Math.hypot(p.x-victim.x,p.y-victim.y)<=140&&hasLineOfSight(p,victim));
   state.killEvents.push({victimId:victim.id,killerId:attacker.id,room:roomNameAt(victim.x,victim.y),at:Date.now(),witnessIds:nearby.filter(p=>Math.hypot(p.x-victim.x,p.y-victim.y)<=88).map(p=>p.id),nearbyIds:nearby.map(p=>p.id)});
@@ -1739,7 +1742,8 @@ function killPlayer(victim,attacker,source="キル"){
  if(!victim||!victim.alive)return false;
  if(attacker&&attacker.team==="black"&&victim.team==="black")return false;
  if(victim.protected){victim.protected=false;if(attacker?.id===0)alert("加護が攻撃を防ぎました。");log("加護が攻撃を防いだ。");return false}
- markPlayerDead(victim,source,attacker);
+ const marked=markPlayerDead(victim,source,attacker);
+ if(!marked)return false;
  log(victim.name+" が"+source+"されました。");return true;
 }
 function performKill(target,actor,source="キル"){
@@ -2701,8 +2705,8 @@ const TRIAD_SCARVES=[
  {id:"gold",name:"金色のスカーフ",unlock:"10勝",achievement:"ten_wins"}
 ];
 function loadCosmetics(){
- try{const v=JSON.parse(localStorage.getItem(TRIAD_COSMETIC_KEY)||"{}");return {hat:v.hat||"none",scarf:v.scarf||"none"}}
- catch{return {hat:"none",scarf:"none"}}
+ try{const v=JSON.parse(localStorage.getItem(TRIAD_COSMETIC_KEY)||"{}");return {hat:v.hat||"none",scarf:v.scarf||"none",color:colors.includes(v.color)?v.color:colors[0]}}
+ catch{return {hat:"none",scarf:"none",color:colors[0]}}
 }
 function cosmeticIsUnlocked(item){
  const p=loadProgression();return (!item.level||p.level>=item.level)&&(!item.achievement||p.achievements.includes(item.achievement));
@@ -2711,9 +2715,13 @@ function applyPlayerCosmetics(){
  const own=loadCosmetics();
  (state.players||[]).forEach(p=>{
   const cloud=onlinePlayerProfiles.find(v=>v.user_id&&v.user_id===p.userId);
-  p.cosmetics=cloud?.cosmetics?{hat:cloud.cosmetics.hat||"none",scarf:cloud.cosmetics.scarf||"none"}:{hat:"none",scarf:"none"};
+  p.cosmetics=cloud?.cosmetics?{hat:cloud.cosmetics.hat||"none",scarf:cloud.cosmetics.scarf||"none",color:colors.includes(cloud.cosmetics.color)?cloud.cosmetics.color:p.color}:{hat:"none",scarf:"none",color:p.color};
+  if(p.cosmetics.color&&colors.includes(p.cosmetics.color))p.color=p.cosmetics.color;
+  p.colorName=colorNames[colors.indexOf(p.color)]||p.colorName;
   if(p.userId&&authUser&&p.userId===authUser.id)p.cosmetics=own;
   if(p===state.me)p.cosmetics=own;
+  if(p.cosmetics?.color&&colors.includes(p.cosmetics.color))p.color=p.cosmetics.color;
+  p.colorName=colorNames[colors.indexOf(p.color)]||p.colorName;
  });
 }
 async function equipCosmetic(kind,id){
@@ -2721,7 +2729,7 @@ async function equipCosmetic(kind,id){
  if(!item||!cosmeticIsUnlocked(item)){alert("このアイテムはまだ解放されていません。");return}
  const current=loadCosmetics();current[kind]=id;
  try{localStorage.setItem(TRIAD_COSMETIC_KEY,JSON.stringify(current))}catch(e){console.warn("Cosmetic save failed",e)}
- if(state.me)state.me.cosmetics=current;
+ if(state.me){state.me.cosmetics=current;if(current.color&&colors.includes(current.color)){state.me.color=current.color;state.me.colorName=colorNames[colors.indexOf(current.color)]||state.me.colorName}}
  if(authUser&&supabaseClient){
   const {error}=await supabaseClient.from("player_profiles").update({cosmetics:current,updated_at:new Date().toISOString()}).eq("user_id",authUser.id);
   if(error){console.warn("Cosmetic cloud save failed",error);setAccountAuthMessage("衣装のオンライン保存に失敗しました。端末内には保存されています。",true)}
@@ -2729,6 +2737,7 @@ async function equipCosmetic(kind,id){
  }
  renderWardrobeScreen();draw();
 }
+async function equipPlayerColor(color){if(!colors.includes(color))return;const current=loadCosmetics();current.color=color;try{localStorage.setItem(TRIAD_COSMETIC_KEY,JSON.stringify(current))}catch(e){console.warn("Player color save failed",e)}if(state.me){state.me.color=color;state.me.colorName=colorNames[colors.indexOf(color)]||state.me.colorName;state.me.cosmetics=current}if(authUser&&supabaseClient){const {error}=await supabaseClient.from("player_profiles").update({cosmetics:current,updated_at:new Date().toISOString()}).eq("user_id",authUser.id);if(error){console.warn("Color cloud save failed",error);setAccountAuthMessage("色のオンライン保存に失敗しました。端末内には保存されています。",true)}else await loadOnlinePlayerProfiles()}renderWardrobeScreen();draw()}
 function openWardrobeScreen(){if(!activateScreen("wardrobe"))return;renderWardrobeScreen()}
 function renderWardrobeScreen(){
  const root=$("wardrobeContent");if(!root)return;
@@ -2741,7 +2750,7 @@ function drawWardrobePreview(){
  const ctx=canvas.getContext("2d");if(!ctx)return;
  const w=canvas.width,h=canvas.height;ctx.clearRect(0,0,w,h);
  ctx.fillStyle="#0d192a";ctx.fillRect(0,0,w,h);
- const p={id:0,color:colors[0]||"#52c8d9",shape:0,alive:true,cosmetics:loadCosmetics()};
+ const cosmetics=loadCosmetics(),p={id:0,color:colors.includes(cosmetics.color)?cosmetics.color:colors[0]||"#52c8d9",shape:0,alive:true,cosmetics};
  ctx.save();ctx.translate(w/2,h/2+8);ctx.scale(3.2,3.2);
  ctx.fillStyle=p.color;ctx.strokeStyle="#ffffff";ctx.lineWidth=1.1;
  ctx.beginPath();ctx.ellipse(0,0,9,11,0,0,Math.PI*2);ctx.fill();ctx.stroke();
@@ -2761,7 +2770,9 @@ function renderWardrobe(m){
   const unlocked=own?cosmeticIsUnlocked(item):true,active=equipped[kind]===item.id;
   return '<button '+(own?'onclick="equipCosmetic(\''+kind+'\',\''+item.id+'\')"':'disabled')+' style="min-width:112px;padding:9px;border-radius:10px;border:1px solid '+(active?'#62d6c8':'#38506c')+';background:'+(active?'#214d50':'#14263c')+';color:inherit;opacity:'+(unlocked?1:.5)+';text-align:left"><b>'+(kind==="hat"?"🎩 ":"🧣 ")+item.name+'</b><small style="display:block;color:var(--muted);margin-top:4px">'+(active?"装備中":unlocked?(own?"タップして装備":"装備中ではありません"):"🔒 "+item.unlock)+'</small></button>';
  }).join("");
- return '<div class="accountSection"><h3>👕 現在の見た目</h3><div style="display:flex;justify-content:center;align-items:center;background:#0d192a;border:1px solid #38506c;border-radius:14px;padding:12px;margin:8px 0 14px"><canvas id="wardrobePreview" width="220" height="180" style="width:min(100%,220px);height:auto;image-rendering:auto" aria-label="現在装備中のキャラクター"></canvas></div><p class="muted" style="text-align:center">装備を変更すると、ここにすぐ反映されます。</p><h3>衣装・着せ替え</h3><p class="muted">帽子や首元のアクセサリーを変更できます。衣装による能力差はありません。</p><h4 style="margin:12px 0 7px">帽子</h4><div style="display:flex;gap:7px;flex-wrap:wrap">'+render(TRIAD_HATS,"hat")+'</div><h4 style="margin:14px 0 7px">首元アクセサリー</h4><div style="display:flex;gap:7px;flex-wrap:wrap">'+render(TRIAD_SCARVES,"scarf")+'</div>'+(own?"":'<p class="muted" style="margin-top:8px">他のプレイヤーの装備を表示しています。</p>')+'</div>';
+ const selectedColor=equipped.color||colors[0];
+ const colorPicker=colors.map((color,i)=>'<button '+(own?'onclick="equipPlayerColor(\\\''+color+'\\\')"' : "disabled")+' title="'+(colorNames[i]||color)+'" aria-label="'+(colorNames[i]||color)+'" style="width:42px;height:42px;min-width:42px;padding:0;border-radius:50%;background:'+color+';border:3px solid '+(selectedColor===color?"#ffffff":"#38506c")+'"></button>').join("");
+ return '<div class="accountSection"><h3>👕 現在の見た目</h3><div style="display:flex;justify-content:center;align-items:center;background:#0d192a;border:1px solid #38506c;border-radius:14px;padding:12px;margin:8px 0 14px"><canvas id="wardrobePreview" width="220" height="180" style="width:min(100%,220px);height:auto;image-rendering:auto" aria-label="現在装備中のキャラクター"></canvas></div><p class="muted" style="text-align:center">装備を変更すると、ここにすぐ反映されます。</p><h3>衣装・着せ替え</h3><p class="muted">帽子・首元アクセサリー・キャラクターの色を変更できます。見た目のみが変化します。</p><h4 style="margin:12px 0 7px">キャラクターの色</h4><div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">'+colorPicker+'</div><p class="muted">選択中：'+(colorNames[colors.indexOf(selectedColor)]||"赤")+'</p><h4 style="margin:12px 0 7px">帽子</h4><div style="display:flex;gap:7px;flex-wrap:wrap">'+render(TRIAD_HATS,"hat")+'</div><h4 style="margin:14px 0 7px">首元アクセサリー</h4><div style="display:flex;gap:7px;flex-wrap:wrap">'+render(TRIAD_SCARVES,"scarf")+'</div>'+(own?"":'<p class="muted" style="margin-top:8px">他のプレイヤーの装備を表示しています。</p>')+'</div>';
 }
 function drawPlayerCosmetics(ctx,p){
  const c=p?.cosmetics||{},hat=c.hat||"none",scarf=c.scarf||"none";
