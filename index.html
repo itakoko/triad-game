@@ -2905,7 +2905,7 @@ async function pullTriadGacha(count){
  triadGachaBusy=true;
  const root=$("gachaContent");if(root)root.insertAdjacentHTML("afterbegin",'<p class="muted" id="gachaBusyMessage">抽選中…</p>');
  try{
-  const requestId=crypto.randomUUID();
+  const requestId=(crypto.randomUUID?crypto.randomUUID():([1e7]+-1e3+-4e3+-8e3+-1e11).replace(/[018]/g,c=>(c^crypto.getRandomValues(new Uint8Array(1))[0]&15>>c/4).toString(16)));
   const {data,error}=await supabaseClient.functions.invoke("triad-gacha",{body:{count:count,request_id:requestId}});
   if(error)throw error;
   if(data?.error==="NOT_ENOUGH_COINS")throw new Error("コインが足りません。");
