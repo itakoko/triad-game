@@ -2822,7 +2822,7 @@ async function loadEconomyScreen(){
   const [walletRes,inventoryRes,catalogRes,tradeRes,friendRes]=await Promise.all([
    supabaseClient.from("player_wallets").select("coins").eq("user_id",authUser.id).single(),
    supabaseClient.from("player_cosmetic_inventory").select("item_code,source,acquired_at").eq("user_id",authUser.id),
-   supabaseClient.from("player_cosmetic_catalog").select("item_code,item_kind,cosmetic_id,display_name,price").eq("active",true).order("price"),
+   supabaseClient.from("player_cosmetic_catalog").select("item_code,item_kind,cosmetic_id,display_name,price,active").order("price"),
    supabaseClient.from("player_item_trades").select("id,from_user_id,to_user_id,offered_item,requested_item,status,created_at").or("from_user_id.eq."+authUser.id+",to_user_id.eq."+authUser.id).order("created_at",{ascending:false}).limit(30),
    supabaseClient.rpc("list_friends")
   ]);
@@ -2837,9 +2837,9 @@ async function loadEconomyScreen(){
    const {data,error}=await supabaseClient.from("player_profiles").select("user_id,display_name").in("user_id",otherIds);
    if(error)throw error;(data||[]).forEach(v=>names[v.user_id]=v.display_name||"プレイヤー");
   }
-  const available=economyCatalogCache.filter(v=>!economyInventoryCodes.includes(v.item_code)&&!economyItemProgressUnlocked(v));
+  const available=economyCatalogCache.filter(v=>v.active&&!economyInventoryCodes.includes(v.item_code)&&!economyItemProgressUnlocked(v));
   const capsuleOptions=available.map(v=>'<option value="'+v.item_code+'">'+escapeAccountText(v.display_name)+'（'+v.price+'コイン）</option>').join("");
-  const shopRows=economyCatalogCache.map(v=>{
+  const shopRows=economyCatalogCache.filter(v=>v.active).map(v=>{
    const owned=economyInventoryCodes.includes(v.item_code),progressUnlocked=!owned&&economyItemProgressUnlocked(v),reserved=tradeRows.some(t=>t.status==="pending"&&t.from_user_id===authUser.id&&t.offered_item===v.item_code);
    const status=owned?(reserved?"交換申請中・使用予約中":"所持中"):progressUnlocked?"レベル・実績で解放済み":(v.price+"コイン");
    const disabled=owned||progressUnlocked||economyCoins<v.price;
