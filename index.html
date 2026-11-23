@@ -2789,6 +2789,10 @@ function economyItemName(code){
  const item=economyCatalogCache.find(v=>v.item_code===code);
  return item?.display_name||code;
 }
+function economyItemProgressUnlocked(item){
+ const list=item.item_kind==="hat"?TRIAD_HATS:TRIAD_SCARVES,meta=list.find(v=>v.id===item.cosmetic_id),p=loadProgression();
+ return !!meta&&(!meta.level||p.level>=meta.level)&&(!meta.achievement||p.achievements.includes(meta.achievement));
+}
 async function openEconomyScreen(){
  if(!activateScreen("economy"))return;
  await loadEconomyScreen();
@@ -2819,11 +2823,13 @@ async function loadEconomyScreen(){
    const {data,error}=await supabaseClient.from("player_profiles").select("user_id,display_name").in("user_id",otherIds);
    if(error)throw error;(data||[]).forEach(v=>names[v.user_id]=v.display_name||"プレイヤー");
   }
-  const available=economyCatalogCache.filter(v=>!economyInventoryCodes.includes(v.item_code));
+  const available=economyCatalogCache.filter(v=>!economyInventoryCodes.includes(v.item_code)&&!economyItemProgressUnlocked(v));
   const capsuleOptions=available.map(v=>'<option value="'+v.item_code+'">'+escapeAccountText(v.display_name)+'（'+v.price+'コイン）</option>').join("");
   const shopRows=economyCatalogCache.map(v=>{
-   const owned=economyInventoryCodes.includes(v.item_code),reserved=tradeRows.some(t=>t.status==="pending"&&t.from_user_id===authUser.id&&t.offered_item===v.item_code);
-   return '<div class="socialItem"><span><b>'+escapeAccountText(v.display_name)+'</b><small style="display:block;color:var(--muted)">'+(owned?(reserved?"交換申請中・使用予約中":"所持中"):(v.price+"コイン"))+'</small></span><button '+(owned||economyCoins<v.price?'disabled':'')+' onclick="buyEconomyItem(\''+v.item_code+'\')">'+(owned?"所持済み":"交換")+'</button></div>';
+   const owned=economyInventoryCodes.includes(v.item_code),progressUnlocked=!owned&&economyItemProgressUnlocked(v),reserved=tradeRows.some(t=>t.status==="pending"&&t.from_user_id===authUser.id&&t.offered_item===v.item_code);
+   const status=owned?(reserved?"交換申請中・使用予約中":"所持中"):progressUnlocked?"レベル・実績で解放済み":(v.price+"コイン");
+   const disabled=owned||progressUnlocked||economyCoins<v.price;
+   return '<div class="socialItem"><span><b>'+escapeAccountText(v.display_name)+'</b><small style="display:block;color:var(--muted)">'+status+'</small></span><button '+(disabled?'disabled':'')+' onclick="buyEconomyItem(\''+v.item_code+'\')">'+(owned||progressUnlocked?"解放済み":"交換")+'</button></div>';
   }).join("");
   const invOptions=economyInventoryCodes.map(code=>'<option value="'+code+'">'+escapeAccountText(economyItemName(code))+'</option>').join("");
   const friendOptions=economyFriendsCache.map(f=>'<option value="'+f.user_id+'">'+escapeAccountText(f.display_name||"フレンド")+'</option>').join("");
