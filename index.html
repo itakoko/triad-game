@@ -2718,7 +2718,7 @@ async function equipCosmetic(kind,id){
  const selected=$("accountDetail")?.dataset.selected||"player";renderAccountDetail(selected);draw();
 }
 function renderWardrobe(m){
- const own=!!authUser&&$("accountDetail")?.dataset.selected===authUser.id;
+ const selectedId=$("accountDetail")?.dataset.selected,own=authUser?selectedId===authUser.id:selectedId==="player";
  const local=loadCosmetics(),cloud=m.cosmetics||{},equipped=own?local:{hat:cloud.hat||"none",scarf:cloud.scarf||"none"};
  const render=(items,kind)=>items.map(item=>{
   const unlocked=own?cosmeticIsUnlocked(item):true,active=equipped[kind]===item.id;
