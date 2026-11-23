@@ -1763,6 +1763,7 @@ function performKill(target,actor,source="キル"){
  if(!target||!actor?.alive||!target.alive||target.id===actor.id)return false;
  if(actor.team==="black"&&target.team==="black")return false;
  const killed=killPlayer(target,actor,source);
+ if(killed){actor.roleKillCount=(actor.roleKillCount||0)+1;if(String(source||"").includes("暗殺"))actor.bountyKillCount=(actor.bountyKillCount||0)+1}
  if(killed&&actor.role==="保安官"&&target.team==="white"){killPlayer(actor,actor,"保安官の誤射")}
  updateNearbyActions();draw();checkWin();return killed;
 }
@@ -1789,7 +1790,7 @@ function useKill(){
 function useSabotage(){if(rankedServerMode){
  const actor=state.me;if(!actor?.alive||actor.role!=="インポスター")return;
  rankedEngineCall("ability",{kind:"sabotage"}).then(async result=>{
-  if(result.status==="sabotage_started"){state.sabotageUntil=Number(result.until)||Date.now()+10000;alert("停電サボタージュを開始しました。10秒間、黒陣営以外の視界が狭くなります。")}
+  if(result.status==="sabotage_started"){actor.sabotageUses=(actor.sabotageUses||0)+1;state.sabotageUntil=Number(result.until)||Date.now()+10000;alert("停電サボタージュを開始しました。10秒間、黒陣営以外の視界が狭くなります。")}
   else if(result.status==="cooldown")alert("サボタージュの再使用まで待ってください。");
   else alert("サボタージュを使えません："+result.status);
   applyRankedServerSnapshot(await rankedEngineCall("state"));
@@ -1887,7 +1888,7 @@ function useAbility(){if(rankedServerMode){
  if(actor.role==="イノシシ"){
   const d=state.lastDirection||{x:1,y:0};state.move={x:0,y:0};
   rankedEngineCall("ability",{kind:"boar_charge",dx:d.x,dy:d.y}).then(async r=>{
-   if(r.status==="charge_started"){actor.charging=true;alert("突進開始！壁か相手に接触するまで操作できません。");}
+   if(r.status==="charge_started"){actor.chargeUses=(actor.chargeUses||0)+1;actor.charging=true;alert("突進開始！壁か相手に接触するまで操作できません。");}
    else if(r.status==="cooldown")alert("再使用まで待ってください。");
    else alert("突進できません："+r.status);
    if(r.status!=="charge_started")return;
@@ -1905,6 +1906,7 @@ function useAbility(){if(rankedServerMode){
   if(actor.gamblerKillReady){openTargetSelection("JACKPOT能力を使う相手を選択","近くの相手1人に一度だけ使えます。",targetCandidates(actor,100,false,p=>p.team!==actor.team),"gamblerKill");return}
   rankedEngineCall("ability",{kind:"gambler_roll"}).then(async result=>{
    if(result.status==="gambler_result"||result.status==="gambler_eliminated"){
+    actor.gamblerRolls=(actor.gamblerRolls||0)+1;
     const target=result.target_seat?state.players.find(p=>p.number===Number(result.target_seat)):null;
     if(target&&result.target_faction)target.team=result.target_faction;
     const messages={1:"JACKPOT！1回使える能力を獲得しました。",2:"強運！次に受ける攻撃を1回防ぎます。",3:target?"運命の目："+target.name+" は"+teamName(result.target_faction)+"陣営です。":"運命の目：対象はいませんでした。",4:"小当たり！次の抽選まで5秒です。",5:"ハズレ。今回は効果なしです。",6:"大凶！累計"+result.bad_luck_count+"/3回です。"};
@@ -1934,23 +1936,23 @@ function useAbility(){if(rankedServerMode){
  if(role==="放浪者"){playSfx("ability");openTargetSelection("匂いを移す相手を選択","匂いを移された相手には通知されません。",targetCandidates(actor,90),"scent");return}
 }
 function selectTarget(id){if(rankedServerMode){
- const action=state.targetAction,kind=action?.kind,target=state.players.find(p=>p.id===Number(id));closeTargetModal();
+ const action=state.targetAction,kind=action?.kind,target=state.players.find(p=>p.id===Number(id)),actor=state.me;closeTargetModal();
  if(!kind||!target)return;
  const apiKind={seer:"seer",protect:"protect",scent:"scent",disguise:"disguise",roleKill:"attack_once",attack_once:"attack_once",assassinKill:"assassin_kill",gamblerKill:"gambler_kill",rankedKill:"ranked_kill"}[kind];if(!apiKind)return;
  rankedEngineCall("ability",{kind:apiKind,target_seat:Number(target.number||target.id+1)}).then(async result=>{
-  if(result.status==="seer_result"){target.team=result.target_faction;showSeerResult(target)}
-  else if(result.status==="protected"){target.protected=true;alert(target.name+" に加護を与えました。")}
-  else if(result.status==="attack_success"){alert(target.name+" を倒しました。")}
+  if(result.status==="seer_result"){actor.seerUses=(actor.seerUses||0)+1;target.team=result.target_faction;showSeerResult(target)}
+  else if(result.status==="protected"){actor.protectionUses=(actor.protectionUses||0)+1;target.protected=true;alert(target.name+" に加護を与えました。")}
+  else if(result.status==="attack_success"){actor.roleKillCount=(actor.roleKillCount||0)+1;alert(target.name+" を倒しました。")}
   else if(result.status==="role_completed"){await showRankedServerResult(result)}
   else if(result.status==="not_a_bounty_target"){alert("その相手は手配対象ではありません。")}
   else if(result.status==="attack_blocked"){alert("加護が攻撃を防ぎました。")}
-  else if(result.status==="gambler_kill_success"){alert("JACKPOT能力を使いました。")}
+  else if(result.status==="gambler_kill_success"){actor.roleKillCount=(actor.roleKillCount||0)+1;alert("JACKPOT能力を使いました。")}
   else if(result.status==="gambler_kill_blocked"){alert("対象の加護がJACKPOT能力を防ぎました。")}
-  else if(result.status==="ranked_kill_success"){alert("能力を使用しました。")}
+  else if(result.status==="ranked_kill_success"){actor.roleKillCount=(actor.roleKillCount||0)+1;if(kind==="assassinKill")actor.bountyKillCount=(actor.bountyKillCount||0)+1;alert("能力を使用しました。")}
   else if(result.status==="ranked_kill_blocked"){alert("対象の加護が攻撃を防ぎました。")}
   else if(result.status==="sheriff_misfire"){alert("白陣営を誤って攻撃したため、保安官も脱落しました。")}
-  else if(result.status==="scented"){state.scentedIds.add(target.id);$("nearHint").textContent="匂いを移しました。対象 "+result.scented_count+" 人";alert("匂いを移しました。")}
-  else if(result.status==="disguised"){alert("10秒間、選んだ相手の姿に変身しました。")}
+  else if(result.status==="scented"){actor.scentUses=(actor.scentUses||0)+1;state.scentedIds.add(target.id);$("nearHint").textContent="匂いを移しました。対象 "+result.scented_count+" 人";alert("匂いを移しました。")}
+  else if(result.status==="disguised"){actor.disguiseUses=(actor.disguiseUses||0)+1;alert("10秒間、選んだ相手の姿に変身しました。")}
   else if(result.status==="objective_complete"){await showRankedServerResult({...result,winner_role:"放浪者",winner_seat:Number(state.me?.number)})}
   else if(result.status==="match_completed"){await showRankedServerResult(result)}
   else if(result.status==="too_far")alert("対象にもう少し近づいてください。");
@@ -2592,16 +2594,16 @@ function collectRoleMatchMetrics(role,won,alive){
  return {
   tasks:Number(me.taskCount||0),
   scientist_checks:Number(me.scientistChecks||0),
-  partner_survivals:partner&&partner.alive?1:0,
+  partner_survivals:alive&&partner?.alive?1:0,
   seer_uses:Number(me.seerUses||0),
-  kills:ownKills.length,
+  kills:Math.max(Number(me.roleKillCount||0),ownKills.length),
   protections:Number(me.protectionUses||0),
   lightkeeper_survivals:alive?1:0,
   sabotages:Number(me.sabotageUses||0),
   charges:Number(me.chargeUses||0),
   disguises:Number(me.disguiseUses||0),
   scents:Number(me.scentUses||0),
-  bounty_kills:ownKills.filter(e=>String(e.source||"").includes("暗殺")).length,
+  bounty_kills:Math.max(Number(me.bountyKillCount||0),ownKills.filter(e=>String(e.source||"").includes("暗殺")).length),
   jester_wins:role==="てるてる"&&won?1:0,
   gambler_jackpots:Number(me.gamblerJackpots||0),
   gambler_rolls:Number(me.gamblerRolls||0),
