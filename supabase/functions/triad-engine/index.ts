@@ -149,6 +149,11 @@ function rankedMatchResult(state:any, result:any) {
     ...result,
     role_reveal:(state.players||[]).map((p:any)=>({
       seat:Number(p.seat),role:String(p.role||"未設定"),faction:String(p.faction||"unknown"),alive:!!p.alive
+    })),
+    role_metrics:(state.players||[]).map((p:any)=>({
+      seat:Number(p.seat),charge_kills:Number(p.charge_kills||0),protection_blocks:Number(p.protection_blocks||0),
+      sabotage_kills:Number(p.sabotage_kills||0),disguise_kills:Number(p.disguise_kills||0),
+      gambler_jackpot_kills:Number(p.gambler_jackpot_kills||0)
     }))
   };
 }
