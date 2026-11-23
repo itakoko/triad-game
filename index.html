@@ -2626,7 +2626,7 @@ function grantMatchProgress(won,role,alive,matchId=null){
  const mastery={...p.roleMastery},old={...(mastery[r]||{})};
  const matchMetrics=collectRoleMatchMetrics(r,won,alive),oldMetrics=old.metrics||{},metrics={...oldMetrics};
  Object.entries(matchMetrics).forEach(([k,v])=>metrics[k]=Number(metrics[k]||0)+Number(v||0));
- mastery[r]={matches:Number(old.matches||0)+1,wins:Number(old.wins||0)+(won?1:0),survived:Number(old.survived||0)+(alive?1:0),experience:Number(old.experience||0)+25+(won?15:0)+(alive?10:0),metrics};
+ mastery[r]={matches:Number(old.matches||0)+1,wins:Number(old.wins||0)+(won?1:0),survived:Number(old.survived||0)+(alive?1:0),experience:Number(old.experience||0)+25+(won?15:0)+(alive?10:0),metrics,titles:Array.isArray(old.titles)?old.titles:[]};
  const xpGain=30+(won?20:0)+(alive?10:0)+(Number(old.matches||0)===0?5:0);
  const base={...p,experiencePoints:p.experiencePoints+xpGain,roleMastery:mastery,completedMatches:Number(p.completedMatches||0)+1,totalWins:Number(p.totalWins||0)+(won?1:0),totalSurvivals:Number(p.totalSurvivals||0)+(alive?1:0)};
  const achievementStats={matchesPlayed:base.completedMatches,wins:base.totalWins,survived:base.totalSurvivals,roleMastery:mastery};
