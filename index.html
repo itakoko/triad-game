@@ -2619,7 +2619,7 @@ function mergeAIAccountMemory(cloud,local){
 function accountRows(){
  const rows=[],local=loadHumanStats();
  const toMemory=p=>({matchesPlayed:Number(p.matches_played||0),wins:Number(p.wins||0),losses:Number(p.losses||0),survived:Number(p.survived||0),roleStats:p.role_stats||{},experiencePoints:Number(p.experience_points||0),playerLevel:Number(p.player_level||1),achievementCodes:Array.isArray(p.achievement_codes)?p.achievement_codes:[],roleMastery:p.role_mastery||{}});
- if(!authUser)rows.push({id:"player",type:"player",name:"あなた（この端末）",memory:local});
+ if(!authUser){const growth=loadProgression();rows.push({id:"player",type:"player",name:"あなた（この端末）",memory:{...local,experiencePoints:growth.experiencePoints,playerLevel:growth.level,achievementCodes:growth.achievements,roleMastery:growth.roleMastery}})}
  (onlinePlayerProfiles||[]).forEach(p=>{
   const memory=toMemory(p);
   if(authUser&&p.user_id===authUser.id){const localGrowth=loadProgression();memory.experiencePoints=Math.max(memory.experiencePoints,localGrowth.experiencePoints);memory.playerLevel=Math.max(memory.playerLevel,localGrowth.level);memory.achievementCodes=[...new Set([...memory.achievementCodes,...localGrowth.achievements])];memory.roleMastery={...memory.roleMastery,...localGrowth.roleMastery};
