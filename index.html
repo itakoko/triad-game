@@ -2626,7 +2626,7 @@ function grantMatchProgress(won,role,alive,matchId=null){
  const mastery={...p.roleMastery},old={...(mastery[r]||{})};
  const matchMetrics=collectRoleMatchMetrics(r,won,alive),oldMetrics=old.metrics||{},metrics={...oldMetrics};
  Object.entries(matchMetrics).forEach(([k,v])=>metrics[k]=Number(metrics[k]||0)+Number(v||0));
- mastery[r]={matches:Number(old.matches||0)+1,wins:Number(old.wins||0)+(won?1:0),survived:Number(old.survived||0)+(alive?1:0),experience:Number(old.experience||0)+25+(won?15:0)+(alive?10:0),metrics,titles:Array.isArray(old.titles)?old.titles:[]};
+ mastery[r]={matches:Number(old.matches||0)+1,wins:Number(old.wins||0)+(won?1:0),survived:Number(old.survived||0)+(alive?1:0),experience:Number(old.experience||0)+25+(won?15:0)+(alive?10:0),metrics,titles:Array.isArray(old.titles)?old.titles:[],outfits:Array.isArray(old.outfits)?old.outfits:[]};
  const xpGain=30+(won?20:0)+(alive?10:0)+(Number(old.matches||0)===0?5:0);
  const base={...p,experiencePoints:p.experiencePoints+xpGain,roleMastery:mastery,completedMatches:Number(p.completedMatches||0)+1,totalWins:Number(p.totalWins||0)+(won?1:0),totalSurvivals:Number(p.totalSurvivals||0)+(alive?1:0)};
  const achievementStats={matchesPlayed:base.completedMatches,wins:base.totalWins,survived:base.totalSurvivals,roleMastery:mastery};
@@ -2664,7 +2664,7 @@ async function syncOnlinePlayerProgress(progress=loadProgression()){
  const mastery={...(cloud?.role_mastery||{})};
  for(const [role,v] of Object.entries(progress.roleMastery||{})){
   const old=mastery[role]||{};
-  mastery[role]={matches:Math.max(Number(old.matches||0),Number(v.matches||0)),wins:Math.max(Number(old.wins||0),Number(v.wins||0)),survived:Math.max(Number(old.survived||0),Number(v.survived||0)),experience:Math.max(Number(old.experience||0),Number(v.experience||0)),metrics:Object.fromEntries([...new Set([...Object.keys(old.metrics||{}),...Object.keys(v.metrics||{})])].map(k=>[k,Math.max(Number(old.metrics?.[k]||0),Number(v.metrics?.[k]||0))])),titles:[...new Set([...(old.titles||[]),...(v.titles||[])])]};
+  mastery[role]={matches:Math.max(Number(old.matches||0),Number(v.matches||0)),wins:Math.max(Number(old.wins||0),Number(v.wins||0)),survived:Math.max(Number(old.survived||0),Number(v.survived||0)),experience:Math.max(Number(old.experience||0),Number(v.experience||0)),metrics:Object.fromEntries([...new Set([...Object.keys(old.metrics||{}),...Object.keys(v.metrics||{})])].map(k=>[k,Math.max(Number(old.metrics?.[k]||0),Number(v.metrics?.[k]||0))])),titles:[...new Set([...(old.titles||[]),...(v.titles||[])])],outfits:[...new Set([...(old.outfits||[]),...(v.outfits||[])])]};
  }
  const {error}=await supabaseClient.from("player_profiles").update({experience_points:xp,player_level:Math.floor(xp/100)+1,achievement_codes:achievements,role_mastery:mastery,progression_stats:progressionStats,updated_at:new Date().toISOString()}).eq("user_id",authUser.id);
  if(error)throw error;
