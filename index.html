@@ -2021,6 +2021,7 @@ function aiAction(){
   }
  }
   updateAIWhiteTasks(now);if(!state.running)return;
+ if(state.combatProtectionUntil&&now<state.combatProtectionUntil){updateNearbyActions();draw();return}
  state.players.filter(p=>p.id!==state.me.id&&!p.isHuman&&p.alive).forEach(actor=>{
   const nearby=targetCandidates(actor,88,false,p=>!(actor.team==="black"&&p.team==="black"));
   const roleNearby=targetCandidates(actor,100,false,p=>!(actor.team==="black"&&p.team==="black"));
@@ -2771,7 +2772,7 @@ function renderWardrobe(m){
   return '<button '+(own?'onclick="equipCosmetic(\''+kind+'\',\''+item.id+'\')"':'disabled')+' style="min-width:112px;padding:9px;border-radius:10px;border:1px solid '+(active?'#62d6c8':'#38506c')+';background:'+(active?'#214d50':'#14263c')+';color:inherit;opacity:'+(unlocked?1:.5)+';text-align:left"><b>'+(kind==="hat"?"🎩 ":"🧣 ")+item.name+'</b><small style="display:block;color:var(--muted);margin-top:4px">'+(active?"装備中":unlocked?(own?"タップして装備":"装備中ではありません"):"🔒 "+item.unlock)+'</small></button>';
  }).join("");
  const selectedColor=equipped.color||colors[0];
- const colorPicker=colors.map((color,i)=>'<button '+(own?'onclick="equipPlayerColor(\\\''+color+'\\\')"' : "disabled")+' title="'+(colorNames[i]||color)+'" aria-label="'+(colorNames[i]||color)+'" style="width:42px;height:42px;min-width:42px;padding:0;border-radius:50%;background:'+color+';border:3px solid '+(selectedColor===color?"#ffffff":"#38506c")+'"></button>').join("");
+ const colorPicker=colors.map((color,i)=>'<button '+(own?'onclick="equipPlayerColor(&quot;'+color+'&quot;)"':"disabled")+' title="'+(colorNames[i]||color)+'" aria-label="'+(colorNames[i]||color)+'" style="width:42px;height:42px;min-width:42px;padding:0;border-radius:50%;background:'+color+';border:3px solid '+(selectedColor===color?"#ffffff":"#38506c")+'"></button>').join("");
  return '<div class="accountSection"><h3>👕 現在の見た目</h3><div style="display:flex;justify-content:center;align-items:center;background:#0d192a;border:1px solid #38506c;border-radius:14px;padding:12px;margin:8px 0 14px"><canvas id="wardrobePreview" width="220" height="180" style="width:min(100%,220px);height:auto;image-rendering:auto" aria-label="現在装備中のキャラクター"></canvas></div><p class="muted" style="text-align:center">装備を変更すると、ここにすぐ反映されます。</p><h3>衣装・着せ替え</h3><p class="muted">帽子・首元アクセサリー・キャラクターの色を変更できます。見た目のみが変化します。</p><h4 style="margin:12px 0 7px">キャラクターの色</h4><div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">'+colorPicker+'</div><p class="muted">選択中：'+(colorNames[colors.indexOf(selectedColor)]||"赤")+'</p><h4 style="margin:12px 0 7px">帽子</h4><div style="display:flex;gap:7px;flex-wrap:wrap">'+render(TRIAD_HATS,"hat")+'</div><h4 style="margin:14px 0 7px">首元アクセサリー</h4><div style="display:flex;gap:7px;flex-wrap:wrap">'+render(TRIAD_SCARVES,"scarf")+'</div>'+(own?"":'<p class="muted" style="margin-top:8px">他のプレイヤーの装備を表示しています。</p>')+'</div>';
 }
 function drawPlayerCosmetics(ctx,p){
