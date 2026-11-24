@@ -203,7 +203,7 @@ canvas#mapCanvas{aspect-ratio:16/10;background:#0b1522}
 </style>
 </head>
 <body>
-<header><div class="logo">TRI<span>AD</span></div><div class="row" style="align-items:center;gap:8px;flex:0 0 auto"><div class="tag">オンラインアカウント対応 · 常駐デバッグAI · v0.84</div><button class="headerAccountButton" type="button" onclick="openAccountsScreen()">アカウント</button></div></header>
+<header><div class="logo">TRI<span>AD</span></div><div class="row" style="align-items:center;gap:8px;flex:0 0 auto"><div class="tag">オンラインアカウント対応 · 常駐デバッグAI · v0.84</div><button class="headerAccountButton" type="button" id="equippedTitleDisplay" onclick="openProgressionScreen('titles')">称号：未設定</button><button class="headerAccountButton" type="button" onclick="openAccountsScreen()">アカウント</button></div></header>
 <main>
 <section id="home" class="screen active">
  <div class="hero"><div class="pill">研究施設マップ・探索型推理ゲーム</div><h1>閉鎖された研究所。<br>見えない場所に誰かがいる。</h1><p>部屋と通路を自分で探索し、タスクを進めながら状況を判断します。視界はプレイヤーの周囲に限られます。</p></div>
@@ -345,7 +345,7 @@ canvas#mapCanvas{aspect-ratio:16/10;background:#0b1522}
   <button data-progression-tab="levelRewards" onclick="selectProgressionTab('levelRewards')">🎖 レベル報酬<span class="progressionTabRewardBadge" data-reward-badge="levelRewards" hidden></span></button>
   <button data-progression-tab="period" onclick="selectProgressionTab('period')">📅 デイリー・週次<span class="progressionTabRewardBadge" data-reward-badge="period" hidden></span></button>
   <button data-progression-tab="general" onclick="selectProgressionTab('general')">🧭 共通ミッション<span class="progressionTabRewardBadge" data-reward-badge="general" hidden></span></button>
-  <button data-progression-tab="mastery" onclick="selectProgressionTab('mastery')">📜 役職熟練度<span class="progressionTabRewardBadge" data-reward-badge="mastery" hidden></span></button>
+  <button data-progression-tab="mastery" onclick="selectProgressionTab('mastery')">📜 役職熟練度<span class="progressionTabRewardBadge" data-reward-badge="mastery" hidden></span></button><button data-progression-tab="titles" onclick="selectProgressionTab('titles')">🏷️ 称号コレクション</button>
  </nav>
  <div id="progressionContent"></div>
  <div class="actions"><button onclick="show('home')">ホームへ戻る</button></div>
@@ -945,7 +945,7 @@ async function rankedServerDoTask(task){
 const MATCH_SAVE_KEY="triad_active_match_v1";
 const colorNames=["赤","青","黄色","紫","緑","オレンジ","ピンク","水色","黄緑","茶色","紺","マゼンタ","青緑","金","サーモン","ライム","群青","ラベンダー","朱色","ターコイズ","黄土","ローズ","エメラルド","コバルト","レモン","ワイン","ミント","藤色","銅色","白"];
 const colors=["#e53935","#1e88e5","#fdd835","#8e24aa","#43a047","#fb8c00","#ec407a","#00acc1","#7cb342","#8d6e63","#3949ab","#d81b60","#00897b","#c0a000","#ff7043","#c0ca33","#283593","#9575cd","#f4511e","#26a69a","#b08d00","#ad1457","#00a152","#1565c0","#f9a825","#6d1b3b","#66bb6a","#7e57c2","#a65e2e","#eeeeee"];
-const naturalAINames=["ねこもち","もちもち","しろくま","くろまめ","ぽてと","ぷりん","たこやき","しらす","ぺんぎん","からあげ","こむぎ","みたらし","ねむねむ","うさぎもち","わたあめ","めんだこ","ましゅまろ","こんぺいとう","ほっとけーき","おにぎり","きなこもち","すいか","りんごあめ","ぽんず","ふわり","もちぱん","しおこんぶ","だいふく","ちくわ","くりーむ"];let gameNameDeck=[];function fallbackAIName(index){return gameNameDeck[index-1]||naturalAINames[(index-1)%naturalAINames.length]}function playerTag(p){return `#${String(p.number||p.id+1).padStart(2,"0")} ${p.name}`}
+const naturalAINames=["ねこもち","もちもち","しろくま","くろまめ","ぽてと","ぷりん","たこやき","しらす","ぺんぎん","からあげ","こむぎ","みたらし","ねむねむ","うさぎもち","わたあめ","めんだこ","ましゅまろ","こんぺいとう","ほっとけーき","おにぎり","きなこもち","すいか","りんごあめ","ぽんず","ふわり","もちぱん","しおこんぶ","だいふく","ちくわ","くりーむ"];let gameNameDeck=[];function fallbackAIName(index){return gameNameDeck[index-1]||naturalAINames[(index-1)%naturalAINames.length]}function playerTag(p){const base=`#${String(p.number||p.id+1).padStart(2,"0")} ${p.name}`;const t=p&&p.id===state.me?.id?getEquippedTriadTitle():"";return t?base+" 〔"+t+"〕":base}
 function meetingNameColor(p){return state.meeting&&state.me?.team==="black"&&p?.team==="black"&&p.id!==state.me.id?"#ff777e":"";}
 
 function saveActiveMatch(){
@@ -1205,6 +1205,7 @@ async function loadAccountRankedStatistics(type,id){
 
 function show(id){
  if(!activateScreen(id))return;
+ renderEquippedTriadTitle();
  if(id==="home"){renderUpdateLog($("updateVersionSelect")?.value||"0.75");updateResumeGameUI()}
  if(id==="accounts")loadAccountDirectoryData();
  if(id==="socialHub")loadSocialHub();
@@ -2712,6 +2713,16 @@ function playerLevelProgress(value){const xp=Math.max(0,Math.min(playerLevelThre
 const PLAYER_LEVEL_REWARD_TITLES={2:"見習いクルー",3:"探索の新人",4:"推理見習い",5:"観察の達人",6:"頼れる仲間",7:"生還者",8:"戦術家",9:"熟練調査員",10:"TRIADルーキー",11:"影の追跡者",12:"守護者",13:"戦場の策士",14:"ベテラン",15:"精鋭プレイヤー",16:"百戦錬磨",17:"TRIADの名手",18:"伝説の探偵",19:"英雄",20:"TRIADマスター"};
 function playerLevelRewardTitle(level){return PLAYER_LEVEL_REWARD_TITLES[Math.max(2,Math.min(MAX_PLAYER_LEVEL,Number(level)||2))]||"レベル到達称号"}
 function playerLevelRewardCoins(level){const n=Math.max(2,Math.min(MAX_PLAYER_LEVEL,Math.floor(Number(level)||2)));return 100+25*(n-2)}
+
+const TRIAD_OWNED_TITLES_KEY="triad_owned_titles_v1",TRIAD_EQUIPPED_TITLE_KEY="triad_equipped_title_v1";
+function loadOwnedTriadTitles(){try{const a=JSON.parse(localStorage.getItem(TRIAD_OWNED_TITLES_KEY)||"[]");return Array.isArray(a)?[...new Set(a.filter(x=>typeof x==="string"&&x.trim()))]:[]}catch{return []}}
+function rememberTriadTitle(title){const t=String(title||"").trim();if(!t)return;const a=loadOwnedTriadTitles();if(!a.includes(t))a.push(t);try{localStorage.setItem(TRIAD_OWNED_TITLES_KEY,JSON.stringify(a))}catch(e){}renderEquippedTriadTitle()}
+function getEquippedTriadTitle(){try{return localStorage.getItem(TRIAD_EQUIPPED_TITLE_KEY)||""}catch{return ""}}
+function renderEquippedTriadTitle(){const e=$("equippedTitleDisplay");if(e)e.textContent="称号："+(getEquippedTriadTitle()||"未設定")}
+function collectTriadTitles(m,claims){const a=new Set(loadOwnedTriadTitles());(m?.levelTitles||[]).forEach(t=>a.add(String(t)));Object.values(m?.roleMastery||{}).forEach(v=>(v?.titles||[]).forEach(t=>a.add(String(t))));(claims||[]).forEach(x=>{if(x.reward_title)a.add(String(x.reward_title))});return [...a].filter(Boolean).sort((x,y)=>x.localeCompare(y,"ja"))}
+function setEquippedTriadTitle(title){const t=String(title||"");try{if(t)localStorage.setItem(TRIAD_EQUIPPED_TITLE_KEY,t);else localStorage.removeItem(TRIAD_EQUIPPED_TITLE_KEY)}catch(e){}renderEquippedTriadTitle();if($("progression")?.classList.contains("active"))openProgressionScreen("titles")}
+function renderTriadTitlePanel(m,claims){const titles=collectTriadTitles(m,claims),equipped=getEquippedTriadTitle();const rows=titles.map(t=>'<div class="accountTrait"><div class="row" style="justify-content:space-between;align-items:center"><b>🏅 '+escapeAccountText(t)+'</b><button '+(equipped===t?'disabled':'class="primary" onclick="setEquippedTriadTitle(decodeURIComponent(\''+encodeURIComponent(t)+'\'))"')+'>'+(equipped===t?'装備中':'この称号を装備')+'</button></div></div>').join("");return '<div class="progressionTabPanel" data-progression-panel="titles"><div class="card" style="margin:12px 0"><h3>🏷️ 称号コレクション</h3><p class="muted">獲得した称号を確認し、プロフィールと試合中の自分の名前に表示する称号を選べます。</p><div class="accountTrait"><b>現在の称号</b><div style="font-size:20px;font-weight:900;margin:7px 0">'+(equipped?escapeAccountText(equipped):'未設定')+'</div><button onclick="setEquippedTriadTitle(\'\')">称号を外す</button></div><h4>所持称号（'+titles.length+'）</h4>'+(rows||'<p class="muted">まだ称号を獲得していません。レベル報酬や役職熟練度ミッションで獲得できます。</p>')+'</div></div>'}
+
 function loadProgression(){
  try{const p=JSON.parse(localStorage.getItem(TRIAD_PROGRESS_KEY)||"{}");const xp=Math.max(0,Math.min(playerLevelThreshold(MAX_PLAYER_LEVEL),Number(p.experiencePoints)||0));return {experiencePoints:xp,level:playerLevelFromXP(xp),achievements:Array.isArray(p.achievements)?p.achievements:[],roleMastery:p.roleMastery&&typeof p.roleMastery==="object"?p.roleMastery:{},completedMatches:Number(p.completedMatches)||0,totalWins:Number(p.totalWins)||0,totalSurvivals:Number(p.totalSurvivals)||0,lastReward:p.lastReward||null,levelTitles:Array.isArray(p.levelTitles)?p.levelTitles:[]}}
  catch{return {experiencePoints:0,level:1,achievements:[],roleMastery:{},lastReward:null}}
@@ -2724,7 +2735,7 @@ async function awardChristmasCandy(action,referenceKey){
   const {data,error}=await supabaseClient.rpc("triad_christmas_award",{p_action:String(action),p_reference_key:String(referenceKey)});
   if(error)throw error;
   const n=Number(data?.awarded||0);
-  if(n>0){showPersonalEffect("reward","🍬 クリスマスキャンディー +"+n,"イベント交換所で限定アイテムと交換できます。");const badge=$("christmasCandyBadge");if(badge)badge.textContent=String(data.candies||0)+" 🍬"}
+  if(n>0){const badge=$("christmasCandyBadge");if(badge)badge.textContent=String(data.candies||0)+" 🍬"}
   return data;
  }catch(e){console.warn("Christmas candy award failed",e);return null}
 }
@@ -3388,6 +3399,7 @@ function renderProgressionExtras(m,daily,claims,coins,generalClaims,periodRows,l
   html+='</div>';
  }
  html+='</div></div>';
+ html+=renderTriadTitlePanel(m,levelClaims||[]);
  return html;
 }
 function updateProgressionRewardBadges(m,daily,roleClaims,generalClaims,periodRows,levelClaims){
@@ -3443,7 +3455,7 @@ async function claimTriadPlayerLevelReward(level){
   const {data,error}=await supabaseClient.rpc("triad_claim_player_level_reward",{p_level:Number(level)});
   if(error)throw error;
   economyCoins=Number(data?.balance??economyCoins);
-  if(data?.claimed)alert("プレイヤーレベル報酬を獲得しました！\nLv."+level+" 称号：「"+(data.title||playerLevelRewardTitle(level))+"」\nコイン：+"+Number(data.coins||0)+"\n所持コイン："+Number(data.balance||0));
+  if(data?.claimed){rememberTriadTitle(data.title||playerLevelRewardTitle(level));alert("プレイヤーレベル報酬を獲得しました！\nLv."+level+" 称号：「"+(data.title||playerLevelRewardTitle(level))+"」\nコイン：+"+Number(data.coins||0)+"\n所持コイン："+Number(data.balance||0));}
   else alert("このレベルの報酬はすでに受け取り済みです。");
   openProgressionScreen();
  }catch(e){alert("レベル報酬を受け取れませんでした："+(e.message||String(e)))}
@@ -3477,12 +3489,13 @@ async function claimTriadRoleMission(role,tier){
  try{
   if(!authUser||!supabaseClient)await initializeOnlineAccounts();
   const {data,error}=await supabaseClient.rpc("triad_claim_role_mission",{p_role:role,p_tier:tier});if(error)throw error;
+  if(data.title)rememberTriadTitle(data.title);
   alert("ミッション達成報酬を獲得！\nコイン：+"+data.coins+"\nEXP：+"+data.xp+(data.title?"\n専用称号： "+data.title:"")+(data.outfit?"\n役職専用衣装： "+data.outfit:""));
   openProgressionScreen("mastery");
  }catch(e){alert("報酬を受け取れませんでした："+(e.message||String(e)))}
 }
 function selectProgressionTab(tab){
- const allowed=["overview","login","levelRewards","period","general","mastery"];
+ const allowed=["overview","login","levelRewards","period","general","mastery","titles"];
  if(!allowed.includes(tab))tab="overview";
  document.querySelectorAll("#progressionContent [data-progression-panel]").forEach(panel=>{panel.hidden=panel.dataset.progressionPanel!==tab});
  document.querySelectorAll(".progressionTabs [data-progression-tab]").forEach(button=>{const active=button.dataset.progressionTab===tab;button.classList.toggle("active",active);button.setAttribute("aria-selected",active?"true":"false")});
@@ -4406,6 +4419,7 @@ function startDebugAIMonitor(){
 }
 
 if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",()=>{initializeOnlineAccounts();updateResumeGameUI()});else{initializeOnlineAccounts();updateResumeGameUI()}
+renderEquippedTriadTitle();
 </script>
 <div class="modal" id="debugAIModal"><div class="modalbox"><div class="row" style="align-items:center"><h2 style="flex:1">🛠️ TRIAD DEBUG AI</h2><span id="debugAIStatus" class="pill">監視準備中</span></div><p class="muted">ページを開いている間、20秒ごとに簡易診断します。ブラウザエラーは発生時に記録します。</p><div class="grid"><div class="card"><div class="muted">検査状態</div><div id="debugAISummary" style="font-size:22px;font-weight:900">未検査</div></div><div class="card"><div class="muted">検出した問題</div><div id="debugAIIssueCount" style="font-size:22px;font-weight:900">0</div></div></div><div class="actions"><button class="primary" onclick="runDebugAIScan()">今すぐ全体検査</button><button onclick="clearDebugAIResolved()">解決済みを整理</button><button onclick="copyDebugAIReport()">レポートをコピー</button></div><h3>検出・記録</h3><div id="debugAIIssues" class="targetList"><p class="muted">まだ検査していません。</p></div><p class="muted">※自動修正はゲームデータを壊す危険があるため、この版では行いません。原因候補と修正箇所を提示し、重大な変更は手動確認にします。</p><button style="width:100%" onclick="closeDebugAI()">閉じる</button></div></div>
 </body></html>
