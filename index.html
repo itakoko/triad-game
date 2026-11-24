@@ -2934,7 +2934,7 @@ async function loadGachaScreen(lastResult=null){
   if(!authUser||!supabaseClient)throw new Error("オンライン接続が必要です。");
   await ensureOwnPlayerProfile();
   const {error:initError}=await supabaseClient.rpc("economy_initialize");if(initError)throw initError;
-  const [walletRes,bannerRes,poolRes,historyRes]=await Promise.all([
+  const [walletRes,bannerRes,poolRes,historyRes,pityRes]=await Promise.all([
    supabaseClient.from("player_wallets").select("coins").eq("user_id",authUser.id).single(),
    supabaseClient.from("gacha_banners").select("banner_id,display_name,single_cost,ten_cost").eq("active",true).eq("banner_id","season1").single(),
    supabaseClient.from("gacha_pool").select("item_code,display_name,rarity").eq("banner_id","season1").eq("active",true),
