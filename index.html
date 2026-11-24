@@ -469,7 +469,7 @@ canvas#mapCanvas{aspect-ratio:16/10;background:#0b1522}
  <div class="modal" id="aliveModal"><div class="modalbox"><h2>生存者一覧</h2><p id="aliveSummary" class="muted"></p><div id="aliveList" class="targetList"></div><button class="primary" style="width:100%" onclick="closeAliveList()">閉じる</button></div></div>
  <div class="modal" id="bountyModal"><div class="modalbox"><h2>暗殺者の手配書</h2><p class="muted">手配対象は暗殺者本人だけに表示されています。対象以外を殺すと暗殺者も死亡します。</p><p id="bountyText"></p><button class="primary" style="width:100%" onclick="closeBounty()">手配書を閉じる</button></div></div>
  <div class="modal" id="meetingModal"><div class="modalbox">
-  <h2 id="meetingTitle">会議</h2><p id="meetingInfo" class="muted">話し合いを行い、投票先を選んでください。</p>
+  <h2 id="meetingTitle">会議</h2><button id="autoModeMeetingToggle" type="button" style="width:100%;margin:6px 0" onclick="toggleTriadAutoMode()">🤖 オートモード：OFF</button><p id="meetingInfo" class="muted">話し合いを行い、投票先を選んでください。</p>
   <div class="pill" id="meetingPhaseLabel">議論フェーズ</div>
   <div class="meetingTimerBar"><span>議論終了まで</span><span id="meetingTimeLeft">01:30</span></div>
   <button id="meetingMapToggle" class="meetingMapToggle" type="button" onclick="toggleMeetingMap()">🗺 マップを表示</button><div class="meetingMapPanel" id="meetingMapPanel" hidden><strong>研究施設マップ</strong><canvas id="meetingOverviewCanvas" width="900" height="600"></canvas><div class="mapLegend">● あなたの会議開始時の位置　× 死亡した場所（他プレイヤーの位置は表示されません）</div><button type="button" onclick="toggleMeetingMap(false)">マップを閉じる</button></div>
@@ -1239,6 +1239,7 @@ function updateTriadAutoModeUI(){
  const gameButton=$("autoModeToggle");if(gameButton){gameButton.textContent=label;gameButton.classList.toggle("primary",triadAutoModeActive)}
  const status=$("autoModeStatus");if(status)status.textContent=triadAutoModeActive?"AIが移動・タスク・能力・会議・投票を代行中です。いつでもOFFにできます。":"ONにするとAIが操作を代行します。OFFにするとすぐ手動操作へ戻ります。";
  const resultButton=$("autoModeGameOverToggle");if(resultButton)resultButton.textContent=triadAutoModeActive?"🤖 オート周回：ON（停止する）":"🤖 オート周回：OFF（ONにする）";
+ const meetingButton=$("autoModeMeetingToggle");if(meetingButton)meetingButton.textContent=triadAutoModeActive?"🤖 オートモード：ON（手動に戻す）":"🤖 オートモード：OFF（AIに任せる）";
 }
 function toggleTriadAutoMode(force){
  if(rankedServerMode||onlineGame||activeRoomId){alert("オートモードは通常のソロ試合でのみ使用できます。");return}
