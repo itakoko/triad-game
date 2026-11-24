@@ -2653,7 +2653,7 @@ function mergeCloudProgressionIntoLocal(){
  if(!authUser)return;
  const row=onlinePlayerProfiles.find(p=>p.user_id===authUser.id);if(!row)return;
  const local=loadProgression(),cloudStats=row.progression_stats||{};
- const xp=Math.max(local.experiencePoints,Number(row.experience_points||0));
+ const xp=Math.min(playerLevelThreshold(MAX_PLAYER_LEVEL),Math.max(local.experiencePoints,Number(row.experience_points||0)));
  const mastery={...local.roleMastery};
  for(const [role,v] of Object.entries(row.role_mastery||{})){const old=mastery[role]||{};mastery[role]={matches:Math.max(Number(old.matches||0),Number(v.matches||0)),wins:Math.max(Number(old.wins||0),Number(v.wins||0)),survived:Math.max(Number(old.survived||0),Number(v.survived||0)),experience:Math.max(Number(old.experience||0),Number(v.experience||0)),metrics:Object.fromEntries([...new Set([...Object.keys(old.metrics||{}),...Object.keys(v.metrics||{})])].map(k=>[k,Math.max(Number(old.metrics?.[k]||0),Number(v.metrics?.[k]||0))])),titles:[...new Set([...(old.titles||[]),...(v.titles||[])])],outfits:[...new Set([...(old.outfits||[]),...(v.outfits||[])])]}}
  const merged={...local,experiencePoints:xp,level:playerLevelFromXP(xp),achievements:[...new Set([...local.achievements,...(Array.isArray(row.achievement_codes)?row.achievement_codes:[])])],roleMastery:mastery,completedMatches:Math.max(local.completedMatches,Number(cloudStats.completedMatches||0)),totalWins:Math.max(local.totalWins,Number(cloudStats.totalWins||0)),totalSurvivals:Math.max(local.totalSurvivals,Number(cloudStats.totalSurvivals||0))};
@@ -2663,7 +2663,7 @@ async function syncOnlinePlayerProgress(progress=loadProgression()){
  if(!authUser||!supabaseClient)return;
  const {data:cloud,error:readError}=await supabaseClient.from("player_profiles").select("experience_points,achievement_codes,role_mastery,progression_stats").eq("user_id",authUser.id).maybeSingle();
  if(readError)throw readError;
- const xp=Math.max(Number(cloud?.experience_points||0),Number(progress.experiencePoints||0));
+ const xp=Math.min(playerLevelThreshold(MAX_PLAYER_LEVEL),Math.max(Number(cloud?.experience_points||0),Number(progress.experiencePoints||0)));
  const achievements=[...new Set([...(Array.isArray(cloud?.achievement_codes)?cloud.achievement_codes:[]),...(progress.achievements||[])])];
  const cloudStats=cloud?.progression_stats||{};
  const progressionStats={completedMatches:Math.max(Number(cloudStats.completedMatches||0),Number(progress.completedMatches||0)),totalWins:Math.max(Number(cloudStats.totalWins||0),Number(progress.totalWins||0)),totalSurvivals:Math.max(Number(cloudStats.totalSurvivals||0),Number(progress.totalSurvivals||0))};
