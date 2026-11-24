@@ -3863,7 +3863,7 @@ function predictOnlineLocalMovement(){
 }
 function receiveOnlineSnapshot(payload){
  if(!onlineGame||onlineGame.isHost||!payload?.state||payload.revision<onlineGameRevision)return;onlineGameRevision=payload.revision;
- const previousPlayers=new Map((state.players||[]).map(p=>[p.id,p])),localMove={...(state.move||{x:0,y:0})};
+ const previousPlayers=new Map((state.players||[]).map(p=>[p.id,p])),previousTaskCompletions=new Map((state.tasks||[]).map(t=>[String(t.id),new Set(t.completedBy||[])])),localMove={...(state.move||{x:0,y:0})};
  const previousPhase=state.meetingPhase,previousMeeting=!!state.meeting,previousMeetingId=state.meetingId,previousVote=state.selectedVote,previousVoteSubmitted=!!state.onlineVoteSubmitted;
  const restored=JSON.parse(JSON.stringify(payload.state),(k,v)=>v&&typeof v==="object"&&Array.isArray(v.__triadSet)?new Set(v.__triadSet):v);
  const now=performance.now();
@@ -3878,6 +3878,7 @@ function receiveOnlineSnapshot(payload){
  state={...restored,map:maps.lab,me:null,move:localMove,selectedVote:(previousMeeting&&restored.meeting&&previousMeetingId===restored.meetingId&&previousPhase===restored.meetingPhase)?previousVote:null,aiTurnTimer:null,meetingTimer:null,onlineVoteSubmitted:(previousMeeting&&restored.meeting&&previousMeetingId===restored.meetingId&&previousPhase===restored.meetingPhase)?previousVoteSubmitted:false,onlineVotedUserIds:payload.votedUserIds||[]};
  state.worldWidth=maps.lab.width;state.worldHeight=maps.lab.height;state.running=true;
  state.scentedIds=state.scentedIds instanceof Set?state.scentedIds:new Set();state.me=state.players.find(p=>p.userId===authUser.id)||null;
+ if(state.me){(state.tasks||[]).forEach(t=>{const was=previousTaskCompletions.get(String(t.id));if((t.completedBy||[]).includes(state.me.id)&&!was?.has(state.me.id))awardChristmasCandy("task","task:"+String(onlineGame.roomId)+":"+String(t.id)+":"+String(state.me.id));});}
  if(state.me&&onlinePrivatePlayer)applyOnlinePrivatePlayer();if(!state.me)return;
  $("mapLabel").textContent="マップ：研究施設";$("roleLabel").textContent="役職："+(state.me.role||"確認中");
  $("myRoleText").textContent=state.me.role?"陣営："+teamName(state.me.team)+" ／ 役職："+state.me.role+"。"+roleDescription(state.me):"役職情報を受信しています…";
