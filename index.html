@@ -3880,6 +3880,13 @@ function receiveOnlineSnapshot(payload){
  state.scentedIds=state.scentedIds instanceof Set?state.scentedIds:new Set();state.me=state.players.find(p=>p.userId===authUser.id)||null;
  if(state.me){(state.tasks||[]).forEach(t=>{const was=previousTaskCompletions.get(String(t.id));if((t.completedBy||[]).includes(state.me.id)&&!was?.has(state.me.id))awardChristmasCandy("task","task:"+String(onlineGame.roomId)+":"+String(t.id)+":"+String(state.me.id));});}
  if(state.me&&onlinePrivatePlayer)applyOnlinePrivatePlayer();if(!state.me)return;
+ const previousMe=previousPlayers.get(state.me.id);
+ if(previousMe){
+  const abilityStats=["scientistChecks","seerUses","protectionBlocks","chargeKills","disguiseKills","scentedTargets","gamblerJackpotKills"];
+  abilityStats.forEach(metric=>{const before=Number(previousMe[metric]||0),after=Number(state.me[metric]||0);for(let n=before+1;n<=after;n++)awardChristmasCandy("ability","ability:"+String(onlineGame.roomId)+":"+metric+":"+String(n));});
+  const beforeKills=Number(previousMe.roleKillCount||0),afterKills=Number(state.me.roleKillCount||0);
+  if(state.me.role&& !["クルー","インポスター"].includes(state.me.role))for(let n=beforeKills+1;n<=afterKills;n++)awardChristmasCandy("ability","ability:"+String(onlineGame.roomId)+":roleKill:"+String(n));
+ }
  $("mapLabel").textContent="マップ：研究施設";$("roleLabel").textContent="役職："+(state.me.role||"確認中");
  $("myRoleText").textContent=state.me.role?"陣営："+teamName(state.me.team)+" ／ 役職："+state.me.role+"。"+roleDescription(state.me):"役職情報を受信しています…";
  $("myStatus").textContent=state.me.alive?"生存":"死亡";$("ghostBanner").hidden=!!state.me.alive;
