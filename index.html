@@ -1245,7 +1245,7 @@ function toggleTriadAutoMode(force){
  triadAutoModeActive=typeof force==="boolean"?force:!triadAutoModeActive;
  if(triadAutoRestartTimer){clearTimeout(triadAutoRestartTimer);triadAutoRestartTimer=null}
  if(triadAutoModeActive&&state.running){stopMove();if(state.me){state.me.aiGoal=null;state.me.aiPath=[];state.me.aiNextGoalAt=Date.now();state.me.aiNextTaskAt=Date.now()+1200;state.me.aiTaskIndex=null}}
- if(!triadAutoModeActive&&state.me){state.me.aiGoal=null;state.me.aiPath=[];state.me.aiTaskIndex=null;state.move={x:0,y:0};stopMove()}
+ if(!triadAutoModeActive&&state.me){state.me.aiGoal=null;state.me.aiPath=[];state.me.aiTaskIndex=null;state.me.charging=false;state.move={x:0,y:0};state.targetAction=null;$("targetModal")?.classList.remove("show");stopMove()}
  updateTriadAutoModeUI();
 }
 async function startGame(){
@@ -1918,7 +1918,8 @@ function resolveGamblerPredictionCycle(){
    }else actor.gamblerNotice="予想は外れました。次の会議までに再挑戦！";
   }else if(low===high)actor.gamblerNotice="1〜3と4〜6が同数。予想判定なし。";
   actor.gamblerLowCount=0;actor.gamblerHighCount=0;actor.gamblerPrediction=null;actor.gamblerPredictionAsked=false;
-  if(actor.id===state.me?.id)chooseGamblerPrediction(actor);
+  if(actor.id===state.me?.id&&triadAutoModeActive){actor.gamblerPrediction=Math.random()<.5?"low":"high";actor.gamblerPredictionAsked=true;actor.gamblerPredictionPending=false}
+  else if(actor.id===state.me?.id)chooseGamblerPrediction(actor);
   else if(!actor.isHuman)chooseGamblerPrediction(actor);
  }
 }
@@ -2121,6 +2122,7 @@ function aiAction(){
   }
   else if(actor.role==="僧侶"&&!actor.abilityUsed){const ally=targetCandidates(actor,Infinity,true).find(p=>p.id!==actor.id&&!p.protected);if(ally&&Math.random()<.18){actor.abilityUsed=true;ally.protected=true;ally.protectedBy=actor.id}}
   else if(actor.role==="放浪者"&&now>=actor.roleReadyAt&&wanderNearby.length){state.scentedIds.add(wanderNearby[0].id);wanderNearby[0].scented=true;actor.roleReadyAt=now+15000}
+  else if(actor.role==="占い師"&&!actor.abilityUsed&&roleNearby.length){const suspect=chooseAICombatSuspect(actor,roleNearby)||roleNearby[Math.floor(Math.random()*roleNearby.length)];if(suspect){actor.abilityUsed=true;actor.seerUses=(actor.seerUses||0)+1;if(suspect.team==="black")addSuspicion(actor.aiMemory,suspect.id,2.5);else addSuspicion(actor.aiMemory,suspect.id,-.35)}}
  });
  updateNearbyActions();draw();
 }
