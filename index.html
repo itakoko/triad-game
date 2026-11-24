@@ -215,6 +215,7 @@ canvas#mapCanvas{aspect-ratio:16/10;background:#0b1522}
   <div class="card"><h3>👕 衣装・着せ替え</h3><p class="muted">帽子やアクセサリーを集めて、自分のキャラクターをカスタマイズ。</p><button class="primary" style="width:100%" onclick="openWardrobeScreen()">衣装を変更する</button></div>
   <div class="card"><h3>🪙 コイン・ショップ</h3><p class="muted">試合報酬でコインを集め、見た目アイテムを入手。フレンドとの交換もできます。</p><button class="primary" style="width:100%" onclick="openEconomyScreen()">ショップを開く</button></div>
   <div class="card"><h3>🎟️ シーズンパス</h3><p class="muted">試合でシーズンポイントを獲得。無料報酬と、コイン2,000枚で解放するシーズンパス＋に挑戦。</p><button class="primary" style="width:100%" onclick="openSeasonPassScreen()">シーズンパスを見る</button></div>
+  <div class="card" style="border:1px solid #c85a67;background:linear-gradient(135deg,#3b202b,#173b39)"><h3>🎄 クリスマスイベント第一弾</h3><p class="muted">遊んでキャンディーを集め、限定衣装・ペット・コインと交換！</p><button class="primary" style="width:100%" onclick="openChristmasEventScreen()">🍬 イベント会場へ</button></div>
   <div class="card"><h3>🎰 コレクションガチャ</h3><p class="muted">ガチャ限定の衣装・帽子・アクセサリーをランダムで獲得。ショップとは別の限定ラインナップです。</p><button class="primary" style="width:100%" onclick="openGachaScreen()">ガチャを引く</button></div>
   <div class="card"><h3>🏅 プレイヤー成長</h3><p class="muted">レベル・経験値・実績・役職熟練度を確認。</p><button class="primary" style="width:100%" onclick="openProgressionScreen()">成長記録を見る</button></div>
   <div class="card"><h3>🎁 ログインボーナス・ミッション</h3><p class="muted">毎日のログイン報酬と、役職ごとの段階ミッションに挑戦。</p><button class="primary" style="width:100%" onclick="openProgressionScreen()">報酬・ミッションを確認</button></div>
@@ -319,6 +320,11 @@ canvas#mapCanvas{aspect-ratio:16/10;background:#0b1522}
 <section id="economy" class="screen">
  <div class="hero"><h1>🪙 コイン・ショップ</h1><p>試合でコインを獲得し、帽子やアクセサリーを集めましょう。アイテムはゲーム内だけで使用できます。</p></div>
  <div class="card" id="economyContent"><div class="muted">ショップ情報を読み込んでいます…</div></div>
+ <div class="actions"><button onclick="show('home')">ホームへ戻る</button></div>
+</section>
+<section id="christmasEvent" class="screen">
+ <div class="hero" style="border-color:#b94755;background:linear-gradient(135deg,#3c1c2a,#173b39)"><div class="pill">期間限定・第一弾</div><h1>🎄 TRIAD クリスマスイベント I</h1><p>タスク・能力・試合でクリスマスキャンディーを集めて、限定アイテムと交換しよう！</p></div>
+ <div class="card" id="christmasEventContent"><div class="muted">イベント情報を読み込んでいます…</div></div>
  <div class="actions"><button onclick="show('home')">ホームへ戻る</button></div>
 </section>
 <section id="seasonPass" class="screen">
@@ -1798,7 +1804,7 @@ function completeSharedTask(task,actor){if(isOnlineClient()){sendOnlineInput({ki
   $("taskCount").textContent=state.done+" / "+state.total;$("taskProgress").style.width=(state.done/state.total*100)+"%";
   if(state.done>=state.total)endGame("白陣営全員で共有タスクを"+state.total+"件完了しました。白陣営の勝利です。",{teams:["white"]});
  }
- if(actor.id===state.me.id)playSfx("task");
+ if(actor.id===state.me.id){playSfx("task");awardChristmasCandy("task","task:"+christmasMatchKey()+":"+String(task.id));}
  return true;
 }
 function doTask(){
@@ -1844,7 +1850,7 @@ function markPlayerDead(victim,source="死亡",attacker=null){
 function killPlayer(victim,attacker,source="キル"){
  if(!victim||!victim.alive)return false;
  if(attacker&&attacker.team==="black"&&victim.team==="black")return false;
- if(victim.protected){victim.protected=false;const protector=state.players.find(p=>p.id===victim.protectedBy);if(protector){protector.protectionBlocks=(protector.protectionBlocks||0)+1;victim.protectedBy=null}if(attacker?.id===0)alert("加護が攻撃を防ぎました。");log("加護が攻撃を防いだ。");return false}
+ if(victim.protected){victim.protected=false;const protector=state.players.find(p=>p.id===victim.protectedBy);if(protector){protector.protectionBlocks=(protector.protectionBlocks||0)+1;if(protector.id===state.me?.id)awardChristmasCandy("ability","ability:"+christmasMatchKey()+":protect:"+String(victim.id)+":"+String(protector.protectionBlocks));victim.protectedBy=null}if(attacker?.id===0)alert("加護が攻撃を防ぎました。");log("加護が攻撃を防いだ。");return false}
  const marked=markPlayerDead(victim,source,attacker);
  if(!marked)return false;
  log(victim.name+" が"+source+"されました。");return true;
@@ -1853,7 +1859,7 @@ function performKill(target,actor,source="キル"){
  if(!target||!actor?.alive||!target.alive||target.id===actor.id)return false;
  if(actor.team==="black"&&target.team==="black")return false;
  const killed=killPlayer(target,actor,source);
- if(killed){actor.roleKillCount=(actor.roleKillCount||0)+1;if(String(source||"").includes("暗殺"))actor.bountyKillCount=(actor.bountyKillCount||0)+1;if(String(source||"").includes("JACKPOT"))actor.gamblerJackpotKills=(actor.gamblerJackpotKills||0)+1;if(actor.role==="百面相"&&Number(actor.disguiseUntil||0)>Date.now())actor.disguiseKills=(actor.disguiseKills||0)+1;if(actor.team==="black"&&Number(state.sabotageUntil||0)>Date.now())actor.sabotageKills=(actor.sabotageKills||0)+1}
+ if(killed){actor.roleKillCount=(actor.roleKillCount||0)+1;if(actor.id===state.me?.id&&actor.role&&actor.role!=="クルー"&&actor.role!=="インポスター")awardChristmasCandy("ability","ability:"+christmasMatchKey()+":kill:"+String(target.id)+":"+String(state.killEvents?.length||0));if(String(source||"").includes("暗殺"))actor.bountyKillCount=(actor.bountyKillCount||0)+1;if(String(source||"").includes("JACKPOT"))actor.gamblerJackpotKills=(actor.gamblerJackpotKills||0)+1;if(actor.role==="百面相"&&Number(actor.disguiseUntil||0)>Date.now())actor.disguiseKills=(actor.disguiseKills||0)+1;if(actor.team==="black"&&Number(state.sabotageUntil||0)>Date.now())actor.sabotageKills=(actor.sabotageKills||0)+1}
  if(killed&&actor.role==="保安官"&&target.team==="white"){killPlayer(actor,actor,"保安官の誤射")}
  updateNearbyActions();draw();checkWin();return killed;
 }
@@ -2708,7 +2714,59 @@ function loadProgression(){
  try{const p=JSON.parse(localStorage.getItem(TRIAD_PROGRESS_KEY)||"{}");const xp=Math.max(0,Math.min(playerLevelThreshold(MAX_PLAYER_LEVEL),Number(p.experiencePoints)||0));return {experiencePoints:xp,level:playerLevelFromXP(xp),achievements:Array.isArray(p.achievements)?p.achievements:[],roleMastery:p.roleMastery&&typeof p.roleMastery==="object"?p.roleMastery:{},completedMatches:Number(p.completedMatches)||0,totalWins:Number(p.totalWins)||0,totalSurvivals:Number(p.totalSurvivals)||0,lastReward:p.lastReward||null,levelTitles:Array.isArray(p.levelTitles)?p.levelTitles:[]}}
  catch{return {experiencePoints:0,level:1,achievements:[],roleMastery:{},lastReward:null}}
 }
-async function awardEconomyMatch(matchKey,won,survived){
+async function christmasMatchKey(){if(!state.__christmasMatchKey)state.__christmasMatchKey="cm-"+Date.now()+"-"+Math.random().toString(36).slice(2);return state.__christmasMatchKey}
+async function awardChristmasCandy(action,referenceKey){
+ try{
+  if(!authUser||!supabaseClient)await initializeOnlineAccounts();
+  if(!authUser||!supabaseClient)return null;
+  const {data,error}=await supabaseClient.rpc("triad_christmas_award",{p_action:String(action),p_reference_key:String(referenceKey)});
+  if(error)throw error;
+  const n=Number(data?.awarded||0);
+  if(n>0){showPersonalEffect("reward","🍬 クリスマスキャンディー +"+n,"イベント交換所で限定アイテムと交換できます。");const badge=$("christmasCandyBadge");if(badge)badge.textContent=String(data.candies||0)+" 🍬"}
+  return data;
+ }catch(e){console.warn("Christmas candy award failed",e);return null}
+}
+async function openChristmasEventScreen(){if(!activateScreen("christmasEvent"))return;await loadChristmasEventScreen()}
+async function loadChristmasEventScreen(){
+ const root=$("christmasEventContent");if(!root)return;
+ root.innerHTML='<div class="muted">イベント情報を読み込んでいます…</div>';
+ try{
+  if(!authUser||!supabaseClient)await initializeOnlineAccounts();
+  if(!authUser||!supabaseClient)throw new Error("イベント報酬の保存にはオンラインアカウントへの接続が必要です。");
+  await ensureOwnPlayerProfile();
+  const [walletRes,claimsRes,inventoryRes]=await Promise.all([
+   supabaseClient.from("triad_christmas_wallets").select("candies").eq("user_id",authUser.id).maybeSingle(),
+   supabaseClient.from("triad_christmas_claims").select("reward_code").eq("user_id",authUser.id),
+   supabaseClient.from("player_cosmetic_inventory").select("item_code").eq("user_id",authUser.id)
+  ]);
+  for(const x of [walletRes,claimsRes,inventoryRes])if(x.error)throw x.error;
+  const candies=Number(walletRes.data?.candies||0),claims=new Set((claimsRes.data||[]).map(x=>x.reward_code)),owned=new Set((inventoryRes.data||[]).map(x=>x.item_code));
+  const rewards=[
+   {code:"santa_hat",name:"サンタ帽子",kind:"hat",id:"santa_hat",cost:150,desc:"赤いサンタ帽子。第一弾限定。"},
+   {code:"snow_scarf",name:"雪結晶マフラー",kind:"scarf",id:"snow_scarf",cost:45,desc:"冬らしい雪結晶のマフラー。"},
+   {code:"reindeer",name:"クリスマストナカイ",kind:"pet",id:"christmas_reindeer",cost:180,desc:"一緒に歩く限定ペット。"},
+   {code:"snowman",name:"ゆきだるまペット",kind:"pet",id:"snowman_friend",cost:130,desc:"小さくてかわいい雪だるま。"},
+   {code:"coin_pack",name:"コイン100枚",kind:"coin",id:"",cost:20,desc:"通常コインに交換。何度でも交換できます。",repeat:true}
+  ];
+  const rows=rewards.map(v=>{
+   const isOwned=v.kind!=="coin"&&(claims.has(v.code)||owned.has(({santa_hat:"hat:santa_hat",snow_scarf:"scarf:snow_scarf",reindeer:"pet:christmas_reindeer",snowman:"pet:snowman_friend"})[v.code]));
+   const done=isOwned||claims.has(v.code);
+   const can=candies>=v.cost&&!done;
+   const preview=v.kind==="coin"?"":'<button onclick="previewCosmeticItem(&quot;'+v.kind+'&quot;,&quot;'+v.id+'&quot;,&quot;'+v.name+'&quot;)">プレビュー</button>';
+   return '<div class="socialItem" style="align-items:center;gap:10px"><div style="flex:1"><b>'+v.name+'</b><small style="display:block;color:var(--muted)">'+v.desc+'</small><small>🍬 '+v.cost+' 個</small></div><div style="display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end">'+preview+'<button class="primary" '+(!can?'disabled':'')+' onclick="claimChristmasReward(\''+v.code+'\')">'+(done?"交換済み":v.kind==="coin"?"交換する":"交換")+'</button></div></div>';
+  }).join("");
+  root.innerHTML='<div class="accountSection"><div class="row" style="justify-content:space-between;align-items:center"><div><h2 style="margin:0">🍬 '+candies.toLocaleString("ja-JP")+' 個</h2><p class="muted" style="margin:4px 0">クリスマスキャンディー</p></div><span id="christmasCandyBadge" class="pill">'+candies+' 🍬</span></div><div class="taskbar"><div style="width:'+Math.min(100,candies/5)+'%"></div></div><p class="muted">タスク +1 ／ 能力の有効活用 +2 ／ 試合完了 +5 ／ 勝利 +3</p></div><div class="accountSection"><h3>🎁 第一弾限定交換所</h3>'+rows+'</div><div class="accountSection"><h3>📋 キャンディー獲得ミッション</h3><p>🔧 タスクを完了：1個</p><p>✨ 能力を実際に成功させる：2個</p><p>🎮 試合を最後までプレイ：5個</p><p>🏆 試合に勝利：追加3個</p><small class="muted">同じタスク・試合の報酬は重複して受け取れません。日ごとの獲得上限があります。</small></div><p class="muted">開催期間：2026年11月25日～12月10日（日本時間）。第一弾終了後も交換済みアイテムは永久に所持できます。</p>';
+ }catch(e){root.innerHTML='<p class="muted">イベントを読み込めませんでした：'+escapeAccountText(e.message||String(e))+'</p><button onclick="loadChristmasEventScreen()">再読み込み</button>'}
+}
+async function claimChristmasReward(code){
+ try{
+  const {data,error}=await supabaseClient.rpc("triad_christmas_claim",{p_reward_code:String(code)});
+  if(error)throw error;
+  alert(code==="coin_pack"?"コイン100枚と交換しました！":"限定アイテムを獲得しました！");
+  await refreshEconomyInventory();await loadChristmasEventScreen();
+ }catch(e){alert("交換できませんでした："+(e.message||String(e)))}
+}
+function awardEconomyMatch(matchKey,won,survived){
  if(!supabaseClient||!authUser)await initializeOnlineAccounts();
  if(!authUser||!supabaseClient)throw new Error("コインの保存にはオンライン接続が必要です。");
  await ensureOwnPlayerProfile();
@@ -2901,7 +2959,8 @@ const TRIAD_HATS=[
  {id:"cat_ears",name:"ねこ耳フード",unlock:"ガチャ限定",gacha:true},
  {id:"wizard",name:"星詠みの帽子",unlock:"ガチャ限定",gacha:true},
  {id:"dragon_horns",name:"竜角ヘルム",unlock:"ガチャ限定",gacha:true},
- {id:"aurora_crown",name:"オーロラ王冠",unlock:"ガチャ限定",gacha:true}
+ {id:"aurora_crown",name:"オーロラ王冠",unlock:"ガチャ限定",gacha:true},
+ {id:"santa_hat",name:"サンタ帽子",unlock:"クリスマスイベント第一弾",gacha:true}
 ];
 const TRIAD_SCARVES=[
  {id:"none",name:"なし",unlock:"最初から"},
@@ -2913,7 +2972,7 @@ const TRIAD_SCARVES=[
 ];
 
 const TRIAD_GACHA_COSMETICS=[{"kind":"hat","id":"starlight_beret","name":"星灯りのベレー帽","base":"#4d6eaa","accent":"#d9eaff","mark":"✦","style":"beret","rarity":"N"},{"kind":"hat","id":"sakura_kazari","name":"桜吹雪の髪飾り","base":"#e88eb4","accent":"#ffe4ef","mark":"✿","style":"flower","rarity":"N"},{"kind":"hat","id":"mikan_hood","name":"みかんフード","base":"#ed9c39","accent":"#ffe2a6","mark":"●","style":"hood","rarity":"N"},{"kind":"hat","id":"ice_crystal","name":"氷晶ティアラ","base":"#75cce2","accent":"#e3fbff","mark":"❄","style":"crown","rarity":"N"},{"kind":"hat","id":"midnight_cat","name":"宵闇ねこ耳","base":"#4b466f","accent":"#c7b8ff","mark":"◆","style":"ears","rarity":"N"},{"kind":"hat","id":"sunny_cap","name":"サニーデッキキャップ","base":"#e4b64d","accent":"#fff0a9","mark":"☀","style":"cap","rarity":"N"},{"kind":"hat","id":"cloud_halo","name":"わた雲の光輪","base":"#b8d9ed","accent":"#ffffff","mark":"☁","style":"halo","rarity":"N"},{"kind":"hat","id":"forest_leaf","name":"森の若葉ピン","base":"#4b9b70","accent":"#c9f5a4","mark":"❧","style":"leaf","rarity":"N"},{"kind":"hat","id":"berry_crown","name":"ベリークラウン","base":"#b94f75","accent":"#ffd2e2","mark":"♥","style":"crown","rarity":"N"},{"kind":"hat","id":"comet_pin","name":"彗星のヘアピン","base":"#536cae","accent":"#d9e7ff","mark":"☄","style":"comet","rarity":"N"},{"kind":"hat","id":"pudding_hat","name":"ぷるぷるプリン帽","base":"#d7a34f","accent":"#fff0bd","mark":"●","style":"cap","rarity":"R"},{"kind":"hat","id":"ocean_shell","name":"海鳴りシェル飾り","base":"#55a9bd","accent":"#d4faff","mark":"◇","style":"shell","rarity":"R"},{"kind":"hat","id":"flame_horns","name":"紅蓮の小角","base":"#bd554c","accent":"#ffd0a3","mark":"火","style":"horns","rarity":"R"},{"kind":"hat","id":"rainbow_bow","name":"虹色リボン","base":"#bd79d6","accent":"#fff0a8","mark":"♡","style":"ribbon","rarity":"R"},{"kind":"hat","id":"moon_rabbit","name":"月うさぎの耳飾り","base":"#8d83c7","accent":"#eee7ff","mark":"☾","style":"ears","rarity":"R"},{"kind":"hat","id":"gear_goggles","name":"メカニックゴーグル","base":"#657f8e","accent":"#d5f1e8","mark":"⚙","style":"goggles","rarity":"R"},{"kind":"hat","id":"royal_feather","name":"ロイヤルフェザー","base":"#9b7444","accent":"#ffe4a3","mark":"♢","style":"feather","rarity":"R"},{"kind":"hat","id":"candy_crown","name":"キャンディクラウン","base":"#e77eaa","accent":"#fff0f7","mark":"✧","style":"crown","rarity":"SR"},{"kind":"hat","id":"desert_wrap","name":"砂漠旅人のターバン","base":"#c08d5b","accent":"#f7dfb5","mark":"◇","style":"wrap","rarity":"SR"},{"kind":"hat","id":"neon_headset","name":"ネオンヘッドセット","base":"#5368c8","accent":"#8cf6f0","mark":"♫","style":"headset","rarity":"SR"},{"kind":"hat","id":"moss_mushroom","name":"苔むすキノコ帽","base":"#648d65","accent":"#d5e7a8","mark":"🍄","style":"mushroom","rarity":"SR"},{"kind":"hat","id":"crystal_antler","name":"結晶の枝角","base":"#7199c7","accent":"#e2f5ff","mark":"✧","style":"horns","rarity":"SR"},{"kind":"hat","id":"festival_hat","name":"祭囃子の花笠","base":"#d18b45","accent":"#ffe2a1","mark":"✿","style":"hat","rarity":"SSR"},{"kind":"hat","id":"stardust_circlet","name":"星屑のサークレット","base":"#7664b8","accent":"#f6e5ff","mark":"✦","style":"halo","rarity":"SSR"},{"kind":"hat","id":"little_pirate","name":"ちび海賊の帽子","base":"#40536f","accent":"#e9c17c","mark":"⚓","style":"cap","rarity":"SSR"},{"kind":"hat","id":"aurora_crown","name":"オーロラ王冠","base":"#83e6df","accent":"#fff0b8","mark":"✧","style":"crown","rarity":"UR"},{"kind":"scarf","id":"sakura_scarf","name":"桜色ふわりマフラー","base":"#df91b3","accent":"#ffe4ef","mark":"✿","style":"bow","rarity":"N"},{"kind":"scarf","id":"ocean_scarf","name":"深海ブルーマフラー","base":"#397fae","accent":"#b5f2ff","mark":"◇","style":"wave","rarity":"N"},{"kind":"scarf","id":"sunset_scarf","name":"夕焼けグラデスカーフ","base":"#c66a58","accent":"#ffd39b","mark":"☼","style":"tail","rarity":"N"},{"kind":"scarf","id":"mint_ribbon","name":"ミントリボンタイ","base":"#65b7a0","accent":"#d8fff0","mark":"♡","style":"ribbon","rarity":"N"},{"kind":"scarf","id":"royal_capelet","name":"王宮のショートケープ","base":"#8663a8","accent":"#f4ddff","mark":"♛","style":"cape","rarity":"N"},{"kind":"scarf","id":"starlight_choker","name":"星明かりチョーカー","base":"#5369a9","accent":"#e6edff","mark":"✦","style":"choker","rarity":"N"},{"kind":"scarf","id":"berry_necklace","name":"ベリーの首飾り","base":"#a64d70","accent":"#ffd4e5","mark":"●","style":"beads","rarity":"N"},{"kind":"scarf","id":"leaf_necklace","name":"木漏れ日の葉飾り","base":"#4b986a","accent":"#d8f5bd","mark":"❧","style":"leaf","rarity":"N"},{"kind":"scarf","id":"flame_scarf","name":"炎のスカーフ","base":"#bf5547","accent":"#ffd1a1","mark":"火","style":"tail","rarity":"N"},{"kind":"scarf","id":"snow_scarf","name":"雪結晶マフラー","base":"#75b9d5","accent":"#e5fbff","mark":"❄","style":"tail","rarity":"N"},{"kind":"scarf","id":"golden_tie","name":"黄金のラッキーネクタイ","base":"#b58a37","accent":"#ffefb0","mark":"★","style":"tie","rarity":"R"},{"kind":"scarf","id":"lunar_collar","name":"月光の襟飾り","base":"#7163aa","accent":"#e8dcff","mark":"☾","style":"choker","rarity":"R"},{"kind":"scarf","id":"cloud_necklace","name":"雲ふわりネックレス","base":"#91b8cc","accent":"#f2fcff","mark":"☁","style":"beads","rarity":"R"},{"kind":"scarf","id":"dragon_scale","name":"竜鱗の胸飾り","base":"#568b76","accent":"#c5f0d5","mark":"◇","style":"pendant","rarity":"R"},{"kind":"scarf","id":"music_bowtie","name":"音符の蝶ネクタイ","base":"#9b70c7","accent":"#f1d8ff","mark":"♫","style":"tie","rarity":"R"},{"kind":"scarf","id":"honey_scarf","name":"はちみつ色マフラー","base":"#c49336","accent":"#fff0a8","mark":"✿","style":"tail","rarity":"R"},{"kind":"scarf","id":"coral_choker","name":"珊瑚のチョーカー","base":"#cf756d","accent":"#ffe0d7","mark":"✧","style":"choker","rarity":"R"},{"kind":"scarf","id":"violet_stole","name":"夜紫のストール","base":"#66517f","accent":"#dfcfff","mark":"✦","style":"cape","rarity":"R"},{"kind":"scarf","id":"rainbow_necklace","name":"虹色ビーズネックレス","base":"#b66ec3","accent":"#ffe4aa","mark":"●","style":"beads","rarity":"SR"},{"kind":"scarf","id":"adventure_bandana","name":"冒険者のバンダナ","base":"#9b6048","accent":"#f1c69c","mark":"⚑","style":"bandana","rarity":"SR"},{"kind":"scarf","id":"aurora_pendant","name":"オーロラのペンダント","base":"#4b9eaa","accent":"#d8fff5","mark":"☼","style":"pendant","rarity":"SR"},{"kind":"scarf","id":"cherry_choker","name":"チェリーの首飾り","base":"#c44d65","accent":"#ffd4df","mark":"♥","style":"beads","rarity":"SR"},{"kind":"scarf","id":"gear_necklace","name":"歯車のネックレス","base":"#71828a","accent":"#e1edf0","mark":"⚙","style":"pendant","rarity":"SR"},{"kind":"scarf","id":"starry_cape","name":"星空のミニケープ","base":"#384d82","accent":"#c8d8ff","mark":"✦","style":"cape","rarity":"SSR"},{"kind":"scarf","id":"festival_bell","name":"祭り鈴の首飾り","base":"#c28b3e","accent":"#ffedb0","mark":"鈴","style":"beads","rarity":"SSR"}];
-const TRIAD_GACHA_PETS=[{"kind":"pet","id":"amber_fox","name":"こはく狐","base":"#d98b42","accent":"#fff0c5","style":"fox","rarity":"UR"},{"kind":"pet","id":"nebula_bunny","name":"星雲うさぎ","base":"#9b83d4","accent":"#f4eaff","style":"bunny","rarity":"UR"},{"kind":"pet","id":"abyss_jelly","name":"深海クラゲ","base":"#55a8c8","accent":"#d9fbff","style":"jelly","rarity":"UR"},{"kind":"pet","id":"mini_dragon","name":"ミニドラゴン","base":"#6b9b70","accent":"#dff7b7","style":"dragon","rarity":"UR"}];
+const TRIAD_GACHA_PETS=[{"kind":"pet","id":"amber_fox","name":"こはく狐","base":"#d98b42","accent":"#fff0c5","style":"fox","rarity":"UR"},{"kind":"pet","id":"nebula_bunny","name":"星雲うさぎ","base":"#9b83d4","accent":"#f4eaff","style":"bunny","rarity":"UR"},{"kind":"pet","id":"abyss_jelly","name":"深海クラゲ","base":"#55a8c8","accent":"#d9fbff","style":"jelly","rarity":"UR"},{"kind":"pet","id":"mini_dragon","name":"ミニドラゴン","base":"#6b9b70","accent":"#dff7b7","style":"dragon","rarity":"UR"},{"kind":"pet","id":"christmas_reindeer","name":"クリスマストナカイ","base":"#a96b42","accent":"#fff0c5","style":"reindeer","rarity":"UR"},{"kind":"pet","id":"snowman_friend","name":"ゆきだるまペット","base":"#d9f3ff","accent":"#ffffff","style":"snowman","rarity":"UR"}];
 TRIAD_GACHA_COSMETICS.filter(v=>v.kind==="hat").forEach(v=>{if(!TRIAD_HATS.some(x=>x.id===v.id))TRIAD_HATS.push({id:v.id,name:v.name,unlock:"ガチャ限定",gacha:true})});
 TRIAD_GACHA_COSMETICS.filter(v=>v.kind==="scarf").forEach(v=>{if(!TRIAD_SCARVES.some(x=>x.id===v.id))TRIAD_SCARVES.push({id:v.id,name:v.name,unlock:"ガチャ限定",gacha:true})});
 function loadCosmetics(){
