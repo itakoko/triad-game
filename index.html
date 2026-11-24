@@ -180,6 +180,17 @@ canvas#mapCanvas{aspect-ratio:16/10;background:#0b1522}
 .meetingSummary .summaryMeta{font-size:11px;color:#b8cadd;margin-top:6px}
 @media(max-width:600px){.meetingChat{max-height:180px}.meetingSummary{padding:8px}.meetingTimerBar{padding:6px 9px}}
  .gachaRate,.gachaPoolItem,.gachaHistoryRow{display:flex;justify-content:space-between;gap:12px;align-items:center;padding:8px 10px;border-bottom:1px solid #30445d}.gachaPool,.gachaResults{display:grid;grid-template-columns:repeat(auto-fit,minmax(145px,1fr));gap:8px}.gachaResult{display:flex;flex-direction:column;gap:6px;padding:12px;border:2px solid;border-radius:12px;background:#14263c;animation:gachaReveal .35s ease-out}.gachaResult b{font-size:1.02rem}.gachaHistoryRow small{color:var(--muted)}@keyframes gachaReveal{from{opacity:.25;transform:translateY(8px) scale(.96)}to{opacity:1;transform:translateY(0) scale(1)}}</style>
+<style>
+.seasonHero{background:linear-gradient(125deg,#173c50,#30274e 55%,#65452a);border:1px solid #9ac9d6;border-radius:16px;padding:16px;margin-bottom:12px}
+.seasonTrack{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}
+.seasonTier{background:#14243a;border:1px solid #405675;border-radius:12px;padding:11px;min-width:0}
+.seasonTier.reached{border-color:#6ccfc2;background:#183747}
+.seasonReward{padding:8px;margin-top:7px;border-radius:9px;background:#0e1b2c;border:1px solid #344b66;font-size:12px}
+.seasonReward button{width:100%;margin-top:7px;padding:8px;font-size:12px}
+.seasonBar{height:12px;background:#0c1726;border-radius:99px;overflow:hidden;margin:9px 0}
+.seasonBar>div{height:100%;background:linear-gradient(90deg,#5ac9c0,#f1d17a);width:0}
+@media(max-width:520px){.seasonTrack{grid-template-columns:1fr}}
+</style>
 </head>
 <body>
 <header><div class="logo">TRI<span>AD</span></div><div class="row" style="align-items:center;gap:8px;flex:0 0 auto"><div class="tag">オンラインアカウント対応 · 常駐デバッグAI · v0.84</div><button class="headerAccountButton" type="button" onclick="openAccountsScreen()">アカウント</button></div></header>
@@ -193,6 +204,7 @@ canvas#mapCanvas{aspect-ratio:16/10;background:#0b1522}
   <div class="card"><h3>🏆 ランク戦</h3><p class="muted">ランクポイントと戦績を確認し、10人戦・12人戦に参加できます。</p><button class="primary" style="width:100%" onclick="openRankedScreen()">ランク戦を見る</button></div>
   <div class="card"><h3>👕 衣装・着せ替え</h3><p class="muted">帽子やアクセサリーを集めて、自分のキャラクターをカスタマイズ。</p><button class="primary" style="width:100%" onclick="openWardrobeScreen()">衣装を変更する</button></div>
   <div class="card"><h3>🪙 コイン・ショップ</h3><p class="muted">試合報酬でコインを集め、見た目アイテムを入手。フレンドとの交換もできます。</p><button class="primary" style="width:100%" onclick="openEconomyScreen()">ショップを開く</button></div>
+  <div class="card"><h3>🎟️ シーズンパス</h3><p class="muted">試合でシーズンポイントを獲得。無料報酬と、コイン2,000枚で解放するシーズンパス＋に挑戦。</p><button class="primary" style="width:100%" onclick="openSeasonPassScreen()">シーズンパスを見る</button></div>
   <div class="card"><h3>🎰 コレクションガチャ</h3><p class="muted">ガチャ限定の衣装・帽子・アクセサリーをランダムで獲得。ショップとは別の限定ラインナップです。</p><button class="primary" style="width:100%" onclick="openGachaScreen()">ガチャを引く</button></div>
   <div class="card"><h3>🏅 プレイヤー成長</h3><p class="muted">レベル・経験値・実績・役職熟練度を確認。</p><button class="primary" style="width:100%" onclick="openProgressionScreen()">成長記録を見る</button></div>
   <div class="card"><h3>🎁 ログインボーナス・ミッション</h3><p class="muted">毎日のログイン報酬と、役職ごとの段階ミッションに挑戦。</p><button class="primary" style="width:100%" onclick="openProgressionScreen()">報酬・ミッションを確認</button></div>
@@ -297,6 +309,11 @@ canvas#mapCanvas{aspect-ratio:16/10;background:#0b1522}
 <section id="economy" class="screen">
  <div class="hero"><h1>🪙 コイン・ショップ</h1><p>試合でコインを獲得し、帽子やアクセサリーを集めましょう。アイテムはゲーム内だけで使用できます。</p></div>
  <div class="card" id="economyContent"><div class="muted">ショップ情報を読み込んでいます…</div></div>
+ <div class="actions"><button onclick="show('home')">ホームへ戻る</button></div>
+</section>
+<section id="seasonPass" class="screen">
+ <div class="hero"><h1>🎟️ シーズンパス</h1><p>試合を完了してシーズンポイントを獲得。無料パスは全員利用でき、シーズンパス＋はコイン2,000枚で解放できます。</p></div>
+ <div id="seasonPassContent"><div class="muted">シーズン情報を読み込んでいます…</div></div>
  <div class="actions"><button onclick="show('home')">ホームへ戻る</button></div>
 </section>
 <section id="gacha" class="screen">
@@ -2856,6 +2873,45 @@ async function refreshEconomyInventory(){
 }
 function previewCosmeticItem(kind,id,name){if(!["hat","scarf","suit","pet"].includes(kind)||!id)return;const cosmetics=loadCosmetics();cosmetics[kind]=id;const wrap=document.createElement("div");wrap.id="cosmeticPreviewModal";wrap.style.cssText="position:fixed;inset:0;z-index:99999;background:rgba(0,0,0,.82);display:flex;align-items:center;justify-content:center;padding:16px";wrap.innerHTML='<div style="max-width:340px;text-align:center;background:#1b2a41;border:1px solid #526a87;border-radius:16px;padding:14px"><h3>'+escapeAccountText(name||"アイテムプレビュー")+'</h3><p>装備前のプレビューです。所持状態や装備は変更されません。</p><canvas id="cosmeticPreviewCanvas" width="260" height="210" style="max-width:100%;height:auto"></canvas><button onclick="closeCosmeticPreview()">閉じる</button></div>';document.body.appendChild(wrap);const canvas=document.getElementById("cosmeticPreviewCanvas"),ctx=canvas.getContext("2d"),p={id:0,color:colors[0],shape:0,alive:true,cosmetics};ctx.fillStyle="#0d192a";ctx.fillRect(0,0,260,210);ctx.translate(130,115);ctx.scale(5,5);ctx.fillStyle=p.color;ctx.beginPath();ctx.ellipse(0,0,9,11,0,0,Math.PI*2);ctx.fill();drawPlayerCosmetics(ctx,p)}
 function closeCosmeticPreview(){document.getElementById("cosmeticPreviewModal")?.remove()}
+const TRIAD_SEASON_REWARDS=[
+ {free:50,premium:120},{free:50,premium:140},{free:60,premium:160},{free:60,premium:180},{free:70,premium:200,premiumTitle:"異変の調査員"},{free:70,premium:220},{free:80,premium:240},{free:80,premium:260},{free:90,premium:280},{free:100,premium:350,freeTitle:"研究所の生還者",premiumTitle:"TRIAD シーズン1覇者"}
+];
+async function openSeasonPassScreen(){
+ if(!activateScreen("seasonPass"))return;
+ await loadSeasonPassScreen();
+}
+async function loadSeasonPassScreen(){
+ const root=$("seasonPassContent");if(!root)return;
+ root.innerHTML='<div class="muted">シーズン情報を読み込んでいます…</div>';
+ try{
+  if(!authUser||!supabaseClient)await initializeOnlineAccounts();
+  if(!authUser||!supabaseClient)throw new Error("シーズンパスにはオンライン接続が必要です。");
+  await ensureOwnPlayerProfile();
+  const [stateRes,walletRes]=await Promise.all([
+   supabaseClient.rpc("triad_season_pass_state"),
+   supabaseClient.from("player_wallets").select("coins").eq("user_id",authUser.id).single()
+  ]);
+  if(stateRes.error)throw stateRes.error;if(walletRes.error)throw walletRes.error;
+  const d=stateRes.data||{},coins=Number(walletRes.data?.coins||0),points=Math.max(0,Number(d.points)||0),level=Math.min(10,Math.floor(points/100)),claims=Array.isArray(d.claims)?d.claims:[];
+  const claimed=(tier,track)=>claims.some(c=>Number(c.tier)===tier&&c.track===track);
+  const premium=!!d.premium;
+  const cards=TRIAD_SEASON_REWARDS.map((r,i)=>{
+   const tier=i+1,reached=points>=tier*100,freeDone=claimed(tier,"free"),premiumDone=claimed(tier,"premium");
+   const reward=(track,amount,title,done,enabled)=>'<div class="seasonReward"><b>'+(track==="free"?"🆓 無料報酬":"✨ シーズンパス＋報酬")+'</b><div>🪙 '+amount+'コイン'+(title?' ＋ 🏅 '+title:'')+'</div>'+(done?'<small>受取済み</small>':'<button '+(enabled?'class="primary"':'disabled')+' onclick="claimSeasonPassReward('+tier+',&quot;'+track+'&quot;)">'+(reached?(track==="premium"&&!premium?"＋を解放すると受取可能":"報酬を受け取る"):"あと"+Math.max(0,tier*100-points)+"pt")+'</button>')+'</div>';
+   return '<div class="seasonTier '+(reached?'reached':'')+'"><div class="row" style="justify-content:space-between"><b>ティア '+tier+'</b><span class="pill">'+(reached?'到達済み':tier*100+' pt')+'</span></div>'+reward("free",r.free,r.freeTitle,freeDone,reached&&!freeDone)+reward("premium",r.premium,r.premiumTitle,premiumDone,reached&&premium&&!premiumDone)+'</div>';
+  }).join("");
+  root.innerHTML='<div class="seasonHero"><div class="pill">開催中 · '+(d.season_name||"TRIAD シーズン1")+'</div><h2 style="margin:10px 0 4px">研究所の異変</h2><p class="muted">開催期間：2026/11/24 ～ 2026/12/24</p><div class="row"><div><b>シーズンポイント</b><div style="font-size:28px;font-weight:900">'+points+' <small style="font-size:13px">/ 1,000 pt</small></div></div><div><b>所持コイン</b><div style="font-size:24px;font-weight:900">🪙 '+coins.toLocaleString("ja-JP")+'</div></div></div><div class="seasonBar"><div style="width:'+Math.min(100,points/10)+'%"></div></div><small>次のティアまで '+(points>=1000?'最大到達':(100-points%100)+' pt')+' · 試合完了ごとに25 pt（重複報酬・連続報酬は加算されません）</small></div><div class="card" style="margin-bottom:12px"><div class="row" style="justify-content:space-between"><div><h3 style="margin:0">✨ シーズンパス＋</h3><p class="muted">追加報酬10個を解放。無料報酬はそのまま受け取れます。</p></div><span class="pill">'+(premium?'解放済み':'2,000コイン')+'</span></div>'+(premium?'<p style="color:#8fe4d5">シーズンパス＋が有効です。このシーズンの追加報酬を受け取れます。</p>':'<button class="primary" style="width:100%" '+(coins<2000?'disabled':'')+' onclick="purchaseSeasonPassPlus()">コイン2,000枚で解放する</button><small class="muted">購入前に報酬一覧を確認できます。解放はシーズン1終了まで有効です。</small>')+'</div><h3>🎁 報酬一覧</h3><div class="seasonTrack">'+cards+'</div>';
+ }catch(e){root.innerHTML='<div class="card"><b>シーズン情報を読み込めませんでした</b><p class="muted">'+String(e.message||e)+'</p><button onclick="loadSeasonPassScreen()">再読み込み</button></div>';}
+}
+async function purchaseSeasonPassPlus(){
+ if(!confirm("コイン2,000枚を使って、シーズンパス＋を解放しますか？"))return;
+ try{const {data,error}=await supabaseClient.rpc("triad_season_pass_purchase");if(error)throw error;alert(data?.already_owned?"すでに解放済みです。":"シーズンパス＋を解放しました！");await loadSeasonPassScreen();}
+ catch(e){alert("解放できませんでした："+(String(e.message||e).includes("INSUFFICIENT_COINS")?"コインが2,000枚足りません。":(e.message||e)));}
+}
+async function claimSeasonPassReward(tier,track){
+ try{const {data,error}=await supabaseClient.rpc("triad_season_pass_claim",{p_tier:tier,p_track:track});if(error)throw error;alert("シーズン報酬を獲得しました！\nコイン："+data.coins+(data.title?"\n称号："+data.title:""));await loadSeasonPassScreen();}
+ catch(e){alert("報酬を受け取れませんでした："+(e.message||String(e)));}
+}
 function previewEconomyItem(code){const item=economyCatalogCache.find(v=>v.item_code===code);if(item)previewCosmeticItem(item.item_kind,item.cosmetic_id,item.display_name)}
 function economyItemName(code){
  const item=economyCatalogCache.find(v=>v.item_code===code);
