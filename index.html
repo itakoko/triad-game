@@ -2578,9 +2578,10 @@ const MAX_PLAYER_LEVEL=20;
 function playerLevelThreshold(level){const target=Math.max(1,Math.min(MAX_PLAYER_LEVEL,Math.floor(Number(level)||1))),n=target-1;return n*(100+25*(n-1))}
 function playerLevelFromXP(value){const xp=Math.max(0,Math.min(playerLevelThreshold(MAX_PLAYER_LEVEL),Number(value)||0));let level=1;while(level<MAX_PLAYER_LEVEL&&xp>=playerLevelThreshold(level+1))level++;return level}
 function playerLevelProgress(value){const xp=Math.max(0,Math.min(playerLevelThreshold(MAX_PLAYER_LEVEL),Number(value)||0)),level=playerLevelFromXP(xp),start=playerLevelThreshold(level),next=level<MAX_PLAYER_LEVEL?playerLevelThreshold(level+1):start;return {xp,level,within:level===MAX_PLAYER_LEVEL?0:xp-start,needed:level===MAX_PLAYER_LEVEL?0:next-start,percent:level===MAX_PLAYER_LEVEL?100:Math.max(0,Math.min(100,(xp-start)/(next-start)*100)),nextXp:next}}
-function playerLevelRewardCoins(level){return 100+(Math.max(2,Math.min(MAX_PLAYER_LEVEL,Number(level)||2))-2)*50}
+const PLAYER_LEVEL_REWARD_TITLES={2:"見習いクルー",3:"探索の新人",4:"推理見習い",5:"観察の達人",6:"頼れる仲間",7:"生還者",8:"戦術家",9:"熟練調査員",10:"TRIADルーキー",11:"影の追跡者",12:"守護者",13:"戦場の策士",14:"ベテラン",15:"精鋭プレイヤー",16:"百戦錬磨",17:"TRIADの名手",18:"伝説の探偵",19:"英雄",20:"TRIADマスター"};
+function playerLevelRewardTitle(level){return PLAYER_LEVEL_REWARD_TITLES[Math.max(2,Math.min(MAX_PLAYER_LEVEL,Number(level)||2))]||"レベル到達称号"}
 function loadProgression(){
- try{const p=JSON.parse(localStorage.getItem(TRIAD_PROGRESS_KEY)||"{}");const xp=Math.max(0,Math.min(playerLevelThreshold(MAX_PLAYER_LEVEL),Number(p.experiencePoints)||0));return {experiencePoints:xp,level:playerLevelFromXP(xp),achievements:Array.isArray(p.achievements)?p.achievements:[],roleMastery:p.roleMastery&&typeof p.roleMastery==="object"?p.roleMastery:{},completedMatches:Number(p.completedMatches)||0,totalWins:Number(p.totalWins)||0,totalSurvivals:Number(p.totalSurvivals)||0,lastReward:p.lastReward||null}}
+ try{const p=JSON.parse(localStorage.getItem(TRIAD_PROGRESS_KEY)||"{}");const xp=Math.max(0,Math.min(playerLevelThreshold(MAX_PLAYER_LEVEL),Number(p.experiencePoints)||0));return {experiencePoints:xp,level:playerLevelFromXP(xp),achievements:Array.isArray(p.achievements)?p.achievements:[],roleMastery:p.roleMastery&&typeof p.roleMastery==="object"?p.roleMastery:{},completedMatches:Number(p.completedMatches)||0,totalWins:Number(p.totalWins)||0,totalSurvivals:Number(p.totalSurvivals)||0,lastReward:p.lastReward||null,levelTitles:Array.isArray(p.levelTitles)?p.levelTitles:[]}}
  catch{return {experiencePoints:0,level:1,achievements:[],roleMastery:{},lastReward:null}}
 }
 async function awardEconomyMatch(matchKey,won,survived){
@@ -2656,7 +2657,7 @@ function mergeCloudProgressionIntoLocal(){
  const xp=Math.min(playerLevelThreshold(MAX_PLAYER_LEVEL),Math.max(local.experiencePoints,Number(row.experience_points||0)));
  const mastery={...local.roleMastery};
  for(const [role,v] of Object.entries(row.role_mastery||{})){const old=mastery[role]||{};mastery[role]={matches:Math.max(Number(old.matches||0),Number(v.matches||0)),wins:Math.max(Number(old.wins||0),Number(v.wins||0)),survived:Math.max(Number(old.survived||0),Number(v.survived||0)),experience:Math.max(Number(old.experience||0),Number(v.experience||0)),metrics:Object.fromEntries([...new Set([...Object.keys(old.metrics||{}),...Object.keys(v.metrics||{})])].map(k=>[k,Math.max(Number(old.metrics?.[k]||0),Number(v.metrics?.[k]||0))])),titles:[...new Set([...(old.titles||[]),...(v.titles||[])])],outfits:[...new Set([...(old.outfits||[]),...(v.outfits||[])])]}}
- const merged={...local,experiencePoints:xp,level:playerLevelFromXP(xp),achievements:[...new Set([...local.achievements,...(Array.isArray(row.achievement_codes)?row.achievement_codes:[])])],roleMastery:mastery,completedMatches:Math.max(local.completedMatches,Number(cloudStats.completedMatches||0)),totalWins:Math.max(local.totalWins,Number(cloudStats.totalWins||0)),totalSurvivals:Math.max(local.totalSurvivals,Number(cloudStats.totalSurvivals||0))};
+ const merged={...local,experiencePoints:xp,level:playerLevelFromXP(xp),levelTitles:[...new Set([...(local.levelTitles||[]),...(Array.isArray(cloudStats.levelTitles)?cloudStats.levelTitles:[])])],achievements:[...new Set([...local.achievements,...(Array.isArray(row.achievement_codes)?row.achievement_codes:[])])],roleMastery:mastery,completedMatches:Math.max(local.completedMatches,Number(cloudStats.completedMatches||0)),totalWins:Math.max(local.totalWins,Number(cloudStats.totalWins||0)),totalSurvivals:Math.max(local.totalSurvivals,Number(cloudStats.totalSurvivals||0))};
  try{localStorage.setItem(TRIAD_PROGRESS_KEY,JSON.stringify(merged))}catch(e){console.warn("Progress hydration failed",e)}
 }
 async function syncOnlinePlayerProgress(progress=loadProgression()){
@@ -2666,7 +2667,7 @@ async function syncOnlinePlayerProgress(progress=loadProgression()){
  const xp=Math.min(playerLevelThreshold(MAX_PLAYER_LEVEL),Math.max(Number(cloud?.experience_points||0),Number(progress.experiencePoints||0)));
  const achievements=[...new Set([...(Array.isArray(cloud?.achievement_codes)?cloud.achievement_codes:[]),...(progress.achievements||[])])];
  const cloudStats=cloud?.progression_stats||{};
- const progressionStats={completedMatches:Math.max(Number(cloudStats.completedMatches||0),Number(progress.completedMatches||0)),totalWins:Math.max(Number(cloudStats.totalWins||0),Number(progress.totalWins||0)),totalSurvivals:Math.max(Number(cloudStats.totalSurvivals||0),Number(progress.totalSurvivals||0))};
+ const progressionStats={levelTitles:[...new Set([...(Array.isArray(cloudStats.levelTitles)?cloudStats.levelTitles:[]),...(progress.levelTitles||[])])],completedMatches:Math.max(Number(cloudStats.completedMatches||0),Number(progress.completedMatches||0)),totalWins:Math.max(Number(cloudStats.totalWins||0),Number(progress.totalWins||0)),totalSurvivals:Math.max(Number(cloudStats.totalSurvivals||0),Number(progress.totalSurvivals||0))};
  const mastery={...(cloud?.role_mastery||{})};
  for(const [role,v] of Object.entries(progress.roleMastery||{})){
   const old=mastery[role]||{};
@@ -3120,8 +3121,8 @@ function renderProgressionExtras(m,daily,claims,coins,generalClaims,periodRows,l
  const currentLevel=playerLevelFromXP(m.experiencePoints||0);
  html+='<div class="card" style="margin:12px 0;border-color:#72a9dc"><div class="row" style="justify-content:space-between"><h3 style="margin:0">🎖 プレイヤーレベル報酬</h3><span class="pill">最大Lv.20</span></div><p class="muted">レベルアップで解放された報酬は、ここから受け取れます。各レベルの報酬は1回限りです。</p>';
  for(let level=2;level<=MAX_PLAYER_LEVEL;level++){
-  const done=levelClaimSet.has(level),ready=currentLevel>=level,reward=playerLevelRewardCoins(level);
-  html+='<div class="accountTrait" style="opacity:'+(done?".7":"1")+'"><div class="row" style="justify-content:space-between"><b>Lv.'+level+' 到達報酬</b><span class="pill">'+(done?"受取済み":ready?"受取可能":"未解放")+'</span></div><div class="row" style="justify-content:space-between;align-items:center;margin-top:6px"><small class="muted">🪙 '+reward.toLocaleString("ja-JP")+' コイン</small><button '+(done||!ready?"disabled":'class="primary" onclick="claimTriadPlayerLevelReward('+level+')"')+'>'+(done?"受取済み":ready?"報酬を受け取る":"Lv."+level+"で解放")+'</button></div></div>';
+  const done=levelClaimSet.has(level),ready=currentLevel>=level,reward=playerLevelRewardTitle(level);
+  html+='<div class="accountTrait" style="opacity:'+(done?".7":"1")+'"><div class="row" style="justify-content:space-between"><b>Lv.'+level+' 到達報酬</b><span class="pill">'+(done?"受取済み":ready?"受取可能":"未解放")+'</span></div><div class="row" style="justify-content:space-between;align-items:center;margin-top:6px"><small class="muted">🏅 称号「'+escapeAccountText(reward)+'」</small><button '+(done||!ready?"disabled":'class="primary" onclick="claimTriadPlayerLevelReward('+level+')"')+'>'+(done?"受取済み":ready?"報酬を受け取る":"Lv."+level+"で解放")+'</button></div></div>';
  }
  html+='</div>';
  html+=renderTriadPeriodMissions(periodRows||[]);
@@ -3170,13 +3171,13 @@ async function loadProgressionExtras(){
    supabaseClient.from("player_wallets").select("coins").eq("user_id",authUser.id).maybeSingle(),
    supabaseClient.from("triad_mission_claims").select("mission_code").eq("user_id",authUser.id),
    supabaseClient.from("triad_period_mission_progress").select("period_type,period_key,mission_code,progress,claimed_at").eq("user_id",authUser.id).in("period_key",[periodKeys.daily,periodKeys.weekly]),
-   supabaseClient.from("player_level_reward_claims").select("level,coins,claimed_at").eq("user_id",authUser.id)
+   supabaseClient.from("player_level_reward_claims").select("level,reward_title,claimed_at").eq("user_id",authUser.id)
   ]);
   for(const x of [profileRes,dailyRes,claimsRes,walletRes,generalClaimsRes,periodRes,levelClaimsRes])if(x.error)throw x.error;
   const p=loadProgression(),cloud=profileRes.data?.role_mastery||{},mastery={...p.roleMastery};
   for(const [role,v] of Object.entries(cloud)){const old=mastery[role]||{},oldMetrics=old.metrics||{},cloudMetrics=v.metrics||{};mastery[role]={...old,matches:Math.max(Number(old.matches||0),Number(v.matches||0)),wins:Math.max(Number(old.wins||0),Number(v.wins||0)),survived:Math.max(Number(old.survived||0),Number(v.survived||0)),experience:Math.max(Number(old.experience||0),Number(v.experience||0)),metrics:Object.fromEntries([...new Set([...Object.keys(oldMetrics),...Object.keys(cloudMetrics)])].map(k=>[k,Math.max(Number(oldMetrics[k]||0),Number(cloudMetrics[k]||0))])),titles:[...new Set([...(old.titles||[]),...(v.titles||[])])],outfits:[...new Set([...(old.outfits||[]),...(v.outfits||[])])]}}
   const cloudStats=profileRes.data?.progression_stats||{};
-  const mergedProgress={...p,experiencePoints:Math.min(playerLevelThreshold(MAX_PLAYER_LEVEL),Math.max(p.experiencePoints,Number(profileRes.data?.experience_points||0))),completedMatches:Math.max(Number(p.completedMatches||0),Number(cloudStats.completedMatches||0)),totalWins:Math.max(Number(p.totalWins||0),Number(cloudStats.totalWins||0)),totalSurvivals:Math.max(Number(p.totalSurvivals||0),Number(cloudStats.totalSurvivals||0)),roleMastery:mastery};
+  const mergedProgress={...p,experiencePoints:Math.min(playerLevelThreshold(MAX_PLAYER_LEVEL),Math.max(p.experiencePoints,Number(profileRes.data?.experience_points||0))),levelTitles:[...new Set([...(p.levelTitles||[]),...(Array.isArray(cloudStats.levelTitles)?cloudStats.levelTitles:[])])],completedMatches:Math.max(Number(p.completedMatches||0),Number(cloudStats.completedMatches||0)),totalWins:Math.max(Number(p.totalWins||0),Number(cloudStats.totalWins||0)),totalSurvivals:Math.max(Number(p.totalSurvivals||0),Number(cloudStats.totalSurvivals||0)),roleMastery:mastery};
   extras.innerHTML=renderProgressionExtras(mergedProgress,dailyRes.data,claimsRes.data||[],walletRes.data?.coins||0,generalClaimsRes.data||[],periodRes.data||[],levelClaimsRes.data||[]);
  }catch(e){extras.innerHTML='<div class="card"><b>ミッション情報を読み込めませんでした</b><p class="muted">'+escapeAccountText(e.message||String(e))+'</p><button onclick="loadProgressionExtras()">再読み込み</button></div>'}
 }
@@ -3187,7 +3188,7 @@ async function claimTriadPlayerLevelReward(level){
   const {data,error}=await supabaseClient.rpc("triad_claim_player_level_reward",{p_level:Number(level)});
   if(error)throw error;
   economyCoins=Number(data?.balance??economyCoins);
-  if(data?.claimed)alert("プレイヤーレベル報酬を獲得しました！\nLv."+level+" 報酬：+"+Number(data.coins||0)+"コイン");
+  if(data?.claimed)alert("プレイヤーレベル報酬を獲得しました！\nLv."+level+" 称号：「"+(data.title||playerLevelRewardTitle(level))+"」");
   else alert("このレベルの報酬はすでに受け取り済みです。");
   openProgressionScreen();
  }catch(e){alert("レベル報酬を受け取れませんでした："+(e.message||String(e)))}
