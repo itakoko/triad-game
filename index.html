@@ -1257,7 +1257,7 @@ function startTriadAutoMeetingWatchdog(){
      if(state.me?.alive&&state.selectedVote===null)state.selectedVote=chooseAIVote(state.me,state.players.filter(p=>p.alive));
      if(!state.me?.alive)state.selectedVote="ghost";
      submitVote();
-    }else if(state._closingMeeting&&Date.now()-(state._closingMeetingAt||0)>3500){
+    }else if(state._closingMeeting&&Date.now()-(state._closingMeetingAt||0)>6000){
      recoverStuckMeeting("会議終了処理のタイムアウト");
     }else if(!state._closingMeeting)closeMeeting();
    }
@@ -2510,6 +2510,7 @@ function playMeetingTransition(title,subtitle=""){
 function callMeeting(message="会議が招集されました。",caller=state.me){
  if(onlineGame?.isHost){onlineMeetingLog=[];onlineLastChatSignature="";onlineVotes.clear()}
  if(!state.running||state.meeting||!caller?.alive)return;
+ state._voteSubmitting=false;state._voteResolved=false;state._closingMeeting=false;state._closingMeetingAt=0;
  if(String(message).includes("緊急会議ボタン"))caller.emergencyMeetingUsed=true;
  state.meetingId=Date.now()+Math.random();
  playMeetingTransition("会議開始","全員、会議室に集合してください");
@@ -2533,7 +2534,7 @@ function callMeeting(message="会議が招集されました。",caller=state.me
 function beginVoting(auto=false){if(rankedServerMode){rankedEngineCall("begin_vote").then(()=>rankedEngineCall("state")).then(applyRankedServerSnapshot).catch(e=>{$("meetingInfo").textContent="投票を開始できません："+(e.message||String(e))});return}if(isOnlineClient()){sendOnlineInput({kind:"action",action:"begin_vote"});return}
  if(!state.meeting||state.meetingPhase!=="discussion")return;
  if(state.aiTurnTimer)clearTimeout(state.aiTurnTimer);state.aiTurnTimer=null;stopMeetingTimer();
- state.meetingPhase="voting";playMeetingTransition("投票開始","議論を終了し、投票してください");$("meetingPhaseLabel").textContent="投票フェーズ";$("meetingTimeLeft").textContent=auto?"時間終了":"議論終了";
+ state.meetingPhase="voting";state._voteSubmitting=false;state._voteResolved=false;playMeetingTransition("投票開始","議論を終了し、投票してください");$("meetingPhaseLabel").textContent="投票フェーズ";$("meetingTimeLeft").textContent=auto?"時間終了":"議論終了";
  $("meetingInfo").textContent=state.me.alive?"投票先を選んで「投票を確定」してください。":"あなたは幽霊のため投票できません。生存者のAIが投票します。";
  $("meetingComposer").hidden=true;$("beginVoteAction").hidden=true;$("meetingVotePanel").hidden=false;
  state.selectedVote=state.me.alive?null:"ghost";$("selectedVoteText").textContent=state.me.alive?"投票先：未選択":"👻 幽霊は投票できません";$("submitVoteAction").disabled=state.me.alive;$("submitVoteAction").textContent=state.me.alive?"投票を確定":"AIの投票結果を表示";
@@ -2541,7 +2542,6 @@ function beginVoting(auto=false){if(rankedServerMode){rankedEngineCall("begin_vo
  const alive=state.players.filter(p=>p.alive);
  $("voteList").innerHTML=alive.map(p=>`<button data-vote-id="${p.id}" onclick="castVote(${p.id})"><span class="dot" style="background:${p.color}"></span><span style="color:${meetingNameColor(p)||"inherit"}">${playerTag(p)}</span><small style="color:${p.color}">(${p.colorName||"色"})</small></button>`).join("");
  if(!state.me.alive)$("voteList").querySelectorAll("button").forEach(b=>b.disabled=true);
- if(triadAutoModeActive&&!onlineGame&&state.me.alive)setTimeout(()=>{if(triadAutoModeActive&&state.meeting&&state.meetingPhase==="voting"&&state.selectedVote===null){state.selectedVote=chooseAIVote(state.me,state.players.filter(p=>p.alive));submitVote()}},450);
 }
 function openMap(){if(!state.running||!state.me.alive)return;drawOverview();$("mapModal").classList.add("show")}
 function closeMap(){$("mapModal").classList.remove("show")}
@@ -2598,6 +2598,8 @@ function chooseAIVote(voter,alive){
 }
 function submitVote(){if(rankedServerMode){if(state.selectedVote===null)return;const target=state.selectedVote==="skip"?"skip":Number(state.selectedVote)+1;rankedEngineCall("vote",{target}).then(()=>rankedEngineCall("state")).then(snap=>{applyRankedServerSnapshot(snap);$("meetingInfo").textContent="投票を受け付けました。集計を待っています。"}).catch(e=>{$("meetingInfo").textContent=e.message==="already_voted"?"投票済みです。":"投票できません："+(e.message||String(e))});$("submitVoteAction").disabled=true;return}if(isOnlineClient()){if(state.selectedVote!==null&&!state.onlineVoteSubmitted){state.onlineVoteSubmitted=true;sendOnlineInput({kind:"action",action:"vote",target:state.selectedVote});$("submitVoteAction").disabled=true;$("meetingInfo").textContent="投票を送信しました。他の参加者の投票を待っています。"}return}if(onlineGame?.isHost){if(state.selectedVote!==null){onlineVotes.set(state.me.id,state.selectedVote);resolveOnlineVotes()}return}
  if(!state.meeting||state.meetingPhase!=="voting"||(state.me.alive&&state.selectedVote===null)||(!state.me.alive&&state.selectedVote!=="ghost"))return;
+ if(state._voteResolved||state._voteSubmitting)return;
+ state._voteSubmitting=true;state._voteResolved=true;
  const alive=state.players.filter(p=>p.alive),ballots=state.me.alive?[{voter:state.me.id,target:state.selectedVote}]:[];
  playSfx("vote");
  alive.filter(p=>p.id!==state.me.id).forEach(p=>{
@@ -2616,15 +2618,16 @@ function submitVote(){if(rankedServerMode){if(state.selectedVote===null)return;c
   if(out&&markPlayerDead(out,"投票で追放")){$("voteResult").textContent=`${out.name} が ${max} 票で追放されました。陣営：${teamName(out.team)}`;log(out.name+" が投票で追放されました。");if(out.role==="てるてる")endGame("てるてるが会議で追放されたため、てるてるの単独勝利",{roles:["てるてる"]});else checkWin()}
  }
  updateNearbyActions();draw();
- if(triadAutoModeActive&&!onlineGame&&state.running)setTimeout(()=>{if(triadAutoModeActive&&state.meeting&&state.lastBallots.length)closeMeeting()},1300);
+ if(triadAutoModeActive&&!onlineGame&&state.running&&!state._closingMeeting)setTimeout(()=>{if(triadAutoModeActive&&state.meeting&&state.lastBallots.length&&!state._closingMeeting)closeMeeting()},900);
 }
 function recoverStuckMeeting(reason="会議進行の復旧"){
  if(!state?.meeting)return;
  console.warn("TRIAD meeting recovered:",reason);
+ state._voteSubmitting=false;state._voteResolved=false;
  stopMeetingTimer();
  if(state.aiTurnTimer){clearTimeout(state.aiTurnTimer);state.aiTurnTimer=null}
  state._meetingCloseToken=(state._meetingCloseToken||0)+1;
- state._closingMeeting=false;state._closingMeetingAt=0;
+ state._closingMeeting=false;state._closingMeetingAt=0;state._voteSubmitting=false;state._voteResolved=false;
  state.meeting=false;state.meetingPhase="";state.selectedVote=null;
  $("meetingModal")?.classList.remove("show");
  try{if(state.running)respawnLivingPlayers()}catch(e){console.warn("Meeting respawn recovery:",e)}
@@ -2636,9 +2639,9 @@ function recoverStuckMeeting(reason="会議進行の復旧"){
 }
 function closeMeeting(){
  if(isOnlineClient()){sendOnlineInput({kind:"action",action:"close_meeting"});return}
- if(!state.meeting||!(state.lastBallots||[]).length)return;
+ if(!state.meeting||!(state.lastBallots||[]).length||!state._voteResolved)return;
  if(state._closingMeeting){
-  if(Date.now()-(state._closingMeetingAt||0)<3000)return;
+  if(Date.now()-(state._closingMeetingAt||0)<5000)return;
   state._meetingCloseToken=(state._meetingCloseToken||0)+1;
   state._closingMeeting=false;
  }
@@ -2664,7 +2667,7 @@ function closeMeeting(){
     p.emergencyReadyAt=cooldownStart+25000;
     if(p.id!==0){p.aiTaskIndex=null;if(p.aiGoal?.kind==="task"){p.aiGoal=null;p.aiPath=[]}p.aiNextTaskAt=cooldownStart+rand(3500,6000)}
    });
-   state.meeting=false;state.meetingPhase="";state.selectedVote=null;state._closingMeeting=false;state._closingMeetingAt=0;
+   state.meeting=false;state.meetingPhase="";state.selectedVote=null;state._closingMeeting=false;state._closingMeetingAt=0;state._voteSubmitting=false;state._voteResolved=false;
    resolveGamblerPredictionCycle();
    updateNearbyActions();draw();if(state.running)checkWin();
    if(onlineGame?.isHost){broadcastOnlineSnapshot();sendOnlinePrivateStates()}
