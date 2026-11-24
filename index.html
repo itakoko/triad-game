@@ -3136,8 +3136,8 @@ function roleMissionRequirement(tier,v,def){
  return {ok:value>=need,progress:Math.min(1,value/need),value,need,label:def.label};
 }
 let triadMasteryFaction="white",triadMasteryRole="クルー";
-function selectRoleMasteryFaction(team){triadMasteryFaction=team;const g=ROLE_CONFIG_GROUPS.find(x=>x.team===team);triadMasteryRole=g?.roles?.[0]||"クルー";openProgressionScreen()}
-function selectRoleMasteryRole(role){triadMasteryRole=role;openProgressionScreen()}
+function selectRoleMasteryFaction(team){triadMasteryFaction=team;const g=ROLE_CONFIG_GROUPS.find(x=>x.team===team);triadMasteryRole=g?.roles?.[0]||"クルー";openProgressionScreen("mastery")}
+function selectRoleMasteryRole(role){triadMasteryRole=role;openProgressionScreen("mastery")}
 function triadCurrentPeriodKeys(){
  const parts=new Intl.DateTimeFormat("en-CA",{timeZone:"Asia/Tokyo",year:"numeric",month:"2-digit",day:"2-digit"}).formatToParts(new Date());
  const get=k=>parts.find(p=>p.type===k)?.value||"00";
@@ -3300,7 +3300,7 @@ async function claimTriadRoleMission(role,tier){
   if(!authUser||!supabaseClient)await initializeOnlineAccounts();
   const {data,error}=await supabaseClient.rpc("triad_claim_role_mission",{p_role:role,p_tier:tier});if(error)throw error;
   alert("ミッション達成報酬を獲得！\nコイン：+"+data.coins+"\nEXP：+"+data.xp+(data.title?"\n専用称号： "+data.title:"")+(data.outfit?"\n役職専用衣装： "+data.outfit:""));
-  openProgressionScreen();
+  openProgressionScreen("mastery");
  }catch(e){alert("報酬を受け取れませんでした："+(e.message||String(e)))}
 }
 function selectProgressionTab(tab){
@@ -3310,13 +3310,15 @@ function selectProgressionTab(tab){
  document.querySelectorAll(".progressionTabs [data-progression-tab]").forEach(button=>{const active=button.dataset.progressionTab===tab;button.classList.toggle("active",active);button.setAttribute("aria-selected",active?"true":"false")});
  try{sessionStorage.setItem("triad_progression_tab",tab)}catch(e){}
 }
-async function openProgressionScreen(){
+async function openProgressionScreen(preferredTab){
  if(!activateScreen("progression"))return;
  const root=$("progressionContent");if(!root)return;
+ let targetTab=preferredTab;
+ if(!targetTab){try{targetTab=sessionStorage.getItem("triad_progression_tab")||"overview"}catch(e){targetTab="overview"}}
  const p=loadProgression(),stats=loadHumanStats();
  root.innerHTML='<div class="progressionTabPanel" data-progression-panel="overview">'+renderProgressionSection({experiencePoints:p.experiencePoints,achievementCodes:p.achievements,roleMastery:p.roleMastery,matchesPlayed:stats.matchesPlayed||0,wins:stats.wins||0,survived:stats.survived||0})+'</div>';
- selectProgressionTab("overview");
  await loadProgressionExtras();
+ selectProgressionTab(targetTab);
 }
 function renderWardrobe(m){
  const own=$("wardrobe")?.classList.contains("active")||false;
