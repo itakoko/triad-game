@@ -2768,7 +2768,7 @@ async function claimChristmasReward(code){
   await refreshEconomyInventory();await loadChristmasEventScreen();
  }catch(e){alert("交換できませんでした："+(e.message||String(e)))}
 }
-function awardEconomyMatch(matchKey,won,survived){
+async function awardEconomyMatch(matchKey,won,survived){
  if(!supabaseClient||!authUser)await initializeOnlineAccounts();
  if(!authUser||!supabaseClient)throw new Error("コインの保存にはオンライン接続が必要です。");
  await ensureOwnPlayerProfile();
