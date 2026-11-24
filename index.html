@@ -2049,8 +2049,8 @@ function selectTarget(id){if(rankedServerMode){
   else if(result.status==="ranked_kill_success"){actor.roleKillCount=(actor.roleKillCount||0)+1;if(kind==="assassinKill")actor.bountyKillCount=(actor.bountyKillCount||0)+1;alert("能力を使用しました。")}
   else if(result.status==="ranked_kill_blocked"){alert("対象の加護が攻撃を防ぎました。")}
   else if(result.status==="sheriff_misfire"){alert("白陣営を誤って攻撃したため、保安官も脱落しました。")}
-  else if(result.status==="scented"){actor.scentUses=(actor.scentUses||0)+1;state.scentedIds.add(target.id);$("nearHint").textContent="匂いを移しました。対象 "+result.scented_count+" 人";alert("匂いを移しました。")}
-  else if(result.status==="disguised"){actor.disguiseUses=(actor.disguiseUses||0)+1;alert("10秒間、選んだ相手の姿に変身しました。")}
+  else if(result.status==="scented"){actor.scentUses=(actor.scentUses||0)+1;awardChristmasCandy("ability","ability:"+christmasMatchKey()+":scent:"+String(target.id)+":"+String(actor.scentUses));state.scentedIds.add(target.id);$("nearHint").textContent="匂いを移しました。対象 "+result.scented_count+" 人";alert("匂いを移しました。")}
+  else if(result.status==="disguised"){actor.disguiseUses=(actor.disguiseUses||0)+1;awardChristmasCandy("ability","ability:"+christmasMatchKey()+":disguise:"+String(target.id)+":"+String(actor.disguiseUses));alert("10秒間、選んだ相手の姿に変身しました。")}
   else if(result.status==="objective_complete"){await showRankedServerResult({...result,winner_role:"放浪者",winner_seat:Number(state.me?.number)})}
   else if(result.status==="match_completed"){await showRankedServerResult(result)}
   else if(result.status==="too_far")alert("対象にもう少し近づいてください。");
