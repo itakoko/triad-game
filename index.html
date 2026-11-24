@@ -937,6 +937,7 @@ async function rankedServerDoTask(task){
  if(result.status==="match_completed"||result.status==="role_completed"){await showRankedServerResult(result);return}
  if(result.status==="too_far"){$("nearHint").textContent="タスク端末にもう少し近づいてください。";return}
  if(result.status==="task_throttled"){$("nearHint").textContent="少し待ってからもう一度操作してください。";return}
+ if(result.status==="completed")awardChristmasCandy("task","task:"+christmasMatchKey()+":"+String(task.id));
  $("nearHint").textContent=result.status==="completed"?"タスク完了！":result.status==="progress"?"タスク進行："+result.progress+"/4":"タスク状態："+result.status;
  applyRankedServerSnapshot(await rankedEngineCall("state"))}catch(e){$("nearHint").textContent="タスク送信エラー："+(e.message||String(e))}
 }
@@ -1905,7 +1906,7 @@ function openBounty(){
 }
 function closeBounty(){if(!$("bountyModal").classList.contains("show"))return;$("bountyModal").classList.remove("show");if(state.me?.role==="暗殺者")state.me.roleReadyAt=Date.now()+20000;updateNearbyActions()}
 function showAliveList(){
- if(state.me?.role==="サイエンティスト")state.me.scientistChecks=(state.me.scientistChecks||0)+1;
+ if(state.me?.role==="サイエンティスト"){state.me.scientistChecks=(state.me.scientistChecks||0)+1;awardChristmasCandy("ability","ability:"+christmasMatchKey()+":scientist:"+String(state.me.scientistChecks));}
  const alive=state.players.filter(p=>p.alive);
  $("aliveSummary").textContent=`現在の生存者：${alive.length}人 / ${state.players.length}人`;
  $("aliveList").innerHTML=alive.map(p=>`<div class="pill">● ${p.name}${p.id===state.me.id?"（あなた）":""}</div>`).join("");
