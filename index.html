@@ -2574,8 +2574,13 @@ const TRIAD_ACHIEVEMENTS=[
  {code:"five_roles",name:"多彩な戦術",desc:"5種類の役職で試合を完了する",test:m=>Object.keys(m.roleMastery||{}).filter(k=>m.roleMastery[k]?.matches>0).length>=5},
  {code:"role_veteran",name:"役職の熟練者",desc:"同じ役職で10試合する",test:m=>Object.values(m.roleMastery||{}).some(v=>Number(v.matches||0)>=10)}
 ];
+const MAX_PLAYER_LEVEL=20;
+function playerLevelThreshold(level){const target=Math.max(1,Math.min(MAX_PLAYER_LEVEL,Math.floor(Number(level)||1))),n=target-1;return n*(100+25*(n-1))}
+function playerLevelFromXP(value){const xp=Math.max(0,Math.min(playerLevelThreshold(MAX_PLAYER_LEVEL),Number(value)||0));let level=1;while(level<MAX_PLAYER_LEVEL&&xp>=playerLevelThreshold(level+1))level++;return level}
+function playerLevelProgress(value){const xp=Math.max(0,Math.min(playerLevelThreshold(MAX_PLAYER_LEVEL),Number(value)||0)),level=playerLevelFromXP(xp),start=playerLevelThreshold(level),next=level<MAX_PLAYER_LEVEL?playerLevelThreshold(level+1):start;return {xp,level,within:level===MAX_PLAYER_LEVEL?0:xp-start,needed:level===MAX_PLAYER_LEVEL?0:next-start,percent:level===MAX_PLAYER_LEVEL?100:Math.max(0,Math.min(100,(xp-start)/(next-start)*100)),nextXp:next}}
+function playerLevelRewardCoins(level){return 100+(Math.max(2,Math.min(MAX_PLAYER_LEVEL,Number(level)||2))-2)*50}
 function loadProgression(){
- try{const p=JSON.parse(localStorage.getItem(TRIAD_PROGRESS_KEY)||"{}");const xp=Math.max(0,Number(p.experiencePoints)||0);return {experiencePoints:xp,level:Math.floor(xp/100)+1,achievements:Array.isArray(p.achievements)?p.achievements:[],roleMastery:p.roleMastery&&typeof p.roleMastery==="object"?p.roleMastery:{},completedMatches:Number(p.completedMatches)||0,totalWins:Number(p.totalWins)||0,totalSurvivals:Number(p.totalSurvivals)||0,lastReward:p.lastReward||null}}
+ try{const p=JSON.parse(localStorage.getItem(TRIAD_PROGRESS_KEY)||"{}");const xp=Math.max(0,Math.min(playerLevelThreshold(MAX_PLAYER_LEVEL),Number(p.experiencePoints)||0));return {experiencePoints:xp,level:playerLevelFromXP(xp),achievements:Array.isArray(p.achievements)?p.achievements:[],roleMastery:p.roleMastery&&typeof p.roleMastery==="object"?p.roleMastery:{},completedMatches:Number(p.completedMatches)||0,totalWins:Number(p.totalWins)||0,totalSurvivals:Number(p.totalSurvivals)||0,lastReward:p.lastReward||null}}
  catch{return {experiencePoints:0,level:1,achievements:[],roleMastery:{},lastReward:null}}
 }
 async function awardEconomyMatch(matchKey,won,survived){
@@ -2629,10 +2634,10 @@ function grantMatchProgress(won,role,alive,matchId=null){
  Object.entries(matchMetrics).forEach(([k,v])=>metrics[k]=Number(metrics[k]||0)+Number(v||0));
  mastery[r]={matches:Number(old.matches||0)+1,wins:Number(old.wins||0)+(won?1:0),survived:Number(old.survived||0)+(alive?1:0),experience:Number(old.experience||0)+25+(won?15:0)+(alive?10:0),metrics,titles:Array.isArray(old.titles)?old.titles:[],outfits:Array.isArray(old.outfits)?old.outfits:[]};
  const xpGain=30+(won?20:0)+(alive?10:0)+(Number(old.matches||0)===0?5:0);
- const base={...p,experiencePoints:p.experiencePoints+xpGain,roleMastery:mastery,completedMatches:Number(p.completedMatches||0)+1,totalWins:Number(p.totalWins||0)+(won?1:0),totalSurvivals:Number(p.totalSurvivals||0)+(alive?1:0)};
+ const base={...p,experiencePoints:Math.min(playerLevelThreshold(MAX_PLAYER_LEVEL),p.experiencePoints+xpGain),roleMastery:mastery,completedMatches:Number(p.completedMatches||0)+1,totalWins:Number(p.totalWins||0)+(won?1:0),totalSurvivals:Number(p.totalSurvivals||0)+(alive?1:0)};
  const achievementStats={matchesPlayed:base.completedMatches,wins:base.totalWins,survived:base.totalSurvivals,roleMastery:mastery};
  const earned=TRIAD_ACHIEVEMENTS.filter(a=>!base.achievements.includes(a.code)&&a.test(achievementStats)).map(a=>a.code);
- base.achievements=[...base.achievements,...earned];base.level=Math.floor(base.experiencePoints/100)+1;
+ base.achievements=[...base.achievements,...earned];base.level=playerLevelFromXP(base.experiencePoints);
  base.lastReward={xp:xpGain,levelUp:base.level>p.level,newAchievements:earned,role:r};
  try{localStorage.setItem(TRIAD_PROGRESS_KEY,JSON.stringify(base));done.push(key);localStorage.setItem(TRIAD_PROGRESS_PROCESSED_KEY,JSON.stringify(done.slice(-300)))}catch(e){console.warn("Progress save failed",e)}
  if(authUser&&supabaseClient){
@@ -2651,7 +2656,7 @@ function mergeCloudProgressionIntoLocal(){
  const xp=Math.max(local.experiencePoints,Number(row.experience_points||0));
  const mastery={...local.roleMastery};
  for(const [role,v] of Object.entries(row.role_mastery||{})){const old=mastery[role]||{};mastery[role]={matches:Math.max(Number(old.matches||0),Number(v.matches||0)),wins:Math.max(Number(old.wins||0),Number(v.wins||0)),survived:Math.max(Number(old.survived||0),Number(v.survived||0)),experience:Math.max(Number(old.experience||0),Number(v.experience||0)),metrics:Object.fromEntries([...new Set([...Object.keys(old.metrics||{}),...Object.keys(v.metrics||{})])].map(k=>[k,Math.max(Number(old.metrics?.[k]||0),Number(v.metrics?.[k]||0))])),titles:[...new Set([...(old.titles||[]),...(v.titles||[])])],outfits:[...new Set([...(old.outfits||[]),...(v.outfits||[])])]}}
- const merged={...local,experiencePoints:xp,level:Math.floor(xp/100)+1,achievements:[...new Set([...local.achievements,...(Array.isArray(row.achievement_codes)?row.achievement_codes:[])])],roleMastery:mastery,completedMatches:Math.max(local.completedMatches,Number(cloudStats.completedMatches||0)),totalWins:Math.max(local.totalWins,Number(cloudStats.totalWins||0)),totalSurvivals:Math.max(local.totalSurvivals,Number(cloudStats.totalSurvivals||0))};
+ const merged={...local,experiencePoints:xp,level:playerLevelFromXP(xp),achievements:[...new Set([...local.achievements,...(Array.isArray(row.achievement_codes)?row.achievement_codes:[])])],roleMastery:mastery,completedMatches:Math.max(local.completedMatches,Number(cloudStats.completedMatches||0)),totalWins:Math.max(local.totalWins,Number(cloudStats.totalWins||0)),totalSurvivals:Math.max(local.totalSurvivals,Number(cloudStats.totalSurvivals||0))};
  try{localStorage.setItem(TRIAD_PROGRESS_KEY,JSON.stringify(merged))}catch(e){console.warn("Progress hydration failed",e)}
 }
 async function syncOnlinePlayerProgress(progress=loadProgression()){
@@ -2667,15 +2672,16 @@ async function syncOnlinePlayerProgress(progress=loadProgression()){
   const old=mastery[role]||{};
   mastery[role]={matches:Math.max(Number(old.matches||0),Number(v.matches||0)),wins:Math.max(Number(old.wins||0),Number(v.wins||0)),survived:Math.max(Number(old.survived||0),Number(v.survived||0)),experience:Math.max(Number(old.experience||0),Number(v.experience||0)),metrics:Object.fromEntries([...new Set([...Object.keys(old.metrics||{}),...Object.keys(v.metrics||{})])].map(k=>[k,Math.max(Number(old.metrics?.[k]||0),Number(v.metrics?.[k]||0))])),titles:[...new Set([...(old.titles||[]),...(v.titles||[])])],outfits:[...new Set([...(old.outfits||[]),...(v.outfits||[])])],outfits:[...new Set([...(old.outfits||[]),...(v.outfits||[])])]};
  }
- const {error}=await supabaseClient.from("player_profiles").update({experience_points:xp,player_level:Math.floor(xp/100)+1,achievement_codes:achievements,role_mastery:mastery,progression_stats:progressionStats,updated_at:new Date().toISOString()}).eq("user_id",authUser.id);
+ const {error}=await supabaseClient.from("player_profiles").update({experience_points:xp,player_level:playerLevelFromXP(xp),achievement_codes:achievements,role_mastery:mastery,progression_stats:progressionStats,updated_at:new Date().toISOString()}).eq("user_id",authUser.id);
  if(error)throw error;
  await loadOnlinePlayerProfiles();
 }
 function renderProgressionSection(m){
- const xp=Number(m.experiencePoints||0),level=Math.floor(xp/100)+1,within=xp%100;
+ const prog=playerLevelProgress(m.experiencePoints||0),xp=prog.xp,level=prog.level;
  const achievements=Array.isArray(m.achievementCodes)?m.achievementCodes:[],mastery=m.roleMastery||{};
  const earned=TRIAD_ACHIEVEMENTS.filter(a=>achievements.includes(a.code));
- return '<div class="accountSection"><h3>🏅 プレイヤー成長</h3><div class="accountStats"><div class="accountStat"><b>Lv.'+level+'</b><span>プレイヤーレベル</span></div><div class="accountStat"><b>'+xp+'</b><span>累計EXP</span></div><div class="accountStat"><b>'+within+'/100</b><span>次のレベルまで</span></div></div><div class="taskbar"><div style="width:'+within+'%"></div></div><p class="muted">完了した試合ごとにEXPを獲得。勝利・生存・初めて使う役職で追加EXPが入ります。</p><h3 style="margin-top:14px">実績 '+earned.length+'/'+TRIAD_ACHIEVEMENTS.length+'</h3>'+TRIAD_ACHIEVEMENTS.map(a=>'<div class="accountTrait" style="opacity:'+(achievements.includes(a.code)?1:.58)+'">'+(achievements.includes(a.code)?"🏅":"🔒")+' <b>'+a.name+'</b><small style="display:block;color:var(--muted)">'+a.desc+(achievements.includes(a.code)?" · 獲得済み":" · 未獲得")+'</small></div>').join("")+'</div>';
+ const levelText=level===MAX_PLAYER_LEVEL?"上限到達":prog.within+"/"+prog.needed+" EXP";
+ return '<div class="accountSection"><h3>🏅 プレイヤー成長</h3><div class="accountStats"><div class="accountStat"><b>Lv.'+level+'/20</b><span>プレイヤーレベル</span></div><div class="accountStat"><b>'+xp.toLocaleString("ja-JP")+'</b><span>累計EXP</span></div><div class="accountStat"><b>'+levelText+'</b><span>'+(level===MAX_PLAYER_LEVEL?"最大レベル":"次のレベルまで")+'</span></div></div><div class="taskbar"><div style="width:'+prog.percent+'%"></div></div><p class="muted">'+(level===MAX_PLAYER_LEVEL?"プレイヤーレベルの上限に到達しています。":"次のレベルには合計"+prog.nextXp.toLocaleString("ja-JP")+" EXPが必要です。")+" レベルが上がるほど必要EXPが増加します。最大Lv.20。試合完了・勝利・生存・初めて使う役職でEXPを獲得します。</p><h3 style="margin-top:14px">実績 '+earned.length+'/'+TRIAD_ACHIEVEMENTS.length+'</h3>'+TRIAD_ACHIEVEMENTS.map(a=>'<div class="accountTrait" style="opacity:'+(achievements.includes(a.code)?1:.58)+'">'+(achievements.includes(a.code)?"🏅":"🔒")+' <b>'+a.name+'</b><small style="display:block;color:var(--muted)">'+a.desc+(achievements.includes(a.code)?" · 獲得済み":" · 未獲得")+'</small></div>').join("")+'</div>';
 }
 function saveHumanStats(won,interrupted=false){if(interrupted||!state.me)return;const old=loadHumanStats(),role=state.me.role,roleStats={...(old.roleStats||{})},rs={...(roleStats[role]||{})};rs.matches=(rs.matches||0)+1;rs.wins=(rs.wins||0)+(won?1:0);rs.survived=(rs.survived||0)+(state.me.alive?1:0);roleStats[role]=rs;const next={...old,matchesPlayed:(old.matchesPlayed||0)+1,wins:(old.wins||0)+(won?1:0),losses:(old.losses||0)+(won?0:1),survived:(old.survived||0)+(state.me.alive?1:0),roleStats,lastRole:role,lastFaction:state.me.team,lastResult:won?"勝利":"敗北",lastPlayedAt:Date.now()};try{localStorage.setItem("triad_human_stats_v1",JSON.stringify(next))}catch(e){console.warn("Player stats save failed",e)}grantMatchProgress(won,role,!!state.me.alive);if(authUser)syncOnlinePlayerStats(next)}
 
