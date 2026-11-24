@@ -1233,7 +1233,32 @@ async function startOnlineMatch(){
  try{const {error}=await supabaseClient.rpc("start_game_room",{p_room:activeRoomId});if(error)throw error;await loadActiveRoom();await startGame()}
  catch(e){alert("試合を開始できません："+(e.message||e))}
 }
-let triadAutoModeActive=false,triadAutoRestartTimer=null;
+let triadAutoModeActive=false,triadAutoRestartTimer=null,triadAutoMeetingWatchdog=null;
+function startTriadAutoMeetingWatchdog(){
+ if(triadAutoMeetingWatchdog)return;
+ triadAutoMeetingWatchdog=setInterval(()=>{
+  if(!triadAutoModeActive||!state?.running||!state?.meeting)return;
+  try{
+   if(state.meetingPhase==="discussion"&&(Number(state.meetingSecondsLeft)||0)<=0){
+    beginVoting(true);
+    return;
+   }
+   if(state.meetingPhase==="voting"){
+    if(!(state.lastBallots||[]).length){
+     if(state.me?.alive&&state.selectedVote===null)state.selectedVote=chooseAIVote(state.me,state.players.filter(p=>p.alive));
+     if(!state.me?.alive)state.selectedVote="ghost";
+     submitVote();
+    }else if(state._closingMeeting&&Date.now()-(state._closingMeetingAt||0)>4500){
+     state._closingMeeting=false;
+     closeMeeting();
+    }else if(!state._closingMeeting)closeMeeting();
+   }
+  }catch(error){console.warn("Auto meeting recovery:",error)}
+ },900);
+}
+function stopTriadAutoMeetingWatchdog(){
+ if(triadAutoMeetingWatchdog){clearInterval(triadAutoMeetingWatchdog);triadAutoMeetingWatchdog=null}
+}
 function updateTriadAutoModeUI(){
  const label=triadAutoModeActive?"🤖 オートモード：ON":"🤖 オートモード：OFF";
  const gameButton=$("autoModeToggle");if(gameButton){gameButton.textContent=label;gameButton.classList.toggle("primary",triadAutoModeActive)}
@@ -1244,6 +1269,7 @@ function updateTriadAutoModeUI(){
 function toggleTriadAutoMode(force){
  if(rankedServerMode||onlineGame||activeRoomId){alert("オートモードは通常のソロ試合でのみ使用できます。");return}
  triadAutoModeActive=typeof force==="boolean"?force:!triadAutoModeActive;
+ if(triadAutoModeActive)startTriadAutoMeetingWatchdog();else stopTriadAutoMeetingWatchdog();
  if(triadAutoRestartTimer){clearTimeout(triadAutoRestartTimer);triadAutoRestartTimer=null}
  if(triadAutoModeActive&&state.running){stopMove();if(state.me){state.me.aiGoal=null;state.me.aiPath=[];state.me.aiNextGoalAt=Date.now();state.me.aiNextTaskAt=Date.now()+1200;state.me.aiTaskIndex=null}}
  if(!triadAutoModeActive&&state.me){state.me.aiGoal=null;state.me.aiPath=[];state.me.aiTaskIndex=null;state.me.charging=false;state.move={x:0,y:0};state.targetAction=null;$("targetModal")?.classList.remove("show");stopMove()}
@@ -2585,7 +2611,7 @@ function submitVote(){if(rankedServerMode){if(state.selectedVote===null)return;c
 }
 function closeMeeting(){if(isOnlineClient()){sendOnlineInput({kind:"action",action:"close_meeting"});return}
  if(!state.meeting||!state.lastBallots.length||state._closingMeeting)return;
- state._closingMeeting=true;$("closeMeetingAction").disabled=true;
+ state._closingMeeting=true;state._closingMeetingAt=Date.now();$("closeMeetingAction").disabled=true;
  playMeetingTransition("会議終了","投票結果を確定しました");
  setTimeout(()=>{
   stopMeetingTimer();state.emergencyMeetingReadyAt=Date.now()+25000;
@@ -2603,7 +2629,7 @@ function closeMeeting(){if(isOnlineClient()){sendOnlineInput({kind:"action",acti
    p.emergencyReadyAt=cooldownStart+25000;
    if(p.id!==0){p.aiTaskIndex=null;if(p.aiGoal?.kind==="task"){p.aiGoal=null;p.aiPath=[]}p.aiNextTaskAt=cooldownStart+rand(3500,6000)}
   });
-  state.meeting=false;state.meetingPhase="";state.selectedVote=null;state._closingMeeting=false;
+  state.meeting=false;state.meetingPhase="";state.selectedVote=null;state._closingMeeting=false;state._closingMeetingAt=0;
   resolveGamblerPredictionCycle();
   updateNearbyActions();draw();if(state.running)checkWin();
   if(onlineGame?.isHost){broadcastOnlineSnapshot();sendOnlinePrivateStates()}
