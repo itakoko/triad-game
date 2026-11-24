@@ -2068,8 +2068,8 @@ function selectTarget(id){if(rankedServerMode){
  else if(action.kind==="gamblerKill"){if(actor.role==="ギャンブラー"&&actor.gamblerKillReady&&Math.hypot(target.x-actor.x,target.y-actor.y)<=100&&hasLineOfSight(actor,target)){actor.gamblerKillReady=false;performKill(target,actor,"ギャンブラーのJACKPOTキル")}}
  else if(action.kind==="roleKill"){actor.abilityUsed=true;performKill(target,actor,actor.role==="狩人"?"狩人の攻撃":"保安官の攻撃")}
  else if(action.kind==="protect"){actor.abilityUsed=true;actor.protectionUses=(actor.protectionUses||0)+1;target.protected=true;target.protectedBy=actor.id;alert(`${target.name} に加護を与えました。次の攻撃を1度防ぎます。`)}
- else if(action.kind==="disguise"){actor.disguiseUses=(actor.disguiseUses||0)+1;actor.disguiseId=target.id;actor.disguiseUntil=now+10000;actor.roleReadyAt=now+35000;alert(`${target.name} の姿に10秒間変身しました。`)}
- else if(action.kind==="scent"){actor.scentUses=(actor.scentUses||0)+1;target.scented=true;state.scentedIds.add(target.id);actor.roleReadyAt=now+15000;alert("匂いを移しました。相手には知られていません。");checkWin()}
+ else if(action.kind==="disguise"){actor.disguiseUses=(actor.disguiseUses||0)+1;awardChristmasCandy("ability","ability:"+christmasMatchKey()+":disguise:"+String(target.id)+":"+String(actor.disguiseUses));actor.disguiseId=target.id;actor.disguiseUntil=now+10000;actor.roleReadyAt=now+35000;alert(`${target.name} の姿に10秒間変身しました。`)}
+ else if(action.kind==="scent"){actor.scentUses=(actor.scentUses||0)+1;awardChristmasCandy("ability","ability:"+christmasMatchKey()+":scent:"+String(target.id)+":"+String(actor.scentUses));target.scented=true;state.scentedIds.add(target.id);actor.roleReadyAt=now+15000;alert("匂いを移しました。相手には知られていません。");checkWin()}
  else if(action.kind==="kill"){
   const cd=actor.team==="black"?30000:actor.role==="暗殺者"?20000:30000;actor.killReadyAt=now+cd;
   if(actor.role==="暗殺者"&&!state.bountyIds.includes(target.id)){const killed=performKill(target,actor,"暗殺者の攻撃");if(killed&&actor.alive)killPlayer(actor,actor,"手配書外の暗殺");updateNearbyActions();draw();checkWin()}
