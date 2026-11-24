@@ -1248,6 +1248,7 @@ function toggleTriadAutoMode(force){
  if(triadAutoModeActive&&state.running){stopMove();if(state.me){state.me.aiGoal=null;state.me.aiPath=[];state.me.aiNextGoalAt=Date.now();state.me.aiNextTaskAt=Date.now()+1200;state.me.aiTaskIndex=null}}
  if(!triadAutoModeActive&&state.me){state.me.aiGoal=null;state.me.aiPath=[];state.me.aiTaskIndex=null;state.me.charging=false;state.move={x:0,y:0};state.targetAction=null;$("targetModal")?.classList.remove("show");stopMove()}
  if(state.meeting&&state.meetingPhase==="discussion"){state.meetingDuration=triadAutoModeActive?12:Math.max(30,Math.min(300,Number($("meetingDuration")?.value)||90));startMeetingTimer()}
+ if(triadAutoModeActive&&!state.running&&$("gameOverModal")?.classList.contains("show")){triadAutoRestartTimer=setTimeout(()=>{triadAutoRestartTimer=null;if(triadAutoModeActive&&!state.running){$("gameOverModal").classList.remove("show");startGame().catch(e=>{triadAutoModeActive=false;updateTriadAutoModeUI();alert("オート周回を開始できません："+(e.message||e))})}},1200)}
  updateTriadAutoModeUI();
 }
 async function startGame(){
