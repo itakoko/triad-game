@@ -3106,7 +3106,7 @@ const TRIAD_GENERAL_MISSIONS=[
  {code:"roles_5",name:"多彩な戦術",desc:"5種類の役職で試合を完了する",need:5,reward:150,xp:75,key:"roles"},
  {code:"matches_30",name:"研究所のベテラン",desc:"試合を30回完了する",need:30,reward:250,xp:100,key:"matches_played"}
 ];
-function renderProgressionExtras(m,daily,claims,coins,generalClaims,periodRows){
+function renderProgressionExtras(m,daily,claims,coins,generalClaims,periodRows,levelClaims){
  const today=new Date().toLocaleDateString("en-CA",{timeZone:"Asia/Tokyo"});
  const yesterday=new Date(Date.now()-86400000).toLocaleDateString("en-CA",{timeZone:"Asia/Tokyo"});
  const claimedToday=daily?.last_claim_date===today;
@@ -3116,6 +3116,14 @@ function renderProgressionExtras(m,daily,claims,coins,generalClaims,periodRows){
  const rewardTrack=dailyRewards.map((reward,i)=>'<div style="flex:1;min-width:48px;text-align:center;padding:8px 3px;border:1px solid '+(i===((nextStreak-1)%7)?'#ffd36b':'#3a506e')+';border-radius:9px;background:'+(i===((nextStreak-1)%7)?'#493d24':'#132238')+'"><b> '+(i+1)+'日目</b><small style="display:block;color:#ffd36b;margin-top:3px">🪙 '+reward+'</small></div>').join('');
  const claimSet=new Set((claims||[]).map(x=>x.mission_code));
  let html='<div class="card" style="margin:12px 0;border-color:#d5ad58"><div class="row" style="justify-content:space-between"><h3 style="margin:0">🎁 毎日のログインボーナス</h3><span class="pill">日本時間 0:00 更新</span></div><div class="accountStats"><div class="accountStat"><b>'+streak+'日</b><span>現在の連続ログイン</span></div><div class="accountStat"><b>+'+(claimedToday?nextReward:nextReward)+'</b><span>次回の獲得コイン</span></div><div class="accountStat"><b>+'+(claimedToday?20:20)+'</b><span>獲得EXP</span></div></div><p class="muted">'+(claimedToday?"本日のログインボーナスは受け取り済みです。":"本日のログインボーナスを受け取れます。")+' 7日間で報酬が増え、以降は1日目に戻って繰り返します。</p><div style="display:flex;gap:5px;flex-wrap:wrap;margin:10px 0">'+rewardTrack+'</div><button class="primary" style="width:100%" '+(claimedToday?'disabled':'onclick="claimTriadDailyBonus()"')+'>'+(claimedToday?"本日分は受取済み":"ログインボーナスを受け取る")+'</button><p class="muted" style="margin-bottom:0">所持コイン：'+Number(coins||0).toLocaleString("ja-JP")+'</p></div>';
+ const levelClaimSet=new Set((levelClaims||[]).map(x=>Number(x.level)));
+ const currentLevel=playerLevelFromXP(m.experiencePoints||0);
+ html+='<div class="card" style="margin:12px 0;border-color:#72a9dc"><div class="row" style="justify-content:space-between"><h3 style="margin:0">🎖 プレイヤーレベル報酬</h3><span class="pill">最大Lv.20</span></div><p class="muted">レベルアップで解放された報酬は、ここから受け取れます。各レベルの報酬は1回限りです。</p>';
+ for(let level=2;level<=MAX_PLAYER_LEVEL;level++){
+  const done=levelClaimSet.has(level),ready=currentLevel>=level,reward=playerLevelRewardCoins(level);
+  html+='<div class="accountTrait" style="opacity:'+(done?".7":"1")+'"><div class="row" style="justify-content:space-between"><b>Lv.'+level+' 到達報酬</b><span class="pill">'+(done?"受取済み":ready?"受取可能":"未解放")+'</span></div><div class="row" style="justify-content:space-between;align-items:center;margin-top:6px"><small class="muted">🪙 '+reward.toLocaleString("ja-JP")+' コイン</small><button '+(done||!ready?"disabled":'class="primary" onclick="claimTriadPlayerLevelReward('+level+')"')+'>'+(done?"受取済み":ready?"報酬を受け取る":"Lv."+level+"で解放")+'</button></div></div>';
+ }
+ html+='</div>';
  html+=renderTriadPeriodMissions(periodRows||[]);
  const generalClaimSet=new Set((generalClaims||[]).map(x=>x.mission_code));
  const totalStats={matches_played:Number(m.completedMatches||0),wins:Number(m.totalWins||0),survived:Number(m.totalSurvivals||0),roles:Object.keys(m.roleMastery||{}).filter(k=>Number(m.roleMastery[k]?.matches||0)>0).length};
@@ -3155,21 +3163,34 @@ async function loadProgressionExtras(){
   if(!authUser||!supabaseClient)throw new Error("報酬の受け取りにはアカウント接続が必要です。");
   await ensureOwnPlayerProfile();
   const periodKeys=triadCurrentPeriodKeys();
-  const [profileRes,dailyRes,claimsRes,walletRes,generalClaimsRes,periodRes]=await Promise.all([
+  const [profileRes,dailyRes,claimsRes,walletRes,generalClaimsRes,periodRes,levelClaimsRes]=await Promise.all([
    supabaseClient.from("player_profiles").select("role_mastery,experience_points,progression_stats").eq("user_id",authUser.id).maybeSingle(),
    supabaseClient.from("triad_login_bonus_state").select("last_claim_date,streak,total_claims").eq("user_id",authUser.id).maybeSingle(),
    supabaseClient.from("triad_role_mission_claims").select("mission_code").eq("user_id",authUser.id),
    supabaseClient.from("player_wallets").select("coins").eq("user_id",authUser.id).maybeSingle(),
    supabaseClient.from("triad_mission_claims").select("mission_code").eq("user_id",authUser.id),
-   supabaseClient.from("triad_period_mission_progress").select("period_type,period_key,mission_code,progress,claimed_at").eq("user_id",authUser.id).in("period_key",[periodKeys.daily,periodKeys.weekly])
+   supabaseClient.from("triad_period_mission_progress").select("period_type,period_key,mission_code,progress,claimed_at").eq("user_id",authUser.id).in("period_key",[periodKeys.daily,periodKeys.weekly]),
+   supabaseClient.from("player_level_reward_claims").select("level,coins,claimed_at").eq("user_id",authUser.id)
   ]);
-  for(const x of [profileRes,dailyRes,claimsRes,walletRes,generalClaimsRes,periodRes])if(x.error)throw x.error;
+  for(const x of [profileRes,dailyRes,claimsRes,walletRes,generalClaimsRes,periodRes,levelClaimsRes])if(x.error)throw x.error;
   const p=loadProgression(),cloud=profileRes.data?.role_mastery||{},mastery={...p.roleMastery};
   for(const [role,v] of Object.entries(cloud)){const old=mastery[role]||{},oldMetrics=old.metrics||{},cloudMetrics=v.metrics||{};mastery[role]={...old,matches:Math.max(Number(old.matches||0),Number(v.matches||0)),wins:Math.max(Number(old.wins||0),Number(v.wins||0)),survived:Math.max(Number(old.survived||0),Number(v.survived||0)),experience:Math.max(Number(old.experience||0),Number(v.experience||0)),metrics:Object.fromEntries([...new Set([...Object.keys(oldMetrics),...Object.keys(cloudMetrics)])].map(k=>[k,Math.max(Number(oldMetrics[k]||0),Number(cloudMetrics[k]||0))])),titles:[...new Set([...(old.titles||[]),...(v.titles||[])])],outfits:[...new Set([...(old.outfits||[]),...(v.outfits||[])])]}}
   const cloudStats=profileRes.data?.progression_stats||{};
-  const mergedProgress={...p,completedMatches:Math.max(Number(p.completedMatches||0),Number(cloudStats.completedMatches||0)),totalWins:Math.max(Number(p.totalWins||0),Number(cloudStats.totalWins||0)),totalSurvivals:Math.max(Number(p.totalSurvivals||0),Number(cloudStats.totalSurvivals||0)),roleMastery:mastery};
-  extras.innerHTML=renderProgressionExtras(mergedProgress,dailyRes.data,claimsRes.data||[],walletRes.data?.coins||0,generalClaimsRes.data||[],periodRes.data||[]);
+  const mergedProgress={...p,experiencePoints:Math.min(playerLevelThreshold(MAX_PLAYER_LEVEL),Math.max(p.experiencePoints,Number(profileRes.data?.experience_points||0))),completedMatches:Math.max(Number(p.completedMatches||0),Number(cloudStats.completedMatches||0)),totalWins:Math.max(Number(p.totalWins||0),Number(cloudStats.totalWins||0)),totalSurvivals:Math.max(Number(p.totalSurvivals||0),Number(cloudStats.totalSurvivals||0)),roleMastery:mastery};
+  extras.innerHTML=renderProgressionExtras(mergedProgress,dailyRes.data,claimsRes.data||[],walletRes.data?.coins||0,generalClaimsRes.data||[],periodRes.data||[],levelClaimsRes.data||[]);
  }catch(e){extras.innerHTML='<div class="card"><b>ミッション情報を読み込めませんでした</b><p class="muted">'+escapeAccountText(e.message||String(e))+'</p><button onclick="loadProgressionExtras()">再読み込み</button></div>'}
+}
+async function claimTriadPlayerLevelReward(level){
+ try{
+  if(!authUser||!supabaseClient)await initializeOnlineAccounts();
+  if(!authUser||!supabaseClient)throw new Error("レベル報酬の受け取りにはアカウント接続が必要です。");
+  const {data,error}=await supabaseClient.rpc("triad_claim_player_level_reward",{p_level:Number(level)});
+  if(error)throw error;
+  economyCoins=Number(data?.balance??economyCoins);
+  if(data?.claimed)alert("プレイヤーレベル報酬を獲得しました！\nLv."+level+" 報酬：+"+Number(data.coins||0)+"コイン");
+  else alert("このレベルの報酬はすでに受け取り済みです。");
+  openProgressionScreen();
+ }catch(e){alert("レベル報酬を受け取れませんでした："+(e.message||String(e)))}
 }
 async function claimTriadDailyBonus(){
  try{
