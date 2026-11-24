@@ -195,6 +195,10 @@ canvas#mapCanvas{aspect-ratio:16/10;background:#0b1522}
 .progressionTabs{display:flex;gap:7px;overflow-x:auto;padding:5px 1px 12px;margin:8px 0 4px;scrollbar-width:thin}
 .progressionTabs button{flex:0 0 auto;min-height:42px;padding:9px 13px;border:1px solid #405675;border-radius:10px;background:#14243a;color:inherit;font-size:13px;white-space:nowrap}
 .progressionTabs button.active{background:#24515a;border-color:#74d9cb;color:#fff;font-weight:800}
+.progressionTabRewardBadge{display:inline-flex;align-items:center;justify-content:center;margin-left:5px;padding:2px 6px;border-radius:999px;background:#a83232;color:#fff;font-size:11px;font-weight:900;line-height:1.3;box-shadow:0 0 0 1px #ff9a9a55}
+.progressionTabRewardBadge[hidden]{display:none!important}
+.progressionRewardNotice{display:flex;align-items:center;gap:9px;padding:11px 13px;margin:10px 0;border:1px solid #b94d4d;border-radius:11px;background:#3a2028;color:#ffe5e5;font-weight:800}
+.progressionRewardNotice small{display:block;color:#ffd0d0;font-weight:500;margin-top:2px}
 .progressionTabPanel[hidden]{display:none!important}
 </style>
 </head>
@@ -330,12 +334,12 @@ canvas#mapCanvas{aspect-ratio:16/10;background:#0b1522}
 <section id="progression" class="screen">
  <div class="hero"><h1>🏅 プレイヤー成長</h1><p>見たい機能をタブから選択できます。</p></div>
  <nav class="progressionTabs" aria-label="プレイヤー成長メニュー">
-  <button class="active" data-progression-tab="overview" onclick="selectProgressionTab('overview')">📊 成長状況</button>
-  <button data-progression-tab="login" onclick="selectProgressionTab('login')">🎁 ログイン報酬</button>
-  <button data-progression-tab="levelRewards" onclick="selectProgressionTab('levelRewards')">🎖 レベル報酬</button>
-  <button data-progression-tab="period" onclick="selectProgressionTab('period')">📅 デイリー・週次</button>
-  <button data-progression-tab="general" onclick="selectProgressionTab('general')">🧭 共通ミッション</button>
-  <button data-progression-tab="mastery" onclick="selectProgressionTab('mastery')">📜 役職熟練度</button>
+  <button class="active" data-progression-tab="overview" onclick="selectProgressionTab('overview')">📊 成長状況<span class="progressionTabRewardBadge" data-reward-badge="overview" hidden></span></button>
+  <button data-progression-tab="login" onclick="selectProgressionTab('login')">🎁 ログイン報酬<span class="progressionTabRewardBadge" data-reward-badge="login" hidden></span></button>
+  <button data-progression-tab="levelRewards" onclick="selectProgressionTab('levelRewards')">🎖 レベル報酬<span class="progressionTabRewardBadge" data-reward-badge="levelRewards" hidden></span></button>
+  <button data-progression-tab="period" onclick="selectProgressionTab('period')">📅 デイリー・週次<span class="progressionTabRewardBadge" data-reward-badge="period" hidden></span></button>
+  <button data-progression-tab="general" onclick="selectProgressionTab('general')">🧭 共通ミッション<span class="progressionTabRewardBadge" data-reward-badge="general" hidden></span></button>
+  <button data-progression-tab="mastery" onclick="selectProgressionTab('mastery')">📜 役職熟練度<span class="progressionTabRewardBadge" data-reward-badge="mastery" hidden></span></button>
  </nav>
  <div id="progressionContent"></div>
  <div class="actions"><button onclick="show('home')">ホームへ戻る</button></div>
@@ -3323,6 +3327,26 @@ function renderProgressionExtras(m,daily,claims,coins,generalClaims,periodRows,l
  html+='</div></div>';
  return html;
 }
+function updateProgressionRewardBadges(m,daily,roleClaims,generalClaims,periodRows,levelClaims){
+ const today=new Date().toLocaleDateString("en-CA",{timeZone:"Asia/Tokyo"});
+ const loginCount=daily?.last_claim_date===today?0:1;
+ const claimedLevels=new Set((levelClaims||[]).map(x=>Number(x.level)));
+ const level=playerLevelFromXP(m.experiencePoints||0);
+ let levelCount=0;for(let lv=2;lv<=MAX_PLAYER_LEVEL;lv++)if(level>=lv&&!claimedLevels.has(lv))levelCount++;
+ const periodDefs=[["daily","daily_matches",1],["daily","daily_wins",1],["daily","daily_tasks",3],["weekly","weekly_matches",10],["weekly","weekly_wins",5],["weekly","weekly_survivals",5],["weekly","weekly_abilities",15],["weekly","weekly_tasks",20]];
+ const periodMap=new Map((periodRows||[]).map(x=>[x.period_type+":"+x.mission_code,x]));
+ const periodCount=periodDefs.filter(([type,code,need])=>{const row=periodMap.get(type+":"+code);return !row?.claimed_at&&Number(row?.progress||0)>=need}).length;
+ const generalSet=new Set((generalClaims||[]).map(x=>x.mission_code));
+ const stats={matches_played:Number(m.completedMatches||0),wins:Number(m.totalWins||0),survived:Number(m.totalSurvivals||0),roles:Object.keys(m.roleMastery||{}).filter(k=>Number(m.roleMastery[k]?.matches||0)>0).length};
+ const generalCount=TRIAD_GENERAL_MISSIONS.filter(x=>!generalSet.has(x.code)&&(stats[x.key]||0)>=x.need).length;
+ const roleSet=new Set((roleClaims||[]).map(x=>x.mission_code));
+ let masteryCount=0;
+ for(const def of TRIAD_ROLE_MISSION_DEFS){const v=(m.roleMastery||{})[def.role]||{};for(let tier=1;tier<=6;tier++){const code="role:"+def.role+":"+tier;const previous=tier===1||roleSet.has("role:"+def.role+":"+(tier-1));if(!roleSet.has(code)&&previous&&roleMissionRequirement(tier,v,def).ok)masteryCount++;}}
+ const counts={login:loginCount,levelRewards:levelCount,period:periodCount,general:generalCount,mastery:masteryCount};
+ const total=Object.values(counts).reduce((a,b)=>a+b,0);counts.overview=total;
+ for(const [key,count] of Object.entries(counts)){const badge=document.querySelector('[data-reward-badge="'+key+'"]');if(!badge)continue;badge.textContent=count>0?"❗"+count:"";badge.hidden=count<=0;badge.setAttribute("aria-label",count>0?"受取可能な報酬 "+count+"件":"受取可能な報酬なし");}
+ const root=$("progressionContent");if(root){let notice=root.querySelector(".progressionRewardNotice");if(total>0){if(!notice){notice=document.createElement("div");notice.className="progressionRewardNotice";root.prepend(notice);}notice.innerHTML='<span style="font-size:24px">❗</span><span>受け取れる報酬があります！<small>現在 '+total+'件の報酬を受け取れます。赤い❗が付いたタブを確認してください。</small></span>';}else if(notice)notice.remove();}
+}
 async function loadProgressionExtras(){
  const root=$("progressionContent");if(!root)return;
  const extras=document.createElement("div");extras.id="progressionExtras";extras.innerHTML='<div class="card"><div class="muted">ログイン報酬とミッションを読み込んでいます…</div></div>';root.appendChild(extras);
@@ -3346,6 +3370,7 @@ async function loadProgressionExtras(){
   const cloudStats=profileRes.data?.progression_stats||{};
   const mergedProgress={...p,experiencePoints:Math.min(playerLevelThreshold(MAX_PLAYER_LEVEL),Math.max(p.experiencePoints,Number(profileRes.data?.experience_points||0))),levelTitles:[...new Set([...(p.levelTitles||[]),...(Array.isArray(cloudStats.levelTitles)?cloudStats.levelTitles:[])])],completedMatches:Math.max(Number(p.completedMatches||0),Number(cloudStats.completedMatches||0)),totalWins:Math.max(Number(p.totalWins||0),Number(cloudStats.totalWins||0)),totalSurvivals:Math.max(Number(p.totalSurvivals||0),Number(cloudStats.totalSurvivals||0)),roleMastery:mastery};
   extras.innerHTML=renderProgressionExtras(mergedProgress,dailyRes.data,claimsRes.data||[],walletRes.data?.coins||0,generalClaimsRes.data||[],periodRes.data||[],levelClaimsRes.data||[]);
+   updateProgressionRewardBadges(mergedProgress,dailyRes.data,claimsRes.data||[],generalClaimsRes.data||[],periodRes.data||[],levelClaimsRes.data||[]);
  }catch(e){extras.innerHTML='<div class="card"><b>ミッション情報を読み込めませんでした</b><p class="muted">'+escapeAccountText(e.message||String(e))+'</p><button onclick="loadProgressionExtras()">再読み込み</button></div>'}
 }
 async function claimTriadPlayerLevelReward(level){
