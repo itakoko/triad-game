@@ -3379,13 +3379,13 @@ function renderProgressionExtras(m,daily,claims,coins,generalClaims,periodRows,l
  }
  html+='</div>';
  html+='</div></div><div class="progressionTabPanel" data-progression-panel="mastery">';
- html+='<div class="card" style="margin:12px 0"><h3>📜 役職熟練度</h3><p class="muted">陣営を選び、役職を開くと専用ミッションを確認できます。全6段階。後半3段階では役職専用称号、第6段階では称号に加えて役職専用衣装を獲得できます。</p>';
+ html+='<div class="card" style="margin:12px 0"><div class="row" style="justify-content:space-between;align-items:center;flex-wrap:wrap"><h3 style="margin:0">📜 役職熟練度</h3><button class="primary" onclick="claimAllTriadRoleMissions()">🎁 受け取れる報酬を一括受け取り</button></div><p class="muted">陣営を選び、役職を開くと専用ミッションを確認できます。全6段階。後半3段階では役職専用称号、第6段階では称号に加えて役職専用衣装を獲得できます。❗が付いた役職には受け取れる報酬があります。</p>';
  const mastery=m.roleMastery||{};
  const groups=ROLE_CONFIG_GROUPS;
  const selectedGroup=groups.find(g=>g.team===triadMasteryFaction)||groups[0];
  if(!selectedGroup.roles.includes(triadMasteryRole))triadMasteryRole=selectedGroup.roles[0];
  html+='<div class="row" style="gap:7px;flex-wrap:wrap;margin:10px 0">'+groups.map(g=>'<button '+(g.team===selectedGroup.team?'class="primary"':'')+' onclick="selectRoleMasteryFaction(\''+g.team+'\')">'+escapeAccountText(g.label)+'</button>').join('')+'</div>';
- html+='<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(112px,1fr));gap:7px;margin:10px 0">'+selectedGroup.roles.map(r=>'<button '+(r===triadMasteryRole?'class="primary"':'')+' onclick="selectRoleMasteryRole(\''+escapeAccountText(r)+'\')" style="padding:9px">'+escapeAccountText(r)+'</button>').join('')+'</div>';
+ html+='<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(112px,1fr));gap:7px;margin:10px 0">'+selectedGroup.roles.map(r=>{const rd=TRIAD_ROLE_MISSION_DEFS.find(x=>x.role===r),rv=mastery[r]||{};let pending=0,prior=true;for(let t=1;t<=6;t++){const claimed=claimSet.has('role:'+r+':'+t);if(!claimed&&prior&&rd&&roleMissionRequirement(t,rv,rd).ok)pending++;prior=claimed;}return '<button '+(r===triadMasteryRole?'class="primary"':'')+' onclick="selectRoleMasteryRole(\\''+escapeAccountText(r)+'\\')" style="padding:9px">'+escapeAccountText(r)+(pending?'　❗'+pending:'')+'</button>'}).join('')+'</div>';
  const def=TRIAD_ROLE_MISSION_DEFS.find(x=>x.role===triadMasteryRole);
  if(def){
   const v=mastery[def.role]||{},ownedTitles=Array.isArray(v.titles)?v.titles:[];
@@ -3484,6 +3484,38 @@ async function claimTriadPeriodMission(periodType,code){
   alert("ミッション報酬を獲得！\\nコイン：+"+data.coins+"\\nEXP：+"+data.xp);
   openProgressionScreen();
  }catch(e){alert("報酬を受け取れませんでした："+(e.message||String(e)))}
+}
+async function claimAllTriadRoleMissions(){
+ const button=[...document.querySelectorAll('#progressionContent button')].find(b=>b.textContent.includes('受け取れる報酬を一括受け取り'));
+ if(button){button.disabled=true;button.textContent='受け取り中…';}
+ let success=0,failed=[];
+ try{
+  if(!authUser||!supabaseClient)await initializeOnlineAccounts();
+  if(!authUser||!supabaseClient)throw new Error('報酬の受け取りにはアカウント接続が必要です。');
+  const [profileRes,claimsRes]=await Promise.all([
+   supabaseClient.from('player_profiles').select('role_mastery').eq('user_id',authUser.id).maybeSingle(),
+   supabaseClient.from('triad_role_mission_claims').select('mission_code').eq('user_id',authUser.id)
+  ]);
+  if(profileRes.error)throw profileRes.error;if(claimsRes.error)throw claimsRes.error;
+  const mastery=profileRes.data?.role_mastery||{},claimed=new Set((claimsRes.data||[]).map(x=>x.mission_code));
+  for(const def of TRIAD_ROLE_MISSION_DEFS){
+   const v=mastery[def.role]||{};
+   for(let tier=1;tier<=6;tier++){
+    const code='role:'+def.role+':'+tier;
+    if(claimed.has(code))continue;
+    const previous=tier===1||claimed.has('role:'+def.role+':'+(tier-1));
+    if(!previous||!roleMissionRequirement(tier,v,def).ok)continue;
+    try{
+     const {data,error}=await supabaseClient.rpc('triad_claim_role_mission',{p_role:def.role,p_tier:tier});
+     if(error)throw error;
+     claimed.add(code);success++;
+     if(data?.title)rememberTriadTitle(data.title);
+    }catch(e){failed.push(def.role+' 段階'+tier+'：'+(e.message||String(e)));break;}
+   }
+  }
+  alert(success+'件の役職熟練度報酬を受け取りました。'+(failed.length?'\\n一部受け取れない報酬があります：\\n'+failed.slice(0,5).join('\\n'):''));
+  openProgressionScreen('mastery');
+ }catch(e){alert('一括受け取りに失敗しました：'+(e.message||String(e)));if(button){button.disabled=false;button.textContent='🎁 受け取れる報酬を一括受け取り';}}
 }
 async function claimTriadRoleMission(role,tier){
  try{
