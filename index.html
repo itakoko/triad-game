@@ -2903,9 +2903,16 @@ function endGame(msg,winners={teams:[]}){
  if(triadAutoModeActive&&!onlineGame){if(triadAutoRestartTimer)clearTimeout(triadAutoRestartTimer);triadAutoRestartTimer=setTimeout(()=>{triadAutoRestartTimer=null;if(!triadAutoModeActive||rankedServerMode||onlineGame)return;$("gameOverModal").classList.remove("show");startGame().catch(e=>{console.warn("auto restart failed",e);triadAutoModeActive=false;updateTriadAutoModeUI();alert("オート周回を停止しました："+(e.message||e))})},3500)}
 }
 async function endToHome(){
- if(triadAutoRestartTimer){clearTimeout(triadAutoRestartTimer);triadAutoRestartTimer=null}triadAutoModeActive=false;updateTriadAutoModeUI();
+ const matchInProgress=!!state.running;
+ const onlineRoom=!!(onlineGame&&activeRoomId);
+ const message=matchInProgress
+  ?"この試合を中断してホームへ戻りますか？\n\n【重要】勝敗が確定する前に終了すると、この試合は未完了扱いになります。試合結果・役職熟練度・EXP・勝敗記録・試合報酬は獲得できません。\n\n本当に中断しますか？"
+  :"試合結果は確定済みです。保存された試合結果・役職熟練度・EXP・報酬はそのまま残ります。ホームへ戻りますか？";
+ if(!confirm(message))return;
+ if(onlineRoom){if(!confirm("オンラインルームからも退出します。よろしいですか？"))return;try{await leaveOnlineRoom()}catch(e){console.warn("online leave failed",e)}}
+ if(triadAutoRestartTimer){clearTimeout(triadAutoRestartTimer);triadAutoRestartTimer=null}
+ triadAutoModeActive=false;updateTriadAutoModeUI();
  rankedServerMode=false;rankedMeetingWasActive=false;
- if(onlineGame&&activeRoomId){if(!confirm("オンラインルームから退出してホームへ戻りますか？"))return;try{await leaveOnlineRoom()}catch(e){console.warn("online leave failed",e)}}
  stopMatchAutosave();discardSavedGame();if(state.running)saveAILongTermMemories({teams:[]},true);state.running=false;clearInterval(loop);clearInterval(clock);stopMove();stopBGM();document.querySelectorAll(".modal").forEach(m=>m.classList.remove("show"));show("home")
 }
 let accountDirectoryLoadId=0;
