@@ -1239,22 +1239,18 @@ function startTriadAutoMeetingWatchdog(){
  triadAutoMeetingWatchdog=setInterval(()=>{
   if(!triadAutoModeActive||!state?.running||!state?.meeting)return;
   try{
-   if(state.meetingPhase==="discussion"&&(Number(state.meetingSecondsLeft)||0)<=0){
-    beginVoting(true);
-    return;
-   }
+   if(state.meetingPhase==="discussion"&&(Number(state.meetingSecondsLeft)||0)<=0){beginVoting(true);return}
    if(state.meetingPhase==="voting"){
     if(!(state.lastBallots||[]).length){
      if(state.me?.alive&&state.selectedVote===null)state.selectedVote=chooseAIVote(state.me,state.players.filter(p=>p.alive));
      if(!state.me?.alive)state.selectedVote="ghost";
      submitVote();
-    }else if(state._closingMeeting&&Date.now()-(state._closingMeetingAt||0)>4500){
-     state._closingMeeting=false;
-     closeMeeting();
+    }else if(state._closingMeeting&&Date.now()-(state._closingMeetingAt||0)>3500){
+     recoverStuckMeeting("会議終了処理のタイムアウト");
     }else if(!state._closingMeeting)closeMeeting();
    }
-  }catch(error){console.warn("Auto meeting recovery:",error)}
- },900);
+  }catch(error){console.warn("Auto meeting recovery:",error);recoverStuckMeeting("会議監視処理の例外")}
+ },700);
 }
 function stopTriadAutoMeetingWatchdog(){
  if(triadAutoMeetingWatchdog){clearInterval(triadAutoMeetingWatchdog);triadAutoMeetingWatchdog=null}
@@ -2609,31 +2605,61 @@ function submitVote(){if(rankedServerMode){if(state.selectedVote===null)return;c
  updateNearbyActions();draw();
  if(triadAutoModeActive&&!onlineGame&&state.running)setTimeout(()=>{if(triadAutoModeActive&&state.meeting&&state.lastBallots.length)closeMeeting()},1300);
 }
-function closeMeeting(){if(isOnlineClient()){sendOnlineInput({kind:"action",action:"close_meeting"});return}
- if(!state.meeting||!state.lastBallots.length||state._closingMeeting)return;
- state._closingMeeting=true;state._closingMeetingAt=Date.now();$("closeMeetingAction").disabled=true;
+function recoverStuckMeeting(reason="会議進行の復旧"){
+ if(!state?.meeting)return;
+ console.warn("TRIAD meeting recovered:",reason);
+ stopMeetingTimer();
+ if(state.aiTurnTimer){clearTimeout(state.aiTurnTimer);state.aiTurnTimer=null}
+ state._meetingCloseToken=(state._meetingCloseToken||0)+1;
+ state._closingMeeting=false;state._closingMeetingAt=0;
+ state.meeting=false;state.meetingPhase="";state.selectedVote=null;
+ $("meetingModal")?.classList.remove("show");
+ try{if(state.running)respawnLivingPlayers()}catch(e){console.warn("Meeting respawn recovery:",e)}
+ state.dead=[];
+ (state.tasks||[]).forEach(task=>{task.completedBy=[]});
+ state.players.filter(p=>p.alive).forEach(p=>{p.charging=false;p.aiGoal=null;p.aiPath=[]});
+ try{resolveGamblerPredictionCycle()}catch(e){console.warn("Gambler meeting recovery:",e)}
+ try{updateNearbyActions();draw();if(state.running)checkWin()}catch(e){console.warn("Post-meeting recovery:",e)}
+}
+function closeMeeting(){
+ if(isOnlineClient()){sendOnlineInput({kind:"action",action:"close_meeting"});return}
+ if(!state.meeting||!(state.lastBallots||[]).length)return;
+ if(state._closingMeeting){
+  if(Date.now()-(state._closingMeetingAt||0)<3000)return;
+  state._meetingCloseToken=(state._meetingCloseToken||0)+1;
+  state._closingMeeting=false;
+ }
+ state._closingMeeting=true;state._closingMeetingAt=Date.now();
+ const closeToken=state._meetingCloseToken=(state._meetingCloseToken||0)+1;
+ $("closeMeetingAction").disabled=true;
  playMeetingTransition("会議終了","投票結果を確定しました");
  setTimeout(()=>{
-  stopMeetingTimer();state.emergencyMeetingReadyAt=Date.now()+25000;
-  $("meetingModal").classList.remove("show");
-  if(state.running)respawnLivingPlayers();
-  state.dead=[];state.tasks.forEach(task=>{task.completedBy=[]});
-  const cooldownStart=Date.now();
-  state.players.filter(p=>p.alive).forEach(p=>{
-   if(p.team==="black")p.killReadyAt=cooldownStart+30000;
-   else if(p.role==="暗殺者")p.killReadyAt=cooldownStart+20000;
-   else if(p.role==="狂人")p.killReadyAt=cooldownStart+30000;
-   if(p.team==="black")p.sabotageReadyAt=cooldownStart+35000;
-   const roleCooldown={"イノシシ":20000,"暗殺者":20000,"百面相":35000,"放浪者":15000,"ギャンブラー":25000}[p.role];
-   if(roleCooldown)p.roleReadyAt=cooldownStart+roleCooldown;
-   p.emergencyReadyAt=cooldownStart+25000;
-   if(p.id!==0){p.aiTaskIndex=null;if(p.aiGoal?.kind==="task"){p.aiGoal=null;p.aiPath=[]}p.aiNextTaskAt=cooldownStart+rand(3500,6000)}
-  });
-  state.meeting=false;state.meetingPhase="";state.selectedVote=null;state._closingMeeting=false;state._closingMeetingAt=0;
-  resolveGamblerPredictionCycle();
-  updateNearbyActions();draw();if(state.running)checkWin();
-  if(onlineGame?.isHost){broadcastOnlineSnapshot();sendOnlinePrivateStates()}
- },1050);
+  if(!state.meeting||state._meetingCloseToken!==closeToken)return;
+  try{
+   stopMeetingTimer();state.emergencyMeetingReadyAt=Date.now()+25000;
+   $("meetingModal").classList.remove("show");
+   if(state.running)respawnLivingPlayers();
+   state.dead=[];(state.tasks||[]).forEach(task=>{task.completedBy=[]});
+   const cooldownStart=Date.now();
+   state.players.filter(p=>p.alive).forEach(p=>{
+    if(p.team==="black")p.killReadyAt=cooldownStart+30000;
+    else if(p.role==="暗殺者")p.killReadyAt=cooldownStart+20000;
+    else if(p.role==="狂人")p.killReadyAt=cooldownStart+30000;
+    if(p.team==="black")p.sabotageReadyAt=cooldownStart+35000;
+    const roleCooldown={"イノシシ":20000,"暗殺者":20000,"百面相":35000,"放浪者":15000,"ギャンブラー":25000}[p.role];
+    if(roleCooldown)p.roleReadyAt=cooldownStart+roleCooldown;
+    p.emergencyReadyAt=cooldownStart+25000;
+    if(p.id!==0){p.aiTaskIndex=null;if(p.aiGoal?.kind==="task"){p.aiGoal=null;p.aiPath=[]}p.aiNextTaskAt=cooldownStart+rand(3500,6000)}
+   });
+   state.meeting=false;state.meetingPhase="";state.selectedVote=null;state._closingMeeting=false;state._closingMeetingAt=0;
+   resolveGamblerPredictionCycle();
+   updateNearbyActions();draw();if(state.running)checkWin();
+   if(onlineGame?.isHost){broadcastOnlineSnapshot();sendOnlinePrivateStates()}
+  }catch(error){
+   console.error("Meeting close failed; forcing recovery:",error);
+   recoverStuckMeeting("会議終了処理で例外が発生");
+  }
+ },650);
 }
 function checkWin(){
  if(!state.running||state._checkingWin||Date.now()<(state.winCheckEnabledAt||0))return;
