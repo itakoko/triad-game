@@ -3223,7 +3223,7 @@ function drawPlayerCosmetics(ctx,p){
  const c=p?.cosmetics||{},hat=c.hat||"none",scarf=c.scarf||"none",suit=c.suit||"none";
  const outfit=Object.values(ROLE_MASTER_OUTFITS).find(x=>x.id===suit);
  if(outfit)drawRoleMasteryAccessory(ctx,outfit);
- if(scarf!=="none"){
+ if(scarf!=="none"&&!TRIAD_GACHA_COSMETICS.some(v=>v.kind==="scarf"&&v.id===scarf)){
   const colors={red:"#e34e5c",blue:"#4aa8e8",gold:"#e7bd4b",ribbon:"#e98acb",stardust:"#8d8bea"};
   ctx.save();ctx.strokeStyle=colors[scarf]||"#e34e5c";ctx.lineWidth=4;ctx.lineCap="round";ctx.beginPath();ctx.moveTo(-7,6);ctx.quadraticCurveTo(0,11,7,6);ctx.stroke();ctx.beginPath();ctx.moveTo(4,8);ctx.lineTo(7,14);ctx.stroke();if(scarf==="ribbon"){ctx.fillStyle="#f6c5e5";ctx.beginPath();ctx.moveTo(0,8);ctx.lineTo(-5,4);ctx.lineTo(-5,12);ctx.closePath();ctx.fill();ctx.beginPath();ctx.moveTo(0,8);ctx.lineTo(5,4);ctx.lineTo(5,12);ctx.closePath();ctx.fill()}if(scarf==="stardust"){ctx.fillStyle="#fff1a8";ctx.font="6px sans-serif";ctx.fillText("✦",-2,14)}ctx.restore();
  }
