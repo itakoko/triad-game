@@ -3269,7 +3269,7 @@ function drawGachaAccessory(ctx,kind,id){
 }
 function drawTriadPet(ctx,id){
  const pet=TRIAD_GACHA_PETS.find(v=>v.id===id);if(!pet)return;
- ctx.save();ctx.translate(17,8);ctx.lineWidth:.8;ctx.strokeStyle="#1b2638";ctx.fillStyle=pet.base;
+ ctx.save();ctx.translate(17,8);ctx.lineWidth=.8;ctx.strokeStyle="#1b2638";ctx.fillStyle=pet.base;
  if(pet.style==="fox"){ctx.beginPath();ctx.moveTo(-3,1);ctx.lineTo(-5,-3);ctx.lineTo(-1,-2);ctx.lineTo(1,-2);ctx.lineTo(5,-3);ctx.lineTo(4,1);ctx.ellipse(0,2,4,4,0,0,Math.PI*2);ctx.fill();ctx.stroke();ctx.fillStyle=pet.accent;ctx.beginPath();ctx.moveTo(-2,4);ctx.lineTo(0,7);ctx.lineTo(2,4);ctx.fill()}
  else if(pet.style==="bunny"){ctx.beginPath();ctx.ellipse(-2,-4,1.5,4,-.2,0,Math.PI*2);ctx.ellipse(2,-4,1.5,4,.2,0,Math.PI*2);ctx.ellipse(0,2,4,4,0,0,Math.PI*2);ctx.fill();ctx.stroke()}
  else if(pet.style==="jelly"){ctx.beginPath();ctx.arc(0,1,5,Math.PI,Math.PI*2);ctx.lineTo(5,3);for(let x=4;x>=-4;x-=2){ctx.quadraticCurveTo(x,7,x-1,4)}ctx.closePath();ctx.fill();ctx.stroke();ctx.strokeStyle=pet.accent;ctx.beginPath();ctx.moveTo(-2,5);ctx.lineTo(-3,8);ctx.moveTo(2,5);ctx.lineTo(3,8);ctx.stroke()}
