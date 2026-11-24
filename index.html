@@ -2609,7 +2609,7 @@ async function awardEconomyMatch(matchKey,won,survived){
  const {data,error}=await supabaseClient.rpc("economy_award_match",{p_match_key:String(matchKey),p_won:!!won,p_survived:!!survived});
  if(error)throw error;
  economyCoins=Number(data?.coins||economyCoins);
- if(Number(data?.awarded||0)>0&&$("gameOverModal")?.classList.contains("show")){const detail=$("gameResultDetail");if(detail)detail.textContent+="\n獲得コイン：+"+Number(data.awarded)}
+ if((Number(data?.awarded||0)>0||Number(data?.season_points||0)>0)&&$("gameOverModal")?.classList.contains("show")){const detail=$("gameResultDetail");if(detail){if(Number(data?.awarded||0)>0)detail.textContent+="\n獲得コイン：+"+Number(data.awarded);if(Number(data?.season_points||0)>0)detail.textContent+="\nシーズンポイント：+"+Number(data.season_points)}}
  if($("economy")?.classList.contains("active"))await loadEconomyScreen();
  return data;
 }
