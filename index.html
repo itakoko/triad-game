@@ -1995,7 +1995,7 @@ function useAbility(){if(rankedServerMode){
   }).catch(e=>alert("能力送信エラー："+(e.message||String(e))));
   return;
  }
- if(actor.role==="サイエンティスト"){rankedEngineCall("ability",{kind:"scientist"}).then(r=>{if(r.status==="alive_count")alert("生存者は "+r.alive_count+" 人です。");else alert("能力を使えません："+r.status)});return}
+ if(actor.role==="サイエンティスト"){rankedEngineCall("ability",{kind:"scientist"}).then(r=>{if(r.status==="alive_count"){actor.scientistChecks=(actor.scientistChecks||0)+1;awardChristmasCandy("ability","ability:"+christmasMatchKey()+":scientist:"+String(actor.scientistChecks));alert("生存者は "+r.alive_count+" 人です。")}else alert("能力を使えません："+r.status)});return}
  if(actor.role==="占い師"){openTargetSelection("占う相手を選択","近くの生存者1人を一度だけ占えます。",targetCandidates(actor,100),"seer");return}
  if(actor.role==="僧侶"){openTargetSelection("加護を与える相手を選択","生存者1人に一度だけ加護を与えます。",targetCandidates(actor,Infinity,true),"protect");return}
  if(actor.role==="放浪者"){openTargetSelection("匂いを移す相手を選択","近くの生存者に匂いを移します。",targetCandidates(actor,90),"scent");return}
