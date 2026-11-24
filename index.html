@@ -191,6 +191,12 @@ canvas#mapCanvas{aspect-ratio:16/10;background:#0b1522}
 .seasonBar>div{height:100%;background:linear-gradient(90deg,#5ac9c0,#f1d17a);width:0}
 @media(max-width:520px){.seasonTrack{grid-template-columns:1fr}}
 </style>
+<style>
+.progressionTabs{display:flex;gap:7px;overflow-x:auto;padding:5px 1px 12px;margin:8px 0 4px;scrollbar-width:thin}
+.progressionTabs button{flex:0 0 auto;min-height:42px;padding:9px 13px;border:1px solid #405675;border-radius:10px;background:#14243a;color:inherit;font-size:13px;white-space:nowrap}
+.progressionTabs button.active{background:#24515a;border-color:#74d9cb;color:#fff;font-weight:800}
+.progressionTabPanel[hidden]{display:none!important}
+</style>
 </head>
 <body>
 <header><div class="logo">TRI<span>AD</span></div><div class="row" style="align-items:center;gap:8px;flex:0 0 auto"><div class="tag">オンラインアカウント対応 · 常駐デバッグAI · v0.84</div><button class="headerAccountButton" type="button" onclick="openAccountsScreen()">アカウント</button></div></header>
@@ -322,7 +328,15 @@ canvas#mapCanvas{aspect-ratio:16/10;background:#0b1522}
  <div class="actions"><button onclick="show('home')">ホームへ戻る</button></div>
 </section>
 <section id="progression" class="screen">
- <div class="hero"><h1>🏅 プレイヤー成長</h1><p>試合を重ねてレベルを上げ、実績を獲得し、役職ごとの熟練度を高めましょう。</p></div>
+ <div class="hero"><h1>🏅 プレイヤー成長</h1><p>見たい機能をタブから選択できます。</p></div>
+ <nav class="progressionTabs" aria-label="プレイヤー成長メニュー">
+  <button class="active" data-progression-tab="overview" onclick="selectProgressionTab('overview')">📊 成長状況</button>
+  <button data-progression-tab="login" onclick="selectProgressionTab('login')">🎁 ログイン報酬</button>
+  <button data-progression-tab="levelRewards" onclick="selectProgressionTab('levelRewards')">🎖 レベル報酬</button>
+  <button data-progression-tab="period" onclick="selectProgressionTab('period')">📅 デイリー・週次</button>
+  <button data-progression-tab="general" onclick="selectProgressionTab('general')">🧭 共通ミッション</button>
+  <button data-progression-tab="mastery" onclick="selectProgressionTab('mastery')">📜 役職熟練度</button>
+ </nav>
  <div id="progressionContent"></div>
  <div class="actions"><button onclick="show('home')">ホームへ戻る</button></div>
 </section>
@@ -3177,16 +3191,17 @@ function renderProgressionExtras(m,daily,claims,coins,generalClaims,periodRows,l
  const dailyRewards=[50,60,70,80,100,120,200],nextReward=dailyRewards[(nextStreak-1)%7];
  const rewardTrack=dailyRewards.map((reward,i)=>'<div style="flex:1;min-width:48px;text-align:center;padding:8px 3px;border:1px solid '+(i===((nextStreak-1)%7)?'#ffd36b':'#3a506e')+';border-radius:9px;background:'+(i===((nextStreak-1)%7)?'#493d24':'#132238')+'"><b> '+(i+1)+'日目</b><small style="display:block;color:#ffd36b;margin-top:3px">🪙 '+reward+'</small></div>').join('');
  const claimSet=new Set((claims||[]).map(x=>x.mission_code));
- let html='<div class="card" style="margin:12px 0;border-color:#d5ad58"><div class="row" style="justify-content:space-between"><h3 style="margin:0">🎁 毎日のログインボーナス</h3><span class="pill">日本時間 0:00 更新</span></div><div class="accountStats"><div class="accountStat"><b>'+streak+'日</b><span>現在の連続ログイン</span></div><div class="accountStat"><b>+'+(claimedToday?nextReward:nextReward)+'</b><span>次回の獲得コイン</span></div><div class="accountStat"><b>+'+(claimedToday?20:20)+'</b><span>獲得EXP</span></div></div><p class="muted">'+(claimedToday?"本日のログインボーナスは受け取り済みです。":"本日のログインボーナスを受け取れます。")+' 7日間で報酬が増え、以降は1日目に戻って繰り返します。</p><div style="display:flex;gap:5px;flex-wrap:wrap;margin:10px 0">'+rewardTrack+'</div><button class="primary" style="width:100%" '+(claimedToday?'disabled':'onclick="claimTriadDailyBonus()"')+'>'+(claimedToday?"本日分は受取済み":"ログインボーナスを受け取る")+'</button><p class="muted" style="margin-bottom:0">所持コイン：'+Number(coins||0).toLocaleString("ja-JP")+'</p></div>';
+ let html='<div class="progressionTabPanel" data-progression-panel="login"><div class="card" style="margin:12px 0;border-color:#d5ad58"><div class="row" style="justify-content:space-between"><h3 style="margin:0">🎁 毎日のログインボーナス</h3><span class="pill">日本時間 0:00 更新</span></div><div class="accountStats"><div class="accountStat"><b>'+streak+'日</b><span>現在の連続ログイン</span></div><div class="accountStat"><b>+'+(claimedToday?nextReward:nextReward)+'</b><span>次回の獲得コイン</span></div><div class="accountStat"><b>+'+(claimedToday?20:20)+'</b><span>獲得EXP</span></div></div><p class="muted">'+(claimedToday?"本日のログインボーナスは受け取り済みです。":"本日のログインボーナスを受け取れます。")+' 7日間で報酬が増え、以降は1日目に戻って繰り返します。</p><div style="display:flex;gap:5px;flex-wrap:wrap;margin:10px 0">'+rewardTrack+'</div><button class="primary" style="width:100%" '+(claimedToday?'disabled':'onclick="claimTriadDailyBonus()"')+'>'+(claimedToday?"本日分は受取済み":"ログインボーナスを受け取る")+'</button><p class="muted" style="margin-bottom:0">所持コイン：'+Number(coins||0).toLocaleString("ja-JP")+'</p></div></div>';
  const levelClaimSet=new Set((levelClaims||[]).map(x=>Number(x.level)));
  const currentLevel=playerLevelFromXP(m.experiencePoints||0);
- html+='<div class="card" style="margin:12px 0;border-color:#72a9dc"><div class="row" style="justify-content:space-between"><h3 style="margin:0">🎖 プレイヤーレベル報酬</h3><span class="pill">最大Lv.20</span></div><p class="muted">レベルアップで解放された報酬は、ここから受け取れます。各レベルの報酬は1回限りです。</p>';
+ html+='</div><div class="progressionTabPanel" data-progression-panel="levelRewards"><div class="card" style="margin:12px 0;border-color:#72a9dc"><div class="row" style="justify-content:space-between"><h3 style="margin:0">🎖 プレイヤーレベル報酬</h3><span class="pill">最大Lv.20</span></div><p class="muted">レベルアップで解放された報酬は、ここから受け取れます。各レベルの報酬は1回限りです。</p>';
  for(let level=2;level<=MAX_PLAYER_LEVEL;level++){
   const done=levelClaimSet.has(level),ready=currentLevel>=level,reward=playerLevelRewardTitle(level),coins=playerLevelRewardCoins(level);
   html+='<div class="accountTrait" style="opacity:'+(done?".7":"1")+'"><div class="row" style="justify-content:space-between"><b>Lv.'+level+' 到達報酬</b><span class="pill">'+(done?"受取済み":ready?"受取可能":"未解放")+'</span></div><div class="row" style="justify-content:space-between;align-items:center;margin-top:6px"><small class="muted">🏅 称号「'+escapeAccountText(reward)+'」 + 🪙 '+coins+'コイン</small><button '+(done||!ready?"disabled":'class="primary" onclick="claimTriadPlayerLevelReward('+level+')"')+'>'+(done?"受取済み":ready?"報酬を受け取る":"Lv."+level+"で解放")+'</button></div></div>';
  }
- html+='</div>';
+ html+='</div></div><div class="progressionTabPanel" data-progression-panel="period">';
  html+=renderTriadPeriodMissions(periodRows||[]);
+ html+='</div><div class="progressionTabPanel" data-progression-panel="general">';
  const generalClaimSet=new Set((generalClaims||[]).map(x=>x.mission_code));
  const totalStats={matches_played:Number(m.completedMatches||0),wins:Number(m.totalWins||0),survived:Number(m.totalSurvivals||0),roles:Object.keys(m.roleMastery||{}).filter(k=>Number(m.roleMastery[k]?.matches||0)>0).length};
  html+='<div class="card" style="margin:12px 0"><h3>🧭 共通ミッション</h3><p class="muted">全プレイヤー共通の目標です。達成したミッションはいつでも報酬を受け取れます。</p>';
@@ -3195,6 +3210,7 @@ function renderProgressionExtras(m,daily,claims,coins,generalClaims,periodRows,l
   html+='<div class="accountTrait" style="opacity:'+(done?'.72':'1')+'"><div class="row" style="justify-content:space-between"><b>'+escapeAccountText(mission.name)+'</b><span class="pill">'+(done?"受取済み":ready?"達成！":"進行中")+'</span></div><div class="muted" style="margin:5px 0">'+escapeAccountText(mission.desc)+' · '+value+'/'+mission.need+'</div><div class="taskbar"><div style="width:'+Math.min(100,value/mission.need*100)+'%"></div></div><div class="row" style="margin-top:7px;align-items:center"><small class="muted">報酬：🪙 '+mission.reward+' ／ EXP '+mission.xp+'</small><button '+(done||!ready?'disabled':'class="primary" onclick="claimTriadGeneralMission(\''+mission.code+'\')"')+'>'+(done?"受取済み":ready?"報酬を受け取る":"未達成")+'</button></div></div>';
  }
  html+='</div>';
+ html+='</div></div><div class="progressionTabPanel" data-progression-panel="mastery">';
  html+='<div class="card" style="margin:12px 0"><h3>📜 役職熟練度</h3><p class="muted">陣営を選び、役職を開くと専用ミッションを確認できます。全6段階。後半3段階では役職専用称号、第6段階では称号に加えて役職専用衣装を獲得できます。</p>';
  const mastery=m.roleMastery||{};
  const groups=ROLE_CONFIG_GROUPS;
@@ -3214,7 +3230,7 @@ function renderProgressionExtras(m,daily,claims,coins,generalClaims,periodRows,l
   }
   html+='</div>';
  }
- html+='</div>';
+ html+='</div></div>';
  return html;
 }
 async function loadProgressionExtras(){
@@ -3287,11 +3303,19 @@ async function claimTriadRoleMission(role,tier){
   openProgressionScreen();
  }catch(e){alert("報酬を受け取れませんでした："+(e.message||String(e)))}
 }
+function selectProgressionTab(tab){
+ const allowed=["overview","login","levelRewards","period","general","mastery"];
+ if(!allowed.includes(tab))tab="overview";
+ document.querySelectorAll("#progressionContent [data-progression-panel]").forEach(panel=>{panel.hidden=panel.dataset.progressionPanel!==tab});
+ document.querySelectorAll(".progressionTabs [data-progression-tab]").forEach(button=>{const active=button.dataset.progressionTab===tab;button.classList.toggle("active",active);button.setAttribute("aria-selected",active?"true":"false")});
+ try{sessionStorage.setItem("triad_progression_tab",tab)}catch(e){}
+}
 async function openProgressionScreen(){
  if(!activateScreen("progression"))return;
  const root=$("progressionContent");if(!root)return;
  const p=loadProgression(),stats=loadHumanStats();
- root.innerHTML=renderProgressionSection({experiencePoints:p.experiencePoints,achievementCodes:p.achievements,roleMastery:p.roleMastery,matchesPlayed:stats.matchesPlayed||0,wins:stats.wins||0,survived:stats.survived||0});
+ root.innerHTML='<div class="progressionTabPanel" data-progression-panel="overview">'+renderProgressionSection({experiencePoints:p.experiencePoints,achievementCodes:p.achievements,roleMastery:p.roleMastery,matchesPlayed:stats.matchesPlayed||0,wins:stats.wins||0,survived:stats.survived||0})+'</div>';
+ selectProgressionTab("overview");
  await loadProgressionExtras();
 }
 function renderWardrobe(m){
