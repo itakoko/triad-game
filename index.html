@@ -438,7 +438,7 @@ canvas#mapCanvas{aspect-ratio:16/10;background:#0b1522}
   <div class="side">
    <div class="card"><div class="muted">あなたの状態</div><div class="stat" id="myStatus">生存</div><div id="myRoleText" class="muted">役職</div></div>
     <div class="card"><div class="muted">白陣営共有タスク（53〜57件）</div><div class="stat" id="taskCount">0 / 0</div><div class="taskbar"><div id="taskProgress"></div></div></div>
-   <div class="card wide"><h3>操作</h3><button id="audioToggle" class="audioToggle" onclick="toggleAudio()">🔊 BGM・効果音 ON</button><div class="actionPanel">
+   <div class="card wide"><h3>操作</h3><button id="audioToggle" class="audioToggle" onclick="toggleAudio()">🔊 BGM・効果音 ON</button><button id="autoModeToggle" type="button" style="width:100%;margin:8px 0" onclick="toggleTriadAutoMode()">🤖 オートモード：OFF</button><p id="autoModeStatus" class="muted" style="margin:0 0 8px">ONにするとAIが操作を代行します。</p><div class="actionPanel">
     <button id="taskAction" onclick="doTask()" hidden>🔧 タスクを行う</button>
     <button id="killAction" onclick="useKill()" hidden>🔪 キル</button>
     <button id="sabotageAction" onclick="useSabotage()" hidden>⚡ サボタージュ</button>
@@ -492,7 +492,7 @@ canvas#mapCanvas{aspect-ratio:16/10;background:#0b1522}
  <div class="modal" id="gameOverModal"><div class="modalbox">
   <p id="gameResultBadge" class="pill">試合結果</p><h2 id="gameResultTitle">勝敗</h2><p id="gameResultReason" class="muted"></p><p id="gameResultDetail"></p>
   <h3>役職公開</h3><div id="roleReveal" class="targetList"></div>
-  <button class="primary" style="width:100%;margin-top:12px" onclick="endToHome()">ホームへ戻る</button>
+  <button id="autoModeGameOverToggle" type="button" style="width:100%;margin-top:10px" onclick="toggleTriadAutoMode()">🤖 オート周回：OFF</button><button class="primary" style="width:100%;margin-top:12px" onclick="endToHome()">ホームへ戻る</button>
  </div></div>
  <div id="personalEffect"><div class="effectCard"><strong id="personalEffectTitle"></strong><span id="personalEffectText"></span></div></div>
    <div class="modal" id="gamblerPredictionModal"><div class="modalbox" style="max-width:430px;text-align:center"><h2>🎲 次の出目を予想</h2><p>次の会議までに、どちらの数字が多く出ると思いますか？</p><div class="grid"><button class="primary" onclick="selectGamblerPrediction('low')"><strong>1〜3</strong><br><small>JACKPOT・強運・運命の目</small></button><button class="primary" onclick="selectGamblerPrediction('high')"><strong>4〜6</strong><br><small>小当たり・ハズレ・大凶</small></button></div><p id="gamblerPredictionStatus" class="muted">的中 0/2 回</p><p class="muted">予想はゲーム内ボタンで選択します。</p></div></div>
@@ -1233,6 +1233,21 @@ async function startOnlineMatch(){
  try{const {error}=await supabaseClient.rpc("start_game_room",{p_room:activeRoomId});if(error)throw error;await loadActiveRoom();await startGame()}
  catch(e){alert("試合を開始できません："+(e.message||e))}
 }
+let triadAutoModeActive=false,triadAutoRestartTimer=null;
+function updateTriadAutoModeUI(){
+ const label=triadAutoModeActive?"🤖 オートモード：ON":"🤖 オートモード：OFF";
+ const gameButton=$("autoModeToggle");if(gameButton){gameButton.textContent=label;gameButton.classList.toggle("primary",triadAutoModeActive)}
+ const status=$("autoModeStatus");if(status)status.textContent=triadAutoModeActive?"AIが移動・タスク・能力・会議・投票を代行中です。いつでもOFFにできます。":"ONにするとAIが操作を代行します。OFFにするとすぐ手動操作へ戻ります。";
+ const resultButton=$("autoModeGameOverToggle");if(resultButton)resultButton.textContent=triadAutoModeActive?"🤖 オート周回：ON（停止する）":"🤖 オート周回：OFF（ONにする）";
+}
+function toggleTriadAutoMode(force){
+ if(rankedServerMode||onlineGame||activeRoomId){alert("オートモードは通常のソロ試合でのみ使用できます。");return}
+ triadAutoModeActive=typeof force==="boolean"?force:!triadAutoModeActive;
+ if(triadAutoRestartTimer){clearTimeout(triadAutoRestartTimer);triadAutoRestartTimer=null}
+ if(triadAutoModeActive&&state.running){stopMove();if(state.me){state.me.aiGoal=null;state.me.aiPath=[];state.me.aiNextGoalAt=Date.now();state.me.aiNextTaskAt=Date.now()+1200;state.me.aiTaskIndex=null}}
+ if(!triadAutoModeActive&&state.me){state.me.aiGoal=null;state.me.aiPath=[];state.me.aiTaskIndex=null;state.move={x:0,y:0};stopMove()}
+ updateTriadAutoModeUI();
+}
 async function startGame(){
  rankedServerMode=false;rankedMeetingWasActive=false;
  const onlineHost=!!(activeRoomId&&activeRoomSnapshot&&authUser&&activeRoomSnapshot.host_user_id===authUser.id&&activeRoomSnapshot.status==="playing");
@@ -1266,7 +1281,7 @@ async function startGame(){
  state.players.filter(p=>p.role==="放浪者").forEach(p=>state.scentedIds.add(p.id));
  state.tasks=state.map.tasks.map((p,i)=>{const quota=Math.floor(state.total/state.map.tasks.length)+(i<state.total%state.map.tasks.length?1:0),spec=taskKinds[i%taskKinds.length];return {id:i,x:p[0],y:p[1],done:false,quota,remaining:quota,completedBy:[],label:spec.label,room:spec.room,kind:spec.kind}});
  state.meetingDuration=onlineHost?Math.max(30,Math.min(300,Number(activeRoomSnapshot.settings?.meeting_duration)||90)):Number($("meetingDuration")?.value)||90;
- $("mapLabel").textContent="マップ：研究施設";$("roleLabel").textContent="役職："+state.me.role;$("myRoleText").textContent="陣営："+teamName(state.me.team)+" ／ 役職："+state.me.role+"。"+roleDescription(state.me);
+ updateTriadAutoModeUI();$("mapLabel").textContent="マップ：研究施設";$("roleLabel").textContent="役職："+state.me.role;$("myRoleText").textContent="陣営："+teamName(state.me.team)+" ／ 役職："+state.me.role+"。"+roleDescription(state.me);
  $("myStatus").textContent="生存";$("ghostBanner").hidden=true;$("taskCount").textContent="0 / "+state.total;$("taskProgress").style.width="0%";log("研究施設に到着。");
  show("game");state.running=true;playMatchCinematic("TRIAD","試合開始","start");playSfx("meeting");updateNearbyActions();draw();clearInterval(loop);clearInterval(clock);loop=setInterval(tick,70);
  clock=setInterval(()=>{if(!state.running)return;state.seconds++;$("timer").textContent=String(Math.floor(state.seconds/60)).padStart(2,"0")+":"+String(state.seconds%60).padStart(2,"0");aiAction();checkWin()},1000);
@@ -1439,6 +1454,19 @@ function recoverStuckAI(actor){
  actor.aiGoal=null;actor.aiPath=[];actor.aiTaskIndex=null;
  actor.aiStuck=0;actor.aiNextGoalAt=Date.now()+500;
 }
+function moveTriadAutoPlayer(actor,now=Date.now()){
+ if(!triadAutoModeActive||!actor?.alive||actor.charging||state.meeting)return;
+ if(!actor.aiGoal&&now>=Number(actor.aiNextGoalAt||0)){
+  const point=randomSpawn();setAIGoal(actor,point[0],point[1],"wander");actor.aiNextGoalAt=now+rand(7000,12000);
+ }
+ if(!actor.aiGoal)return;
+ if(actor.aiGoal.kind==="task"&&Math.hypot(actor.x-actor.aiGoal.x,actor.y-actor.aiGoal.y)<=58)return;
+ while(actor.aiPath?.length&&Math.hypot(actor.aiPath[0][0]-actor.x,actor.aiPath[0][1]-actor.y)<12)actor.aiPath.shift();
+ if(!actor.aiPath?.length){actor.aiGoal=null;actor.aiPath=[];actor.aiNextGoalAt=now+500;return}
+ const [tx,ty]=actor.aiPath[0],dx=tx-actor.x,dy=ty-actor.y,len=Math.hypot(dx,dy)||1,step=3.2;
+ const nx=actor.x+dx/len*Math.min(step,len),ny=actor.y+dy/len*Math.min(step,len);
+ if(isWalkable(nx,actor.y))actor.x=nx;if(isWalkable(actor.x,ny))actor.y=ny;
+}
 function tick(){
  if(rankedServerMode){if(!state.running)return;updateRankedClockDisplay();updateRankedRemotePlayers();const p=state.me,mv=state.move||{x:0,y:0},mag=Math.hypot(mv.x,mv.y)||1;if(p?.alive&&!p.charging&&mag>0.08){const nx=p.x+(mv.x/mag)*2.5,ny=p.y+(mv.y/mag)*2.5;if(isWalkable(nx,p.y))p.x=nx;if(isWalkable(p.x,ny))p.y=ny}else if(p&&!p.alive&&deathViewMode==="ghost"){moveGhostPlayer(p)}rankedServerPulse();updateNearbyActions();draw();return}
   // Online clients only render host snapshots; they never simulate movement or AI.
@@ -1450,7 +1478,7 @@ function tick(){
    const hit=state.players.find(v=>v.alive&&v.id!==a.id&&Math.hypot(v.x-a.x,v.y-a.y)<20&&!(a.team==="black"&&v.team==="black"));
    if(hit){const killed=killPlayer(hit,a,"突進");if(killed)a.chargeKills=(a.chargeKills||0)+1;if(!a.alive){a.charging=false;return}}
   });
-   if(onlineGame?.isHost){state.players.filter(h=>h.isHuman&&(h.alive||(h.id===state.me.id&&deathViewMode==="ghost"))&&!h.charging).forEach(h=>{if(!h.alive&&h.id===state.me.id){moveGhostPlayer(h);return}const mv=h.id===state.me.id?state.move:(h.remoteMove||{x:0,y:0}),mag=Math.hypot(mv.x,mv.y)||1,speed=3.5,nx=h.x+(mv.x/mag)*speed,ny=h.y+(mv.y/mag)*speed;if(isWalkable(nx,h.y))h.x=nx;if(isWalkable(h.x,ny))h.y=ny})}else if(p.alive&&!p.charging){let mag=Math.hypot(state.move.x,state.move.y)||1,speed=3.5,nx=p.x+(state.move.x/mag)*speed,ny=p.y+(state.move.y/mag)*speed;if(isWalkable(nx,p.y))p.x=nx;if(isWalkable(p.x,ny))p.y=ny}else if(!p.alive&&deathViewMode==="ghost")moveGhostPlayer(p)
+   if(onlineGame?.isHost){state.players.filter(h=>h.isHuman&&(h.alive||(h.id===state.me.id&&deathViewMode==="ghost"))&&!h.charging).forEach(h=>{if(!h.alive&&h.id===state.me.id){moveGhostPlayer(h);return}const mv=h.id===state.me.id?state.move:(h.remoteMove||{x:0,y:0}),mag=Math.hypot(mv.x,mv.y)||1,speed=3.5,nx=h.x+(mv.x/mag)*speed,ny=h.y+(mv.y/mag)*speed;if(isWalkable(nx,h.y))h.x=nx;if(isWalkable(h.x,ny))h.y=ny})}else if(p.alive&&!p.charging){if(triadAutoModeActive)moveTriadAutoPlayer(p);else{let mag=Math.hypot(state.move.x,state.move.y)||1,speed=3.5,nx=p.x+(state.move.x/mag)*speed,ny=p.y+(state.move.y/mag)*speed;if(isWalkable(nx,p.y))p.x=nx;if(isWalkable(p.x,ny))p.y=ny}}else if(!p.alive&&deathViewMode==="ghost")moveGhostPlayer(p)
    state.players.filter(p=>p.id!==state.me.id&&!p.isHuman).forEach(a=>{
     if(!a.alive||!a.aiGoal)return;
     while(a.aiPath.length&&Math.hypot(a.aiPath[0][0]-a.x,a.aiPath[0][1]-a.y)<12)a.aiPath.shift();
@@ -2015,7 +2043,8 @@ function selectTarget(id){if(rankedServerMode){
 function aiStat(actor,key,fallback=5){return Math.max(1,Math.min(10,Number(actor?.aiProfile?.[key]??fallback)||fallback))}
 function updateAIWhiteTasks(now=Date.now()){
  if(!state.running||state.meeting)return;
- for(const actor of state.players.slice(1)){
+ const taskActors=triadAutoModeActive&&state.me?[state.me,...state.players.slice(1)]:state.players.slice(1);
+ for(const actor of taskActors){
   if(!actor.alive||actor.aiGoal?.kind==="emergency")continue;
   let station=state.tasks[actor.aiTaskIndex];
   if(!station||station.done||station.remaining<=0||station.completedBy?.includes(actor.id)){
@@ -2054,7 +2083,7 @@ function aiAction(){
  // AI decisions and actions are authoritative on the host only during online matches.
  if(!state.running||state.meeting||(onlineGame&&!onlineGame.isHost))return;
  const now=Date.now();
- const activeAI=state.players.filter(p=>p.id!==state.me.id&&!p.isHuman&&p.alive);
+ const activeAI=state.players.filter(p=>!p.isHuman&&p.alive&&(p.id!==state.me.id||triadAutoModeActive));
  for(const actor of activeAI){
   const body=state.dead.filter(d=>Math.hypot(actor.x-d.x,actor.y-d.y)<82).sort((a,b)=>Math.hypot(actor.x-a.x,actor.y-a.y)-Math.hypot(actor.x-b.x,actor.y-b.y))[0];
   if(body&&Math.random()<(actor.team==="black" ? .58 : .68+aiStat(actor,"caution")*.02)){
@@ -2072,7 +2101,7 @@ function aiAction(){
  }
   updateAIWhiteTasks(now);if(!state.running)return;
  if(state.combatProtectionUntil&&now<state.combatProtectionUntil){updateNearbyActions();draw();return}
- state.players.filter(p=>p.id!==state.me.id&&!p.isHuman&&p.alive).forEach(actor=>{
+ state.players.filter(p=>!p.isHuman&&p.alive&&(p.id!==state.me.id||triadAutoModeActive)).forEach(actor=>{
   const nearby=targetCandidates(actor,88,false,p=>!(actor.team==="black"&&p.team==="black"));
   const roleNearby=targetCandidates(actor,100,false,p=>!(actor.team==="black"&&p.team==="black"));
   const wanderNearby=targetCandidates(actor,90,false,p=>!(actor.team==="black"&&p.team==="black"));
@@ -2446,7 +2475,7 @@ function callMeeting(message="会議が招集されました。",caller=state.me
  playMeetingTransition("会議開始","全員、会議室に集合してください");
  playSfx("meeting");
  if(state.aiTurnTimer)clearTimeout(state.aiTurnTimer);
- state.meeting=true;state.meetingPhase="discussion";state.selectedVote=null;state.lastBallots=[];state.meetingClaims=[];state.aiTurnCount=0;state.geminiCallsThisMeeting=0;state.aiSpokenIds=[];state.meetingDuration=onlineGame?.isHost?Math.max(30,Math.min(300,state.meetingDuration||90)):Math.max(30,Math.min(300,Number($("meetingDuration")?.value)||90));
+ state.meeting=true;state.meetingPhase="discussion";state.selectedVote=null;state.lastBallots=[];state.meetingClaims=[];state.aiTurnCount=0;state.geminiCallsThisMeeting=0;state.aiSpokenIds=[];state.meetingDuration=onlineGame?.isHost?Math.max(30,Math.min(300,state.meetingDuration||90)):Math.max(30,Math.min(300,Number($("meetingDuration")?.value)||90));if(triadAutoModeActive&&!onlineGame)state.meetingDuration=12;
  state.meetingEvents=state.killEvents.filter(e=>state.dead.some(d=>d.id===e.victimId));
  const emergencyHold=Date.now()+45000;state.players.filter(p=>p.id!==0&&p.alive).forEach(p=>p.emergencyReadyAt=Math.max(p.emergencyReadyAt||0,emergencyHold));
  state.players.forEach(p=>p.charging=false);stopMove();
@@ -2472,6 +2501,7 @@ function beginVoting(auto=false){if(rankedServerMode){rankedEngineCall("begin_vo
  const alive=state.players.filter(p=>p.alive);
  $("voteList").innerHTML=alive.map(p=>`<button data-vote-id="${p.id}" onclick="castVote(${p.id})"><span class="dot" style="background:${p.color}"></span><span style="color:${meetingNameColor(p)||"inherit"}">${playerTag(p)}</span><small style="color:${p.color}">(${p.colorName||"色"})</small></button>`).join("");
  if(!state.me.alive)$("voteList").querySelectorAll("button").forEach(b=>b.disabled=true);
+ if(triadAutoModeActive&&!onlineGame&&state.me.alive)setTimeout(()=>{if(state.meeting&&state.meetingPhase==="voting"&&state.selectedVote===null){state.selectedVote=chooseAIVote(state.me,state.players.filter(p=>p.alive));submitVote()}},450);
 }
 function openMap(){if(!state.running||!state.me.alive)return;drawOverview();$("mapModal").classList.add("show")}
 function closeMap(){$("mapModal").classList.remove("show")}
@@ -2546,6 +2576,7 @@ function submitVote(){if(rankedServerMode){if(state.selectedVote===null)return;c
   if(out&&markPlayerDead(out,"投票で追放")){$("voteResult").textContent=`${out.name} が ${max} 票で追放されました。陣営：${teamName(out.team)}`;log(out.name+" が投票で追放されました。");if(out.role==="てるてる")endGame("てるてるが会議で追放されたため、てるてるの単独勝利",{roles:["てるてる"]});else checkWin()}
  }
  updateNearbyActions();draw();
+ if(triadAutoModeActive&&!onlineGame&&state.running)setTimeout(()=>{if(state.meeting&&state.lastBallots.length)closeMeeting()},1300);
 }
 function closeMeeting(){if(isOnlineClient()){sendOnlineInput({kind:"action",action:"close_meeting"});return}
  if(!state.meeting||!state.lastBallots.length||state._closingMeeting)return;
@@ -2734,9 +2765,11 @@ function endGame(msg,winners={teams:[]}){
  $("gameResultReason").textContent=msg;
  $("gameResultDetail").textContent=`あなた：${teamName(state.me.team)}「${state.me.role}」／ ${state.me.alive?"生存":"幽霊"}`+progressRewardSummary();
  $("roleReveal").innerHTML=state.players.map(p=>`<div class="pill"><span class="dot" style="background:${p.color}"></span> ${playerTag(p)} — ${teamName(p.team)}「${p.role}」${p.alive?"":"（死亡）"}</div>`).join("");
- $("gameOverModal").classList.add("show");
+ $("gameOverModal").classList.add("show");updateTriadAutoModeUI();
+ if(triadAutoModeActive&&!onlineGame){if(triadAutoRestartTimer)clearTimeout(triadAutoRestartTimer);triadAutoRestartTimer=setTimeout(()=>{triadAutoRestartTimer=null;if(!triadAutoModeActive||rankedServerMode||onlineGame)return;$("gameOverModal").classList.remove("show");startGame().catch(e=>{console.warn("auto restart failed",e);triadAutoModeActive=false;updateTriadAutoModeUI();alert("オート周回を停止しました："+(e.message||e))})},3500)}
 }
 async function endToHome(){
+ if(triadAutoRestartTimer){clearTimeout(triadAutoRestartTimer);triadAutoRestartTimer=null}triadAutoModeActive=false;updateTriadAutoModeUI();
  rankedServerMode=false;rankedMeetingWasActive=false;
  if(onlineGame&&activeRoomId){if(!confirm("オンラインルームから退出してホームへ戻りますか？"))return;try{await leaveOnlineRoom()}catch(e){console.warn("online leave failed",e)}}
  stopMatchAutosave();discardSavedGame();if(state.running)saveAILongTermMemories({teams:[]},true);state.running=false;clearInterval(loop);clearInterval(clock);stopMove();stopBGM();document.querySelectorAll(".modal").forEach(m=>m.classList.remove("show"));show("home")
