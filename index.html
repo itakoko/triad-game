@@ -1247,6 +1247,7 @@ function toggleTriadAutoMode(force){
  if(triadAutoRestartTimer){clearTimeout(triadAutoRestartTimer);triadAutoRestartTimer=null}
  if(triadAutoModeActive&&state.running){stopMove();if(state.me){state.me.aiGoal=null;state.me.aiPath=[];state.me.aiNextGoalAt=Date.now();state.me.aiNextTaskAt=Date.now()+1200;state.me.aiTaskIndex=null}}
  if(!triadAutoModeActive&&state.me){state.me.aiGoal=null;state.me.aiPath=[];state.me.aiTaskIndex=null;state.me.charging=false;state.move={x:0,y:0};state.targetAction=null;$("targetModal")?.classList.remove("show");stopMove()}
+ if(state.meeting&&state.meetingPhase==="discussion"){state.meetingDuration=triadAutoModeActive?12:Math.max(30,Math.min(300,Number($("meetingDuration")?.value)||90));startMeetingTimer()}
  updateTriadAutoModeUI();
 }
 async function startGame(){
@@ -2504,7 +2505,7 @@ function beginVoting(auto=false){if(rankedServerMode){rankedEngineCall("begin_vo
  const alive=state.players.filter(p=>p.alive);
  $("voteList").innerHTML=alive.map(p=>`<button data-vote-id="${p.id}" onclick="castVote(${p.id})"><span class="dot" style="background:${p.color}"></span><span style="color:${meetingNameColor(p)||"inherit"}">${playerTag(p)}</span><small style="color:${p.color}">(${p.colorName||"色"})</small></button>`).join("");
  if(!state.me.alive)$("voteList").querySelectorAll("button").forEach(b=>b.disabled=true);
- if(triadAutoModeActive&&!onlineGame&&state.me.alive)setTimeout(()=>{if(state.meeting&&state.meetingPhase==="voting"&&state.selectedVote===null){state.selectedVote=chooseAIVote(state.me,state.players.filter(p=>p.alive));submitVote()}},450);
+ if(triadAutoModeActive&&!onlineGame&&state.me.alive)setTimeout(()=>{if(triadAutoModeActive&&state.meeting&&state.meetingPhase==="voting"&&state.selectedVote===null){state.selectedVote=chooseAIVote(state.me,state.players.filter(p=>p.alive));submitVote()}},450);
 }
 function openMap(){if(!state.running||!state.me.alive)return;drawOverview();$("mapModal").classList.add("show")}
 function closeMap(){$("mapModal").classList.remove("show")}
@@ -2579,7 +2580,7 @@ function submitVote(){if(rankedServerMode){if(state.selectedVote===null)return;c
   if(out&&markPlayerDead(out,"投票で追放")){$("voteResult").textContent=`${out.name} が ${max} 票で追放されました。陣営：${teamName(out.team)}`;log(out.name+" が投票で追放されました。");if(out.role==="てるてる")endGame("てるてるが会議で追放されたため、てるてるの単独勝利",{roles:["てるてる"]});else checkWin()}
  }
  updateNearbyActions();draw();
- if(triadAutoModeActive&&!onlineGame&&state.running)setTimeout(()=>{if(state.meeting&&state.lastBallots.length)closeMeeting()},1300);
+ if(triadAutoModeActive&&!onlineGame&&state.running)setTimeout(()=>{if(triadAutoModeActive&&state.meeting&&state.lastBallots.length)closeMeeting()},1300);
 }
 function closeMeeting(){if(isOnlineClient()){sendOnlineInput({kind:"action",action:"close_meeting"});return}
  if(!state.meeting||!state.lastBallots.length||state._closingMeeting)return;
