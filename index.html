@@ -2682,6 +2682,10 @@ function checkWin(){
  state._checkingWin=true;
  try{
  const alive=state.players.filter(p=>p.alive),b=alive.filter(p=>p.team==="black").length,w=alive.filter(p=>p.team==="white").length,t=alive.filter(p=>p.team==="third").length;
+ const sharedTasks=Array.isArray(state.tasks)?state.tasks:[];
+ if(sharedTasks.length>0&&sharedTasks.every(task=>task.done===true||Number(task.remaining||0)<=0)){
+  endGame("共有タスクをすべて完了しました。白陣営のタスク勝利です。",{teams:["white"]});return;
+ }
  const assassin=alive.find(p=>p.role==="暗殺者");
  if(assassin&&state.bountyIds.length===3&&state.bountyIds.every(id=>!state.players.find(p=>p.id===id)?.alive)){endGame("暗殺者が手配対象全員を倒したため、暗殺者の単独勝利",{roles:["暗殺者"]});return}
  const wanderer=alive.find(p=>p.role==="放浪者");
